@@ -3,12 +3,15 @@ import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 
+from .adaptive_scroll_area import QAdaptiveScrollArea
+
 
 class QDisplaySample(qtw.QWidget):    
     def __init__(self, *args, **kwargs):
         super(QDisplaySample, self).__init__(*args, **kwargs)
         self.scheme = None
         self.sample = None
+        self.scroll_widgets = []
         
         self.top_widget = qtw.QLabel('CURRENT SAMPLE', alignment=qtc.Qt.AlignCenter)
                 
@@ -39,7 +42,7 @@ class QDisplaySample(qtw.QWidget):
         vbox.addWidget(self.bottom_widget, alignment=qtc.Qt.AlignCenter)
         
         self.setLayout(vbox)
-        self.setFixedWidth(300)
+        self.setMinimumWidth(300)
         self.__update__()
 
     def set_annotation(self, annotation):
@@ -69,41 +72,38 @@ class QDisplaySample(qtw.QWidget):
             self.end_value.setText(str(self.sample.end_position))
         
         # Case 3: Sample and scheme loaded
-        else: 
+        else:
             widget = qtw.QWidget(self)
-            widget.setLayout(qtw.QFormLayout())
+            grid = qtw.QGridLayout()
+            grid.setColumnStretch(1,1)
             
-            for group_name, group_elements in self.scheme:                
-                scroll_area = qtw.QScrollArea(self)
-                scroll_area.setFixedHeight(50)
-                inner_widget = qtw.QWidget(scroll_area)
-                inner_widget.setLayout(qtw.QVBoxLayout())
-                inner_widget.layout().setAlignment(qtc.Qt.AlignCenter)
-        
+            for idx, (group_name, group_elements) in enumerate(self.scheme):        
+                scroll_wid = QAdaptiveScrollArea(self)
+
                 for elem in group_elements:
                     if self.sample.annotation[group_name][elem] == 1:
                         lbl = qtw.QLabel(elem, alignment=qtc.Qt.AlignCenter)
-                        lbl.setFixedWidth(150)
                         lbl.setAlignment(qtc.Qt.AlignCenter)
-                        inner_widget.layout().addWidget(lbl, alignment=qtc.Qt.AlignCenter)
+                        scroll_wid.addItem(lbl)
                 
-                scroll_area.setWidget(inner_widget)
                 
-                lbl = qtw.QLabel(group_name)
-                lbl.setAlignment(qtc.Qt.AlignCenter)
-                widget.layout().addRow(lbl, scroll_area)
+                txt = group_name.upper() + ':'
+                name_label = qtw.QLabel(txt)
+                
+                grid.addWidget(name_label, idx, 0)
+                grid.addWidget(scroll_wid, idx, 1)
 
+            widget.setLayout(grid)
+            
             self.layout().replaceWidget(self.middle_widget, widget)
             self.middle_widget.setParent(None)
             self.middle_widget = widget
             self.start_value.setText(str(self.sample.start_position))
             self.end_value.setText(str(self.sample.end_position))
 
-def clear_layout(widget):
-    layout = widget.layout()
-    for i in reversed(range(layout.count())): 
-        layout.itemAt(i).widget().setParent(None)
 
+
+    
     
 if __name__ == "__main__":
     import sys

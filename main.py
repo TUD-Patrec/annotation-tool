@@ -1,6 +1,8 @@
 import os
 import logging
 import sys
+
+from cv2 import dnn_DetectionModel
 from src.anno_tool import main
 from src.data_classes.singletons import Paths
 from src.util.util import init_folder_structure, init_logger

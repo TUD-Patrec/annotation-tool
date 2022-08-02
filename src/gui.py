@@ -3,12 +3,15 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import os
 import logging
+
+from regex import R
 from .data_classes.singletons import Paths, Settings
 from .data_classes.annotation import Annotation
 import numpy as np
 from .util import util
 from .data_classes.datasets import DatasetDescription
 from .dialogs.settings import SettingsDialog
+from .adaptive_scroll_area import QAdaptiveScrollArea
 import shutil
 
 paths: Paths = Paths.instance()
@@ -296,17 +299,11 @@ class QNewAnnotationDialog(qtw.QDialog):
         self.annotation_name.textChanged.connect(lambda _: self.check_enabled())
         form.addRow('Annotation name:', self.annotation_name)
                 
-        self.datasets = []
+        self.datasets = get_datasets()
         self.combobox = qtw.QComboBox()
-        
-        for file in os.listdir(paths.datasets):
-            file_path = os.path.join(paths.datasets, file)
-            if util.is_non_zero_file(file_path):
-                data_description = DatasetDescription.from_disk(file_path)
-                self.datasets.append(data_description)
-                self.combobox.addItem(data_description.name)
-                
-        
+        for data_description in self.datasets:
+            self.combobox.addItem(data_description.name)
+    
         self.combobox.currentIndexChanged.connect(lambda _: self.check_enabled())
         
         form.addRow('Datasets:', self.combobox)
@@ -367,7 +364,6 @@ class QNewAnnotationDialog(qtw.QDialog):
             
             dataset_description = self.datasets[idx]
             
-            # TODO implement 
             annotator_id = Settings.instance().annotator_id
             annotation = Annotation(annotator_id, dataset_description, self.annotation_name.text(), self.line_edit.text(), use_media_player)
             self.load_annotation.emit(annotation)
@@ -382,14 +378,9 @@ class QLoadExistingAnnotationDialog(qtw.QDialog):
         form = qtw.QFormLayout()
         self.combobox = qtw.QComboBox()
         
-        self.annotations = []
-        
-        for file in os.listdir(paths.annotations):
-            file_path = os.path.join(paths.annotations, file)
-            if util.is_non_zero_file(file_path):
-                annotation  = Annotation.from_disk(file_path)
-                self.annotations.append(annotation)
-                self.combobox.addItem(annotation.name)
+        self.annotations = get_annotations()
+        for annotation in self.annotations:
+            self.combobox.addItem(annotation.name)
                 
         self.combobox.currentIndexChanged.connect(lambda x: self.process_combobox_value(x))
         
@@ -498,14 +489,9 @@ class QExportAnnotationDialog(qtw.QDialog):
         form = qtw.QFormLayout()
         self.annotation_combobox = qtw.QComboBox()
     
-        self.annotations = []
-        
-        for file in os.listdir(paths.annotations):
-            file_path = os.path.join(paths.annotations, file)
-            if util.is_non_zero_file(file_path):
-                annotation  = Annotation.from_disk(file_path)
-                self.annotations.append(annotation)
-                self.annotation_combobox.addItem(annotation.name)
+        self.annotations = get_annotations()
+        for annotation in self.annotations:
+            self.annotation_combobox.addItem(annotation.name)
         
         self.annotation_combobox.currentIndexChanged.connect(lambda _: self.check_enabled())
         form.addRow('Annotation Name:', self.annotation_combobox)
@@ -653,13 +639,11 @@ class QEditDatasets(qtw.QDialog):
         super(QEditDatasets, self).__init__(*args, **kwargs)
         vbox = qtw.QVBoxLayout()
         
-        self.scroll_area = qtw.QScrollArea(self)
-        self.scroll_area.setAlignment(qtc.Qt.AlignCenter)
-        self.scroll_area.setSizeAdjustPolicy(qtw.QAbstractScrollArea.AdjustToContentsOnFirstShow)
+        self.scroll_widget = QAdaptiveScrollArea(self)
+        self.scroll_widget.setSizePolicy(qtw.QSizePolicy.Expanding, qtw.QSizePolicy.Expanding)
         
-        self.scroll_widget = qtw.QWidget()
-        
-        vbox.addWidget(self.scroll_area, stretch=1)       
+        vbox.addWidget(self.make_header())
+        vbox.addWidget(self.scroll_widget, stretch=1)       
         
         self.bottom_widget = qtw.QWidget()
         self.bottom_widget.setLayout(qtw.QFormLayout())
@@ -689,13 +673,10 @@ class QEditDatasets(qtw.QDialog):
         vbox.addWidget(self.bottom_widget) 
         
         self.setLayout(vbox)
+        self.setFixedSize(600,400)
         
         self._reload()
 
-    def resizeEvent(self, a0: qtg.QResizeEvent) -> None:
-        self.scroll_widget.resize(self.scroll_area.width() - 20, self.scroll_widget.height())
-        super().resizeEvent(a0)
-    
     def get_scheme_path(self):
         file_path, _ = qtw.QFileDialog.getOpenFileName(directory='', filter='(*.json)')
         if util.is_non_zero_file(file_path):
@@ -715,73 +696,109 @@ class QEditDatasets(qtw.QDialog):
         else:
             self._dependencies.setText('')
     
-    def _reload(self):
-        self.scroll_widget = qtw.QWidget(self)
-        self.scroll_widget.setLayout(qtw.QGridLayout())
-        self.scroll_widget.layout().setAlignment(qtc.Qt.AlignTop)
-        
+    def make_header(self):
+        row_widget = qtw.QWidget(self)
+        hbox = qtw.QHBoxLayout(row_widget)
+        row_widget.setLayout(hbox)
+                
         id_lbl = qtw.QLabel('ID')
         id_lbl.setAlignment(qtc.Qt.AlignCenter)
-        self.scroll_widget.layout().addWidget(id_lbl, 0, 0)
+        hbox.addWidget(id_lbl)
         
         name_lbl = qtw.QLabel('Name')
         name_lbl.setAlignment(qtc.Qt.AlignCenter)
-        self.scroll_widget.layout().addWidget(name_lbl, 0, 1)
+        hbox.addWidget(name_lbl)
         
         dependencies_lbl = qtw.QLabel('Dependencies')
         dependencies_lbl.setAlignment(qtc.Qt.AlignCenter)
-        self.scroll_widget.layout().addWidget(dependencies_lbl, 0, 2)
+        hbox.addWidget(dependencies_lbl)
 
         modify_lbl = qtw.QLabel('Modify')
         modify_lbl.setAlignment(qtc.Qt.AlignCenter)
-        self.scroll_widget.layout().addWidget(modify_lbl, 0, 3)
+        hbox.addWidget(modify_lbl)
         
         remove_lbl = qtw.QLabel('Remove')
         remove_lbl.setAlignment(qtc.Qt.AlignCenter)
-        self.scroll_widget.layout().addWidget(remove_lbl, 0, 4)
+        hbox.addWidget(remove_lbl)
         
-        self.scroll_widget.layout().addWidget(qtw.QLabel('-'*100), 1,0, 1, 5, qtc.Qt.AlignCenter)
-        
-        for idx, dataset in enumerate(self.get_datasets(), 2):
-            idx_label = qtw.QLabel(str(idx))
-            idx_label.setAlignment(qtc.Qt.AlignCenter)
-            
-            name_label =  qtw.QLabel(dataset.name)
-            name_label.setAlignment(qtc.Qt.AlignCenter)
-            
-            path_label = qtw.QLabel(dataset.path)
-            path_label.setAlignment(qtc.Qt.AlignCenter)
-            
-            dependencies_exist = dataset.dependencies_exist
-            dependencies_label = qtw.QLabel(str(dependencies_exist))
-            dependencies_label.setAlignment(qtc.Qt.AlignCenter)
-            
-            edit_btn = qtw.QPushButton()
-            edit_btn.setText('Edit')
-            edit_btn.setEnabled(False)
-            
-            remove_btn = qtw.QPushButton()
-            remove_btn.setText('Remove')
-            remove_btn.setEnabled(False)
-            
-            self.scroll_widget.layout().addWidget(idx_label, idx, 0, qtc.Qt.AlignCenter)
-            self.scroll_widget.layout().addWidget(name_label, idx, 1, qtc.Qt.AlignCenter)
-            self.scroll_widget.layout().addWidget(dependencies_label, idx, 2, qtc.Qt.AlignCenter)
-            self.scroll_widget.layout().addWidget(edit_btn, idx, 3, qtc.Qt.AlignCenter)
-            self.scroll_widget.layout().addWidget(remove_btn, idx, 4, qtc.Qt.AlignCenter)
-        
-        
-        self.scroll_area.setWidget(self.scroll_widget)
+        return row_widget
     
+    def _make_row(self, id):
+        row_widget = qtw.QWidget(self)
+        hbox = qtw.QHBoxLayout(row_widget)
+        
+        dataset = get_datasets()[id]
+        
+        idx_label = qtw.QLabel(str(id + 1))
+        idx_label.setAlignment(qtc.Qt.AlignCenter)
+        hbox.addWidget(idx_label)
+        
+        name_label =  qtw.QLabel(dataset.name)
+        name_label.setAlignment(qtc.Qt.AlignCenter)
+        hbox.addWidget(name_label)
+                
+        dependencies_exist = dataset.dependencies_exist
+        dependencies_exist = 'loaded' if dependencies_exist else 'not loaded'
+        dependencies_label = qtw.QLabel(dependencies_exist)
+        dependencies_label.setAlignment(qtc.Qt.AlignCenter)
+        hbox.addWidget(dependencies_label)
+        
+        edit_btn = qtw.QPushButton()
+        edit_btn.setText('Edit')
+        edit_btn.setEnabled(False)
+        hbox.addWidget(edit_btn)
+        
+        remove_btn = qtw.QPushButton()
+        remove_btn.setText('Remove')
+        remove_btn.setEnabled(False)
+        hbox.addWidget(remove_btn)
+        
+        row_widget.setLayout(hbox)
+        
+        return row_widget
+
+    def _reload(self):
+        self.scroll_widget.clear()
+               
+        for idx, _ in enumerate(get_datasets()):
+            row = self._make_row(idx)
+            row.setSizePolicy(qtw.QSizePolicy.Expanding, qtw.QSizePolicy.Expanding)
+            self.scroll_widget.addItem(row)
+     
     def add_pressed(self):
         # TODO Check scheme and dependencies fit together
         name = self._name.text()
         if name == '':
-            name = 'NoName' 
+            name = 'nameless'
+        scheme_loaded = True
+        try:
+            N = 0
+            scheme = util.read_json(self._scheme.text())
+            for x, y in scheme:
+                if type(x) != str:
+                    scheme_loaded = False
+                if type(y) != list:
+                    scheme_loaded = False
+                for elem in y:
+                    if type(elem) != str:
+                        scheme_loaded = False
+                    N += 1
+        except:
+            scheme_loaded = False
         
-        scheme = util.read_json(self._scheme.text())
+        if not scheme_loaded:
+            self._scheme.setText('Could not load scheme.') 
+            return       
+        
         if self._dependencies.text() != '':
-            dependencies = util.csv_to_numpy(self._dependencies.text(), dtype=int)
+            try:
+                dependencies = util.csv_to_numpy(self._dependencies.text(), dtype=int)
+            except:
+                self._dependencies.setText('Could not load dependencies.')
+                return
+            if dependencies.shape[0] < 0 or dependencies.shape[1] != N:
+                self._dependencies.setText('Could not load dependencies.')
+                return
         else:
             dependencies = []
         
@@ -794,15 +811,6 @@ class QEditDatasets(qtw.QDialog):
         self._scheme.setText('')
         self._dependencies.setText('')
         self.add_button.setEnabled(False)
-    
-    def get_datasets(self):
-        datasets = []
-        for file in os.listdir(paths.datasets):
-                file_path = os.path.join(paths.datasets, file)
-                if util.is_non_zero_file(file_path):
-                    data_description = DatasetDescription.from_disk(file_path)
-                    datasets.append(data_description)
-        return datasets
 
 
 class QLineEditAdapted(qtw.QLineEdit):
@@ -813,6 +821,29 @@ class QLineEditAdapted(qtw.QLineEdit):
 
     def mousePressEvent(self, event):
         self.mousePressed.emit()
+
+
+
+def get_datasets():
+        datasets = []
+        for file in os.listdir(paths.datasets):
+                file_path = os.path.join(paths.datasets, file)
+                if util.is_non_zero_file(file_path):
+                    data_description = DatasetDescription.from_disk(file_path)
+                    datasets.append(data_description)
+        datasets.sort(key=lambda x: x.name)
+        return datasets
+
+
+def get_annotations():
+    annotations = []
+    for file in os.listdir(paths.annotations):
+            file_path = os.path.join(paths.annotations, file)
+            if util.is_non_zero_file(file_path):
+                annotation = Annotation.from_disk(file_path)
+                annotations.append(annotation)
+    annotations.sort(key=lambda x: x.name)
+    return annotations
 
  
 if __name__ == "__main__":

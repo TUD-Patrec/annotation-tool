@@ -87,7 +87,7 @@ class QAnnotationWidget(qtw.QWidget):
             self.check_for_selected_sample()
             if update_timeline:
                 self.timeline.set_position(new_pos)
-    
+            
     # TODO try get rid of self.n_frames -> apply set_position partially?
     @qtc.pyqtSlot(Annotation)
     def set_annotation(self, annotation):
@@ -103,6 +103,9 @@ class QAnnotationWidget(qtw.QWidget):
             # Maybe somewhere else?
             color_mapper = ColorMapper.instance()
             color_mapper.scheme = annotation.dataset.scheme
+            
+            self.position = 0
+            self.timeline.set_position(0)
             
             self.timeline.update()
             self.__update_label__()
@@ -151,10 +154,11 @@ class QAnnotationWidget(qtw.QWidget):
             if self.dataset_scheme is None:
                 logging.warning('No Annotation Scheme loaded!')
                 return
-            dialog = QAnnotationDialog(self.dataset_scheme, self.dataset_dependencies)
           
             if self.selected_sample().annotation_exists:
-                dialog.set_annotation(self.selected_sample().annotation)
+                dialog = QAnnotationDialog(self.dataset_scheme, self.dataset_dependencies, self.selected_sample().annotation)
+            else:
+                dialog = QAnnotationDialog(self.dataset_scheme, self.dataset_dependencies,)
             
             dialog.new_annotation.connect(lambda x: self.update_sample_annotation(x))
             dialog.exec_()
