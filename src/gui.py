@@ -4,7 +4,6 @@ import PyQt5.QtGui as qtg
 import os
 import logging
 
-from regex import R
 from .data_classes.singletons import Paths, Settings
 from .data_classes.annotation import Annotation
 import numpy as np

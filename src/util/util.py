@@ -5,7 +5,6 @@ import logging
 import logging.config
 import os
 import cv2
-import PIL
 import json
 import random
 import PyQt5.QtGui as qtg
@@ -139,7 +138,6 @@ def init_logger():
     log_config_dict = logging_config()
     log_config_dict['handlers']['screen_handler']['level'] = 'DEBUG' if Settings.instance().debugging_mode else 'WARNING'
     logging.config.dictConfig(log_config_dict)
-    logging.getLogger(PIL.__name__).setLevel(logging.WARNING)
     
 def create_dir(path):
     if not os.path.exists(path):
