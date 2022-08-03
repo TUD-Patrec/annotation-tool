@@ -2,6 +2,9 @@ from dataclasses import dataclass, field, fields
 import os
 import logging
 from ..util import functions, util
+from distinctipy import distinctipy
+import PyQt5.QtGui as qtg
+import random
 
 class Singleton:
     """
@@ -47,7 +50,7 @@ class Singleton:
 class ColorMapper:
     _scheme: list = field(init=False)
     _color_map: dict = field(init=False, default_factory=dict)
-    
+        
     @property
     def scheme(self):
         return self._scheme
@@ -70,16 +73,25 @@ class ColorMapper:
             first_group = [annotation[group_name][label_name] for label_name in group_elements]
             
             # bin_array -> number          
-            x = 0
-            for idx, value in enumerate(first_group):
-                x += 2 ** idx * int(value == 1)
+            x = ""
+            for idx, value in enumerate(first_group, 1):
+                if value:
+                    x += str(idx)
+            
+            x = int(x)
             
             if self._color_map.get(x) is None:
-                new_color = util.generate_random_color(x)
-                new_color.setAlpha(127)
-                self._color_map[x] = new_color
+                existing_colors = list(self._color_map.values())
+                random.seed(42)
+                r,g,b = distinctipy.get_colors(n_colors=1, exclude_colors=existing_colors, n_attempts=250)[0]
+                self._color_map[x] = r,g,b
             
-            return self._color_map[x]
+            r,g,b = self._color_map[x]
+            r, g, b = r * 255, g * 255, b * 255
+            color = qtg.QColor(r,g,b)
+            color.setAlpha(127)
+            
+            return color
 
 
 @Singleton

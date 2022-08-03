@@ -6,8 +6,6 @@ import logging.config
 import os
 import cv2
 import json
-import random
-import PyQt5.QtGui as qtg
 import numpy as np
 import math
 from ..data_classes.singletons import Paths, Settings
@@ -30,10 +28,6 @@ def __generate_file_md5__(path, blocksize=2**20):
             m.update(buf)
     return m.hexdigest()
 
-def generate_random_color(seed):
-    random.seed(seed)
-    color = "#"+''.join([random.choice('0123456789ABCDEF') for j in range(6)])
-    return qtg.QColor(color)
       
 def meta_data(path):
     if is_non_zero_file(path):

@@ -2,6 +2,7 @@ import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 
+
 import sys, logging
 import numpy as np
 
@@ -72,6 +73,7 @@ class QAnnotationDialog(qtw.QDialog):
         self.top_widget = qtw.QWidget(self)
         self.top_widget.layout = qtw.QGridLayout(self.top_widget)
         self.top_widget.layout.setColumnStretch(1, 1)
+        self.top_widget.layout.setRowStretch(0, 1)
         
         idx = 0
         self.buttons = []
@@ -90,7 +92,7 @@ class QAnnotationDialog(qtw.QDialog):
                 
                 group_buttons.append(button)
                 idx += 1
-            new_scroll_widget = QAdaptiveScrollArea(group_buttons)
+            new_scroll_widget = QAdaptiveScrollArea(group_buttons, no_scroll=group_idx == 0 or len(group_buttons) < 10)
             self.scroll_widgets.append(new_scroll_widget)
             
             lbl = qtw.QLabel()
@@ -99,7 +101,8 @@ class QAnnotationDialog(qtw.QDialog):
             
             self.top_widget.layout.addWidget(lbl, group_idx, 0)
             self.top_widget.layout.addWidget(new_scroll_widget, group_idx, 1)
-     
+            
+            
     def init_bottom_widget(self):
         self.bottom_widget = qtw.QWidget(self)
         hbox = qtw.QHBoxLayout(self.bottom_widget)
@@ -267,10 +270,11 @@ class QPushButtonAdapted(qtw.QPushButton):
 
 
 class QAdaptiveScrollArea(qtw.QWidget):
-    def __init__(self, buttons, parent=None):
+    def __init__(self, buttons, no_scroll=False, parent=None):
         super(QAdaptiveScrollArea, self).__init__(parent=parent)
         self.buttons = buttons
         self.elements_per_row = 3
+        self.no_scroll = no_scroll
         self.initUI()
         
     
@@ -278,35 +282,56 @@ class QAdaptiveScrollArea(qtw.QWidget):
         for btn in self.buttons:
             btn.setParent(None)
         
-        self.layout = qtw.QHBoxLayout(self)
-        self.scrollArea = qtw.QScrollArea(self)
-        self.scrollArea.setWidgetResizable(True)
-        self.scrollAreaWidgetContents = qtw.QWidget()
-        self.gridLayout = qtw.QGridLayout(self.scrollAreaWidgetContents)
-        #self.gridLayout.setAlignment(qtc.Qt.AlignLeft)
-        self.scrollArea.setWidget(self.scrollAreaWidgetContents)
-        self.layout.addWidget(self.scrollArea)
-        
-        self.scrollArea.setVerticalScrollBarPolicy(qtc.Qt.ScrollBarAlwaysOn)
-        self.scrollArea.setHorizontalScrollBarPolicy(qtc.Qt.ScrollBarAlwaysOff)
-        
-        for idx, btn in enumerate(filter(lambda x: x.isCheckable() or x.is_highlighted, self.buttons)):
-            row, col = idx // self.elements_per_row + 1, idx % self.elements_per_row
-            self.gridLayout.addWidget(btn, row, col)
+        if self.no_scroll:
+            self.layout = qtw.QHBoxLayout(self)
+            self.scrollAreaWidgetContents = qtw.QWidget()
+            self.gridLayout = qtw.QGridLayout(self.scrollAreaWidgetContents)
+            self.layout.addWidget(self.scrollAreaWidgetContents)
+            
+            for idx, btn in enumerate(filter(lambda x: x.isCheckable() or x.is_highlighted, self.buttons)):
+                row, col = idx // self.elements_per_row + 1, idx % self.elements_per_row
+                self.gridLayout.addWidget(btn, row, col)
+
+        else:
+            self.layout = qtw.QHBoxLayout(self)
+            self.scrollArea = qtw.QScrollArea(self)
+            self.scrollArea.setWidgetResizable(True)
+            self.scrollAreaWidgetContents = qtw.QWidget()
+            self.gridLayout = qtw.QGridLayout(self.scrollAreaWidgetContents)
+            self.scrollArea.setWidget(self.scrollAreaWidgetContents)
+            self.layout.addWidget(self.scrollArea)
+            
+            self.scrollArea.setVerticalScrollBarPolicy(qtc.Qt.ScrollBarAlwaysOn)
+            # self.scrollArea.setHorizontalScrollBarPolicy(qtc.Qt.ScrollBarAlwaysOff)
+            
+            for idx, btn in enumerate(filter(lambda x: x.isCheckable() or x.is_highlighted, self.buttons)):
+                row, col = idx // self.elements_per_row + 1, idx % self.elements_per_row
+                self.gridLayout.addWidget(btn, row, col)
 
     def updateUI(self):
         for btn in self.buttons:
             btn.setParent(None)
-            
-        self.scrollAreaWidgetContents = qtw.QWidget()
-        self.gridLayout = qtw.QGridLayout(self.scrollAreaWidgetContents)
-        #self.gridLayout.setAlignment(qtc.Qt.AlignLeft)
-                 
-        self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         
-        for idx, btn in enumerate(filter(lambda x: x.isCheckable() or x.is_highlighted, self.buttons)):
-            row, col = idx // self.elements_per_row + 1, idx % self.elements_per_row
-            self.gridLayout.addWidget(btn, row, col)
+        if self.no_scroll:
+            old_w = self.scrollAreaWidgetContents
+            self.scrollAreaWidgetContents = qtw.QWidget()
+            self.gridLayout = qtw.QGridLayout(self.scrollAreaWidgetContents)
+                        
+            self.layout.replaceWidget(old_w, self.scrollAreaWidgetContents)
+            
+            for idx, btn in enumerate(filter(lambda x: x.isCheckable() or x.is_highlighted, self.buttons)):
+                row, col = idx // self.elements_per_row + 1, idx % self.elements_per_row
+                self.gridLayout.addWidget(btn, row, col)
+                
+        else:
+            self.scrollAreaWidgetContents = qtw.QWidget()
+            self.gridLayout = qtw.QGridLayout(self.scrollAreaWidgetContents)
+                    
+            self.scrollArea.setWidget(self.scrollAreaWidgetContents)
+            
+            for idx, btn in enumerate(filter(lambda x: x.isCheckable() or x.is_highlighted, self.buttons)):
+                row, col = idx // self.elements_per_row + 1, idx % self.elements_per_row
+                self.gridLayout.addWidget(btn, row, col)
         
         
 
