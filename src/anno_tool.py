@@ -58,6 +58,7 @@ class MainApplication(qtw.QApplication):
         self.gui.merge_left_pressed.connect(lambda : self.annotation_widget.merge_left_btn.trigger())
         self.gui.merge_right_pressed.connect(lambda : self.annotation_widget.merge_right_btn.trigger())
         self.gui.cut_pressed.connect(lambda: self.annotation_widget.cut_btn.trigger())
+        self.gui.cut_and_annotate_pressed.connect(lambda: self.annotation_widget.cut_and_annotate_btn.trigger())
         self.gui.play_pause_pressed.connect(lambda : self.player.play_stop_button.trigger())
         self.gui.decrease_speed_pressed.connect(self.player.decrease_speed)
         self.gui.increase_speed_pressed.connect(self.player.increase_speed)

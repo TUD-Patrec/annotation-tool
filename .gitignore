@@ -133,4 +133,5 @@ dmypy.json
 # OWN
 
 __local_storage__/
+__local__storage__/
 trash/

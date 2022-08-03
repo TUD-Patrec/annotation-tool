@@ -22,6 +22,7 @@ class GUI(qtw.QMainWindow):
     play_pause_pressed = qtc.pyqtSignal()
     skip_frames = qtc.pyqtSignal(bool, bool)
     cut_pressed = qtc.pyqtSignal()
+    cut_and_annotate_pressed = qtc.pyqtSignal()
     merge_left_pressed = qtc.pyqtSignal()
     merge_right_pressed = qtc.pyqtSignal()
     annotate_pressed = qtc.pyqtSignal()
@@ -131,9 +132,21 @@ class GUI(qtw.QMainWindow):
         edit_menu = menu.addMenu('&Edit')
                  
         edit_menu.addAction(
+            'Annotate',
+            self.annotate_pressed,
+            qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_A)
+        ) 
+                
+        edit_menu.addAction(
             'Cut',
             self.cut_pressed,
             qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_C)
+        )
+        
+        edit_menu.addAction(
+            'Cut + Annotate',
+            self.cut_and_annotate_pressed,
+            qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_X)
         )
         
         edit_menu.addAction(
@@ -152,12 +165,7 @@ class GUI(qtw.QMainWindow):
             'Merge adjacent annotations',
             self.merge_adjacent_pressed
         )
-        
-        edit_menu.addAction(
-            'Annotate',
-            self.annotate_pressed,
-            qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_A)
-        )
+                
         
         edit_menu.addAction(
             'Reset Annotation',
@@ -218,11 +226,11 @@ class GUI(qtw.QMainWindow):
             qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_E)
         )
         
-        file_menu.addAction(
-            'Import Annotation',
-            self.create_new_annotation,
-            qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_I)
-        )
+        #file_menu.addAction(
+        #    'Import Annotation',
+        #    ,
+        #    qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_I)
+        #)
         
         file_menu.addAction(
             'Edit Datasets',
@@ -672,7 +680,7 @@ class QEditDatasets(qtw.QDialog):
         vbox.addWidget(self.bottom_widget) 
         
         self.setLayout(vbox)
-        self.setFixedSize(600,400)
+        self.setMinimumSize(600,400)
         
         self._reload()
 

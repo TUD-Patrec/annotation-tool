@@ -12,7 +12,7 @@ class QAnnotationDialog(qtw.QDialog):
         super(QAnnotationDialog, self).__init__(*args, **kwargs)
         self.scheme = scheme
         self.dependencies = dependencies
-                
+        
         self.init_top_widget()
         self.init_bottom_widget()
         
@@ -23,8 +23,7 @@ class QAnnotationDialog(qtw.QDialog):
         self.N = len(self.buttons)
         self.current_selection = np.zeros(self.N, dtype=np.uint8)
         
-        self.setMinimumWidth(1000)
-        self.setMinimumHeight(1000)
+        # self.setMinimumWidth(700)
         
         if annotation:
             self._set_annotation(annotation)
@@ -245,7 +244,7 @@ class QPushButtonAdapted(qtw.QPushButton):
         self.highlight_style = "border-color: gold"
         self.unchecked_style = ""
         self.setStyleSheet(self.unchecked_style)
-        self.setMinimumWidth(250)
+        # self.setMinimumWidth(180)
         #self.setSizePolicy(qtw.QSizePolicy.Expanding, qtw.QSizePolicy.Fixed)
         
         self.clicked.connect(lambda _: self.btn_clicked())
@@ -284,11 +283,12 @@ class QAdaptiveScrollArea(qtw.QWidget):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = qtw.QWidget()
         self.gridLayout = qtw.QGridLayout(self.scrollAreaWidgetContents)
-        self.gridLayout.setAlignment(qtc.Qt.AlignLeft)
+        #self.gridLayout.setAlignment(qtc.Qt.AlignLeft)
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         self.layout.addWidget(self.scrollArea)
         
         self.scrollArea.setVerticalScrollBarPolicy(qtc.Qt.ScrollBarAlwaysOn)
+        self.scrollArea.setHorizontalScrollBarPolicy(qtc.Qt.ScrollBarAlwaysOff)
         
         for idx, btn in enumerate(filter(lambda x: x.isCheckable() or x.is_highlighted, self.buttons)):
             row, col = idx // self.elements_per_row + 1, idx % self.elements_per_row
@@ -300,7 +300,7 @@ class QAdaptiveScrollArea(qtw.QWidget):
             
         self.scrollAreaWidgetContents = qtw.QWidget()
         self.gridLayout = qtw.QGridLayout(self.scrollAreaWidgetContents)
-        self.gridLayout.setAlignment(qtc.Qt.AlignLeft)
+        #self.gridLayout.setAlignment(qtc.Qt.AlignLeft)
                  
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         

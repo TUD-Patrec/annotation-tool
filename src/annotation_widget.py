@@ -49,11 +49,16 @@ class QAnnotationWidget(qtw.QWidget):
         self.annotate_btn.setStatusTip('Open the Annotation-Dialog for the highlighted sample.')
         self.annotate_btn.triggered.connect(lambda _: self.annotate_selected_sample())
         
+        self.cut_and_annotate_btn = qtw.QAction('C+A', self)
+        self.cut_and_annotate_btn.setStatusTip('Cut and immediately annotate the current sample.')
+        self.cut_and_annotate_btn.triggered.connect(lambda _: self.cut_and_annotate())
+        
         self.toolbar = qtw.QToolBar('Tools', self)
         self.toolbar.setOrientation(qtc.Qt.Vertical)
 
         self.toolbar.addAction(self.annotate_btn)
         self.toolbar.addAction(self.cut_btn)
+        self.toolbar.addAction(self.cut_and_annotate_btn)
         self.toolbar.addAction(self.merge_left_btn)
         self.toolbar.addAction(self.merge_right_btn)
                 
@@ -148,24 +153,30 @@ class QAnnotationWidget(qtw.QWidget):
         return self.samples[self.sample_idx]
     
     @qtc.pyqtSlot()
+    def cut_and_annotate(self):    
+        self.split_selected_sample()
+        self.annotate_selected_sample()
+        
+    @qtc.pyqtSlot()
     def annotate_selected_sample(self):
         if self.is_loaded():
             self.interrupt_replay.emit()
             if self.dataset_scheme is None:
                 logging.warning('No Annotation Scheme loaded!')
                 return
-          
-            if self.selected_sample().annotation_exists:
-                dialog = QAnnotationDialog(self.dataset_scheme, self.dataset_dependencies, self.selected_sample().annotation)
-            else:
-                dialog = QAnnotationDialog(self.dataset_scheme, self.dataset_dependencies,)
+
+            sample = self.selected_sample()
             
-            dialog.new_annotation.connect(lambda x: self.update_sample_annotation(x))
+            dialog = QAnnotationDialog(self.dataset_scheme, self.dataset_dependencies)
+            
+            dialog.new_annotation.connect(lambda x: self.update_sample_annotation(sample, x))
+            dialog.open()
+            if sample.annotation_exists:
+                dialog._set_annotation(sample.annotation)
             dialog.exec_()
     
-    def update_sample_annotation(self, new_annotation):
+    def update_sample_annotation(self, sample, new_annotation):
         self.add_to_undo_stack()
-        sample = self.selected_sample()
         sample.annotation = new_annotation
         self.check_for_selected_sample(force_update=True)
         
@@ -175,8 +186,8 @@ class QAnnotationWidget(qtw.QWidget):
             sample = self.selected_sample()
             
             if sample.start_position < self.position:
-                start_1, end_1 = sample.start_position, self.position-1
-                start_2, end_2 = self.position, sample.end_position
+                start_1, end_1 = sample.start_position, self.position
+                start_2, end_2 = self.position + 1, sample.end_position
 
                 s1 = Sample(start_1, end_1, sample.annotation)
                 s2 = Sample(start_2, end_2, sample.annotation)
