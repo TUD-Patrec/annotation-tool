@@ -17,6 +17,7 @@ class QAnnotationWidget(qtw.QWidget):
     position_changed = qtc.pyqtSignal(int)
     samples_changed = qtc.pyqtSignal(list, Sample)
     interrupt_replay = qtc.pyqtSignal()
+    update_label = qtc.pyqtSignal(int, int)
     
     def __init__(self, *args, **kwargs):
         super(QAnnotationWidget, self).__init__(*args, **kwargs)
@@ -33,25 +34,26 @@ class QAnnotationWidget(qtw.QWidget):
         self.undo_stack = list()
         self.redo_stack = list()
         
-        self.cut_btn = qtw.QAction('cut', self)
-        self.cut_btn.setStatusTip('Split the highlighted sample into two pieces.')
-        self.cut_btn.triggered.connect(lambda _: self.split_selected_sample())
-        
-        self.merge_left_btn = qtw.QAction('merge-left', self)
-        self.merge_left_btn.setStatusTip('Merge highlighted sample with the left neighbour.')
-        self.merge_left_btn.triggered.connect(lambda _: self.merge_samples(left=True))
-        
-        self.merge_right_btn = qtw.QAction('merge-right', self)
-        self.merge_right_btn.setStatusTip('Merge highlighted sample with the right neighbour')
-        self.merge_right_btn.triggered.connect(lambda _: self.merge_samples(left=False))
-
-        self.annotate_btn = qtw.QAction('annotate', self)
+        self.annotate_btn = qtw.QAction('Annotate', self)
         self.annotate_btn.setStatusTip('Open the Annotation-Dialog for the highlighted sample.')
         self.annotate_btn.triggered.connect(lambda _: self.annotate_selected_sample())
+        
+        self.cut_btn = qtw.QAction('Cut', self)
+        self.cut_btn.setStatusTip('Split the highlighted sample into two pieces.')
+        self.cut_btn.triggered.connect(lambda _: self.split_selected_sample())
         
         self.cut_and_annotate_btn = qtw.QAction('C+A', self)
         self.cut_and_annotate_btn.setStatusTip('Cut and immediately annotate the current sample.')
         self.cut_and_annotate_btn.triggered.connect(lambda _: self.cut_and_annotate())
+        
+        self.merge_left_btn = qtw.QAction('Merge Left', self)
+        self.merge_left_btn.setStatusTip('Merge highlighted sample with the left neighbour.')
+        self.merge_left_btn.triggered.connect(lambda _: self.merge_samples(left=True))
+        
+        self.merge_right_btn = qtw.QAction('Merge Right', self)
+        self.merge_right_btn.setStatusTip('Merge highlighted sample with the right neighbour')
+        self.merge_right_btn.triggered.connect(lambda _: self.merge_samples(left=False))
+       
         
         self.toolbar = qtw.QToolBar('Tools', self)
         self.toolbar.setOrientation(qtc.Qt.Vertical)
@@ -65,17 +67,13 @@ class QAnnotationWidget(qtw.QWidget):
         # layout
         grid = qtw.QGridLayout(self)
         
-        # label for displaying current frame position and total amount of frames of the current video/omocap recording
-        self.lbl = qtw.QLabel('0\n0')
-        self.lbl.setAlignment(qtc.Qt.AlignCenter)
-        
         self.timeline = QTimeLine()
         self.timeline.position_changed.connect(lambda x: self.set_position(x, False))       # Update own position
         self.timeline.position_changed.connect(self.position_changed)                       # Notify listeners
         self.samples_changed.connect(self.timeline.set_samples)
 
-        grid.addWidget(self.lbl, 0, 0)
-        grid.addWidget(self.toolbar, 1, 0)
+        # grid.addWidget(self.lbl, 0, 0)
+        grid.addWidget(self.toolbar, 0, 0)
         grid.addWidget(self.timeline, 0, 1, 2, 1)
 
         self.setLayout(grid)
@@ -123,10 +121,7 @@ class QAnnotationWidget(qtw.QWidget):
         self.timeline.update()
     
     def __update_label__(self):
-        frame_time_mapper = FrameTimeMapper.instance()
-        position = frame_time_mapper.frame_repr(self.position)
-        limit = frame_time_mapper.frame_repr(max(0, self.n_frames - 1))
-        self.lbl.setText('{}\n{}'.format(position, limit))
+        self.update_label.emit(self.position, self.n_frames)
     
     @qtc.pyqtSlot(int)
     def check_for_selected_sample(self, force_update=False):

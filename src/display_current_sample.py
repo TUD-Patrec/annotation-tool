@@ -4,7 +4,7 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 
 from .adaptive_scroll_area import QAdaptiveScrollArea
-
+from .util.lines import QHLine
 
 class QDisplaySample(qtw.QWidget):    
     def __init__(self, *args, **kwargs):
@@ -38,7 +38,9 @@ class QDisplaySample(qtw.QWidget):
                 
         vbox = qtw.QVBoxLayout()
         vbox.addWidget(self.top_widget, alignment=qtc.Qt.AlignCenter)
+        vbox.addWidget(QHLine())
         vbox.addWidget(self.middle_widget, alignment=qtc.Qt.AlignCenter, stretch=1)
+        vbox.addWidget(QHLine())
         vbox.addWidget(self.bottom_widget, alignment=qtc.Qt.AlignCenter)
         
         self.setLayout(vbox)

@@ -2,6 +2,9 @@ import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import logging
 
+from .data_classes.singletons import FrameTimeMapper
+from .util.lines import QHLine
+
 class PlayWidget(qtw.QWidget):
     playing = qtc.pyqtSignal()
     paused = qtc.pyqtSignal()
@@ -46,6 +49,9 @@ class PlayWidget(qtw.QWidget):
 
         self.replay_speed_widget = QReplaySpeedSlider(self)
         self.replay_speed_widget.valueChanged.connect(lambda x: self.replay_speed_changed.emit(x / 100))
+        
+        self.lbl = qtw.QLabel('0\n0')
+        self.lbl.setAlignment(qtc.Qt.AlignCenter)
 
         self.toolbar = qtw.QToolBar('SomeTitle', self)
         self.toolbar.setOrientation(qtc.Qt.Vertical)
@@ -58,8 +64,19 @@ class PlayWidget(qtw.QWidget):
 
         vbox = qtw.QVBoxLayout(self)
         vbox.addWidget(self.toolbar, stretch=1, alignment=qtc.Qt.AlignCenter)
+        vbox.addWidget(qtw.QLabel('Replay\nSpeed'))
         vbox.addWidget(self.replay_speed_widget)
+        vbox.addWidget(QHLine())
+        vbox.addWidget(qtw.QLabel('Position'))
+        vbox.addWidget(self.lbl)
         self.setLayout(vbox)
+    
+    @qtc.pyqtSlot(int, int)
+    def update_label(self, pos, limit):
+        frame_time_mapper = FrameTimeMapper.instance()
+        position = frame_time_mapper.frame_repr(pos)
+        limit = frame_time_mapper.frame_repr(max(0, limit - 1))
+        self.lbl.setText('{}\n{}'.format(position, limit))
 
     def play_stop_clicked(self):
         playing = self.play_stop_button.isChecked()

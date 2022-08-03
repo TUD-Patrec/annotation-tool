@@ -9,6 +9,9 @@ class SettingsDialog(qtw.QDialog):
     
     def __init__(self, *args, **kwargs):
         super(SettingsDialog, self).__init__(*args, **kwargs)
+        settings = Settings.instance()
+        self.old_settings = settings.as_dict()
+        
         form = qtw.QFormLayout()
         
         self.annotator_id = qtw.QLineEdit()
@@ -23,6 +26,9 @@ class SettingsDialog(qtw.QDialog):
         
         self.window_y = qtw.QLineEdit()
         form.addRow('Preferred Window_Height:', self.window_y)
+        
+        self.font_size = qtw.QLineEdit()
+        form.addRow('Font-Size:', self.font_size)
         
         self.darkmode = qtw.QCheckBox()
         form.addRow('Darkmode:', self.darkmode)
@@ -68,9 +74,7 @@ class SettingsDialog(qtw.QDialog):
         self.button_widget.setLayout(qtw.QHBoxLayout())
         self.button_widget.layout().addWidget(self.save_button)
         self.button_widget.layout().addWidget(self.reset_button)
-        self.button_widget.layout().addWidget(self.cancel_button)
-        
-        
+        self.button_widget.layout().addWidget(self.cancel_button)        
         
         form.addRow(self.button_widget)
         form.setAlignment(qtc.Qt.AlignCenter)
@@ -98,6 +102,11 @@ class SettingsDialog(qtw.QDialog):
         self.window_y.setValidator(y_validator)
         self.window_y.setText(str(settings.window_y))
         self.window_y.setPlaceholderText(str(settings.window_y))
+        
+        font_validator = qtg.QIntValidator(6, 18, self)
+        self.font_size.setValidator(font_validator)
+        self.font_size.setText(str(settings.medium_font))
+        self.font_size.setPlaceholderText(str(settings.medium_font))
         
         self.darkmode.setChecked(settings.darkmode)
         self.mocap_grid.setChecked(settings.mocap_grid)
@@ -132,6 +141,7 @@ class SettingsDialog(qtw.QDialog):
         settings.debugging_mode = self.debugging_mode.isChecked()
         settings.window_x = int(self.window_x.text())
         settings.window_y = int(self.window_y.text())
+        settings.medium_font = int(self.font_size.text())
         settings.darkmode = self.darkmode.isChecked()
         settings.mocap_grid = self.mocap_grid.isChecked()
         settings.show_millisecs = not self.frame_based.isChecked()
@@ -149,6 +159,7 @@ class SettingsDialog(qtw.QDialog):
         self.load_layout()
         
     def cancel_pressed(self):
+        Settings.instance().from_dict(self.old_settings)
         self.close()
  
 if __name__ == "__main__":

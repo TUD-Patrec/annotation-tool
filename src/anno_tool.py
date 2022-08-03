@@ -1,5 +1,6 @@
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
+import PyQt5.QtGui as qtg
 import sys, logging, logging.config
 
 from .data_classes.annotation import Annotation
@@ -49,6 +50,7 @@ class MainApplication(qtw.QApplication):
         self.annotation_widget.position_changed.connect(lambda x: self.set_position(x, update_annotation=False))
         self.annotation_widget.interrupt_replay.connect(self.media_player.pause)
         self.annotation_widget.interrupt_replay.connect(self.player.pause)
+        self.annotation_widget.update_label.connect(self.player.update_label)
         
         # from GUI
         self.gui.save_pressed.connect(self.save_annotation)
@@ -120,15 +122,23 @@ class MainApplication(qtw.QApplication):
 
     @qtc.pyqtSlot()
     def settings_changed(self):
-        FrameTimeMapper.instance().settings_changed()
         settings = Settings.instance()
+        app = qtw.QApplication.instance()
+        
+        custom_font = qtg.QFont()
+        custom_font.setPointSize(settings.medium_font);
+        app.setFont(custom_font)
+        
+        FrameTimeMapper.instance().settings_changed()
         
         log_config_dict = util.logging_config()
         log_config_dict['handlers']['screen_handler']['level'] = 'DEBUG' if settings.debugging_mode else 'WARNING'
         logging.config.dictConfig(log_config_dict)
         
-        self.reload_color_scheme()
+        
         self.annotation_widget.settings_changed()
+        
+        self.reload_color_scheme()
         
     def reload_color_scheme(self):
         settings = Settings.instance()
@@ -161,11 +171,19 @@ def main():
     sys.excepthook = except_hook
     
     app = MainApplication(sys.argv)
-    
+        
     settings = Settings.instance()
+    custom_font = qtg.QFont()
+    custom_font.setPointSize(settings.medium_font);
+    app.setFont(custom_font)
+    
     file = qtc.QFile(":/dark/stylesheet.qss") if settings.darkmode else qtc.QFile(":/light/stylesheet.qss")
     file.open(qtc.QFile.ReadOnly | qtc.QFile.Text)
     stream = qtc.QTextStream(file)
     app.setStyleSheet(stream.readAll())
+    
+    
+    #import qdarkstyle
+    #app.setStyleSheet(qdarkstyle.load_stylesheet(qt_api='pyqt5'))
     
     app.exec_()

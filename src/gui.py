@@ -40,7 +40,6 @@ class GUI(qtw.QMainWindow):
         # window setup
         settings = Settings.instance()
         x_min, y_min, x_max, y_max = settings.window_extrema()
-        self.setMinimumSize(x_min, y_min)
         
         self.resize(settings.window_x, settings.window_y)
         logging.info(self.size())

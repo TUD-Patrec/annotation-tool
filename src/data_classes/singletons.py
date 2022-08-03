@@ -137,11 +137,10 @@ class Settings:
     _window_x: int = field(init=False, default=1600)
     _window_y: int = field(init=False, default=900)
     _dark_mode: bool = field(init=False, default=False)
-    _tiny_font: int = field(init=False, default=8)
-    _small_font: int = field(init=False, default=10)
-    _medium_font: int = field(init=False, default=14)
-    _large_font: int = field(init=False, default=18)
-    _icon_size: int = field(init=False, default=10)
+    _tiny_font: int = field(init=False, default=6)
+    _small_font: int = field(init=False, default=8)
+    _medium_font: int = field(init=False, default=10)
+    _large_font: int = field(init=False, default=12)
     _mocap_grid: bool = field(init=False, default=True)
     _show_millisecs: bool = field(init=False, default=False)
     _small_skip: int = field(init=False, default=1)
@@ -156,7 +155,7 @@ class Settings:
             self.from_disk()
     
     def window_extrema(self):
-        return 1280, 720, 1920, 1080
+        return 1280, 720, 5000, 3000
     
     @property
     def annotator_id(self):
@@ -269,18 +268,7 @@ class Settings:
             raise ValueError
         else:
             self._large_font = min(max(6, value), 30)
-            
-    @property
-    def icon_size(self):
-        return self._icon_size
-    
-    @icon_size.setter
-    def icon_size(self, value):
-        if type(value) != int:
-            raise ValueError
-        else:
-            self._icon_size = min(max(6, value), 30)
-        
+
     @property
     def mocap_grid(self):
         return self._mocap_grid
@@ -332,14 +320,20 @@ class Settings:
     def from_disk(self):
         paths = Paths.instance()
         d = util.read_json(paths.config)
-        for field in fields(self):
-            logging.info('{} <- {}'.format(field.name, d[field.name]))
-            setattr(self, field.name, d[field.name]) 
+        self.from_dict(d)
             
     def to_disk(self):
         paths = Paths.instance()
-        d = dict((field.name, getattr(self, field.name)) for field in fields(self))
+        d = self.as_dict()
         util.write_json(paths.config, d)
+    
+    def from_dict(self, d):
+        for field in fields(self):
+            logging.info('{} <- {}'.format(field.name, d[field.name]))
+            setattr(self, field.name, d[field.name])
+    
+    def as_dict(self):
+        return dict((field.name, getattr(self, field.name)) for field in fields(self))
         
 
 @Singleton
