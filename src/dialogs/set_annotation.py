@@ -2,6 +2,8 @@ import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 
+from ..util.lines import QHLine
+
 
 import sys, logging
 import numpy as np
@@ -102,7 +104,6 @@ class QAnnotationDialog(qtw.QDialog):
             self.top_widget.layout.addWidget(lbl, group_idx, 0)
             self.top_widget.layout.addWidget(new_scroll_widget, group_idx, 1)
             
-            
     def init_bottom_widget(self):
         self.bottom_widget = qtw.QWidget(self)
         hbox = qtw.QHBoxLayout(self.bottom_widget)
@@ -112,15 +113,17 @@ class QAnnotationDialog(qtw.QDialog):
         
         self.accept_button = qtw.QPushButton(self)
         self.accept_button.clicked.connect(lambda _: self.__save_annotation__())
-        self.accept_button.setFixedHeight(btn_hight)
-        self.accept_button.setText('Save Annotation')
+        self.accept_button.setText('Save')
         hbox.addWidget(self.accept_button)
         
+        self.reset_button = qtw.QPushButton(self)
+        self.reset_button.clicked.connect(lambda _: self.__reset_annotation__())
+        self.reset_button.setText('Reset')
+        hbox.addWidget(self.reset_button)
         
         self.cancel_button = qtw.QPushButton(self)
         self.cancel_button.clicked.connect(lambda _: self.__cancel_annotation__())
         self.cancel_button.setText('Cancel')
-        self.cancel_button.setFixedHeight(btn_hight)
         hbox.addWidget(self.cancel_button)
                     
     def __update__(self):
@@ -229,6 +232,14 @@ class QAnnotationDialog(qtw.QDialog):
         self.new_annotation.emit(annotation_dict)
         self.close()
 
+    def __reset_annotation__(self):
+        for idx in np.nonzero(self.current_selection)[0]:
+            btn : QPushButtonAdapted = self.buttons[idx]
+            if btn.isChecked():
+                btn.click()
+        
+        self.__update__()
+    
     def __cancel_annotation__(self):
         self.close()
     

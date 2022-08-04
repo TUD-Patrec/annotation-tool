@@ -21,7 +21,7 @@ def get_application_path():
 if __name__ == '__main__':
     application_path = get_application_path()
     
-    #
+    # adjust scaling to high dpi monitors
     if hasattr(qtc.Qt, 'AA_EnableHighDpiScaling'):
         qtw.QApplication.setAttribute(qtc.Qt.AA_EnableHighDpiScaling, True)
     if hasattr(qtc.Qt, 'AA_UseHighDpiPixmaps'):

@@ -49,7 +49,11 @@ class Singleton:
 @dataclass()
 class ColorMapper:
     _scheme: list = field(init=False)
-    _color_map: dict = field(init=False, default_factory=dict)
+    _color_map: list = field(init=False)
+    
+    def __init__(self) -> None:
+        random.seed(42)
+        self._color_map = distinctipy.get_colors(50, n_attempts=250)
         
     @property
     def scheme(self):
@@ -72,19 +76,14 @@ class ColorMapper:
             group_elements = self.scheme[0][1]
             first_group = [annotation[group_name][label_name] for label_name in group_elements]
             
-            # bin_array -> number          
+            # bin_array -> number
             x = ""
             for idx, value in enumerate(first_group, 1):
                 if value:
                     x += str(idx)
             
             x = int(x)
-            
-            if self._color_map.get(x) is None:
-                existing_colors = list(self._color_map.values())
-                random.seed(42)
-                r,g,b = distinctipy.get_colors(n_colors=1, exclude_colors=existing_colors, n_attempts=250)[0]
-                self._color_map[x] = r,g,b
+            x %= len(self._color_map)
             
             r,g,b = self._color_map[x]
             r, g, b = r * 255, g * 255, b * 255

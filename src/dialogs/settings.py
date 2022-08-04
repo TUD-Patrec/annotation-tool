@@ -27,7 +27,7 @@ class SettingsDialog(qtw.QDialog):
         self.window_y = qtw.QLineEdit()
         form.addRow('Preferred Window_Height:', self.window_y)
         
-        self.font_size = qtw.QLineEdit()
+        self.font_size = qtw.QComboBox()
         form.addRow('Font-Size:', self.font_size)
         
         self.darkmode = qtw.QCheckBox()
@@ -103,10 +103,11 @@ class SettingsDialog(qtw.QDialog):
         self.window_y.setText(str(settings.window_y))
         self.window_y.setPlaceholderText(str(settings.window_y))
         
-        font_validator = qtg.QIntValidator(6, 18, self)
-        self.font_size.setValidator(font_validator)
-        self.font_size.setText(str(settings.medium_font))
-        self.font_size.setPlaceholderText(str(settings.medium_font))
+        
+        for x in range(6, 17):
+            self.font_size.addItem(str(x))
+           
+        self.font_size.setCurrentIndex(settings.medium_font -  6)
         
         self.darkmode.setChecked(settings.darkmode)
         self.mocap_grid.setChecked(settings.mocap_grid)
@@ -141,7 +142,7 @@ class SettingsDialog(qtw.QDialog):
         settings.debugging_mode = self.debugging_mode.isChecked()
         settings.window_x = int(self.window_x.text())
         settings.window_y = int(self.window_y.text())
-        settings.medium_font = int(self.font_size.text())
+        settings.medium_font = int(self.font_size.currentText())
         settings.darkmode = self.darkmode.isChecked()
         settings.mocap_grid = self.mocap_grid.isChecked()
         settings.show_millisecs = not self.frame_based.isChecked()
