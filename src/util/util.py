@@ -27,8 +27,7 @@ def __generate_file_md5__(path, blocksize=2**20):
                 break
             m.update(buf)
     return m.hexdigest()
-
-      
+ 
 def meta_data(path):
     if is_non_zero_file(path):
         if path.split('.')[-1] == 'csv':
@@ -137,6 +136,10 @@ def create_dir(path):
     if not os.path.exists(path):
         os.mkdir(path)
     return path
+
+def remove_file(path):
+    if os.path.isfile(path):
+        os.remove(path)
 
 # TODO
 def clean_folders():

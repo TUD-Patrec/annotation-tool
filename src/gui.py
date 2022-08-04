@@ -3,6 +3,7 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import os
 import logging
+from functools import partial
 
 from .data_classes.singletons import Paths, Settings
 from .data_classes.annotation import Annotation
@@ -432,8 +433,13 @@ class QLoadExistingAnnotationDialog(qtw.QDialog):
             annotation = self.annotations[idx]
 
             dataset = annotation.dataset
+                        
             self.dataset_line_edit.setText(dataset.name)
             
+            if not util.is_non_zero_file(dataset.path):
+                depr_str = self.dataset_line_edit.text() + " [Deleted]"
+                self.dataset_line_edit.setText(depr_str)
+                self.dataset_line_edit.setStatusTip('The original Dataset was deleted via the Edit-Dataset Menu.')
             
             if os.path.isfile(annotation.input_file):
                 hash = util.footprint_of_file(annotation.input_file)
@@ -470,8 +476,6 @@ class QLoadExistingAnnotationDialog(qtw.QDialog):
         elif not(os.path.isfile(self.line_edit.text())):
             self.open_button.setEnabled(False)
         elif self.combobox.currentIndex() < 0:
-            self.open_button.setEnabled(False)
-        elif not util.is_non_zero_file(self.annotations[self.combobox.currentIndex()].dataset.path):
             self.open_button.setEnabled(False)
         else:
             self.open_button.setEnabled(True)
@@ -655,20 +659,20 @@ class QEditDatasets(qtw.QDialog):
         self.bottom_widget.setLayout(qtw.QFormLayout())
         
         self._name = qtw.QLineEdit()
-        self._name.setPlaceholderText('NoName')
-        self.bottom_widget.layout().addRow('Name', self._name)
+        self._name.setPlaceholderText('No Name')
+        self.bottom_widget.layout().addRow('Name:', self._name)
         
         self._scheme = QLineEditAdapted()
         self._scheme.setPlaceholderText('Path to dataset scheme.')
         self._scheme.setReadOnly(True)
         self._scheme.mousePressed.connect(self.get_scheme_path)
-        self.bottom_widget.layout().addRow('Scheme', self._scheme)
+        self.bottom_widget.layout().addRow('Scheme:', self._scheme)
 
         self._dependencies = QLineEditAdapted()
         self._dependencies.setPlaceholderText('Path to dataset dependencies.')
         self._dependencies.setReadOnly(True)
         self._dependencies.mousePressed.connect(self.get_dependencies_path)
-        self.bottom_widget.layout().addRow('Dependencies', self._dependencies)
+        self.bottom_widget.layout().addRow('Dependencies:', self._dependencies)
         
         self.add_button = qtw.QPushButton('Add')
         self.add_button.setFixedWidth(100)
@@ -719,9 +723,9 @@ class QEditDatasets(qtw.QDialog):
         dependencies_lbl.setAlignment(qtc.Qt.AlignCenter)
         hbox.addWidget(dependencies_lbl)
 
-        modify_lbl = qtw.QLabel('Modify')
-        modify_lbl.setAlignment(qtc.Qt.AlignCenter)
-        hbox.addWidget(modify_lbl)
+        #modify_lbl = qtw.QLabel('Modify')
+        #modify_lbl.setAlignment(qtc.Qt.AlignCenter)
+        #hbox.addWidget(modify_lbl)
         
         remove_lbl = qtw.QLabel('Remove')
         remove_lbl.setAlignment(qtc.Qt.AlignCenter)
@@ -749,14 +753,15 @@ class QEditDatasets(qtw.QDialog):
         dependencies_label.setAlignment(qtc.Qt.AlignCenter)
         hbox.addWidget(dependencies_label)
         
-        edit_btn = qtw.QPushButton()
-        edit_btn.setText('Edit')
-        edit_btn.setEnabled(False)
-        hbox.addWidget(edit_btn)
+        #edit_btn = qtw.QPushButton()
+        #edit_btn.setText('Edit')
+        #edit_btn.setEnabled(False)
+        #hbox.addWidget(edit_btn)
         
         remove_btn = qtw.QPushButton()
         remove_btn.setText('Remove')
-        remove_btn.setEnabled(False)
+        rem_partial = partial(self.remove_pressed, id)
+        remove_btn.clicked.connect(lambda _: rem_partial())
         hbox.addWidget(remove_btn)
         
         row_widget.setLayout(hbox)
@@ -818,7 +823,26 @@ class QEditDatasets(qtw.QDialog):
         self._dependencies.setText('')
         self.add_button.setEnabled(False)
 
-
+    def remove_pressed(self, idx):
+        dataset = get_datasets()[idx]
+        dataset_name = dataset.name
+        
+        msg = qtw.QMessageBox(self)
+        msg.setIcon(qtw.QMessageBox.Question)
+        msg.setText('Are you sure you want to delete \"{}\"?'.format(dataset_name))
+        
+        msg.setStandardButtons(qtw.QMessageBox.Yes | qtw.QMessageBox.No)
+        msg.buttonClicked.connect(lambda x: self.msgbtn(x, dataset))
+        
+        msg.show()
+        
+    def msgbtn(self, answer, dataset): 
+        if answer.text().lower().endswith('yes'):
+            dataset.delete()
+            self._reload()
+        
+    
+    
 class QLineEditAdapted(qtw.QLineEdit):
     mousePressed = qtc.pyqtSignal()
     

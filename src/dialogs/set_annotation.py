@@ -2,8 +2,6 @@ import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 
-from ..util.lines import QHLine
-
 
 import sys, logging
 import numpy as np
@@ -44,7 +42,6 @@ class QAnnotationDialog(qtw.QDialog):
             btn.setChecked(False)
             btn.click()
         
-     
     def __vector_to_dict__(self, vec):
         annotation_dict = dict()
         

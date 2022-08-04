@@ -1,1 +1,6 @@
+# for testing, console prints outputs from the tool
+pyinstaller --onefile .\main.py
+
+
+# without console - best for production
 pyinstaller --onefile --noconsole .\main.py

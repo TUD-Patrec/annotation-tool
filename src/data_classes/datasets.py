@@ -59,6 +59,10 @@ class DatasetDescription:
     def to_disk(self):
         util.write_pickle(self._path, self)
     
+    def delete(self):
+        util.remove_file(self.path)
+               
+    
     @staticmethod
     def from_disk(path):
         if util.is_non_zero_file(path):
