@@ -138,6 +138,9 @@ class MainApplication(qtw.QApplication):
         
         self.annotation_widget.settings_changed()
         
+        new_size = qtc.QSize(settings.window_x, settings.window_y)
+        self.gui.resize(new_size)
+        
         self.reload_color_scheme()
         
     def reload_color_scheme(self):

@@ -160,16 +160,16 @@ class GUI(qtw.QMainWindow):
             qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_R)
         )
         
-        edit_menu.addAction(
-            'Merge adjacent annotations',
-            self.merge_adjacent_pressed
-        )
+        #edit_menu.addAction(
+        #    'Merge adjacent annotations',
+        #    self.merge_adjacent_pressed
+        #)
                 
         
-        edit_menu.addAction(
-            'Reset Annotation',
-            self.reset_pressed,
-        )
+        #edit_menu.addAction(
+        #    'Reset Annotation',
+        #    self.reset_pressed,
+        #)
         
         edit_menu.addAction(
             'Undo',
@@ -190,9 +190,9 @@ class GUI(qtw.QMainWindow):
             'Options',
             self.open_settings,
         )
-        settings_menu.addAction(
-            'Help',
-        )
+        #settings_menu.addAction(
+        #    'Help',
+        #)
     
     def file_menu(self):
         menu = self.menuBar()
@@ -215,9 +215,9 @@ class GUI(qtw.QMainWindow):
             qtg.QKeySequence.Save
         )
         
-        file_menu.addAction(
-            'List Annotations',
-        )
+        #file_menu.addAction(
+        #    'List Annotations',
+        #)
         
         file_menu.addAction(
             'Export Annotation',
