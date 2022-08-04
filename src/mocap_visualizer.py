@@ -208,7 +208,7 @@ class MocapVisualizer(gl.GLViewWidget):
                 floor_height = min((floor_height, segment_height))
             self.zgrid.translate(0, 0, floor_height)
         elif self.floor_grid:
-            self.zgrid.translate(0, 0, 0)
+            self.zgrid.translate(0, 0, -1)
 
         self.position_changed.emit(new_pos)
 
