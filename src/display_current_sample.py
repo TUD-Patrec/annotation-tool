@@ -1,10 +1,9 @@
 import logging
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
-import PyQt5.QtGui as qtg
 
-from .adaptive_scroll_area import QAdaptiveScrollArea
-from .util.lines import QHLine
+from .qt_helper_widgets.adaptive_scroll_area import QAdaptiveScrollArea
+from .qt_helper_widgets.lines import QHLine
 
 class QDisplaySample(qtw.QWidget):    
     def __init__(self, *args, **kwargs):
@@ -49,6 +48,7 @@ class QDisplaySample(qtw.QWidget):
 
     def set_annotation(self, annotation):
         self.scheme = annotation.dataset.scheme
+        self.sample = None
         self.__update__()
 
     def set_selected(self, sample):

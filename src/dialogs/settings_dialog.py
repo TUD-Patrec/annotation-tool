@@ -36,8 +36,8 @@ class SettingsDialog(qtw.QDialog):
         self.mocap_grid = qtw.QCheckBox()
         form.addRow('Mocap_Grid:', self.mocap_grid)
         
-        self.frame_based = qtw.QCheckBox()
-        form.addRow('Show Frame-Numbers:', self.frame_based)
+        self.frame_based = qtw.QComboBox()
+        form.addRow('Timeline Style:', self.frame_based)
         
         self.small_skip = qtw.QSlider(qtc.Qt.Horizontal)
         self.small_skip_display = qtw.QLabel()
@@ -111,7 +111,11 @@ class SettingsDialog(qtw.QDialog):
         
         self.darkmode.setChecked(settings.darkmode)
         self.mocap_grid.setChecked(settings.mocap_grid)
-        self.frame_based.setChecked(not settings.show_millisecs)
+        
+        show_millis = settings.show_millisecs
+        self.frame_based.addItem('Show frame numbers')
+        self.frame_based.addItem('Show timestamps')
+        self.frame_based.setCurrentIndex(int(show_millis))
         
         self.small_skip.setRange(1, 10)
         self.small_skip.setTickInterval(1)
@@ -145,7 +149,7 @@ class SettingsDialog(qtw.QDialog):
         settings.medium_font = int(self.font_size.currentText())
         settings.darkmode = self.darkmode.isChecked()
         settings.mocap_grid = self.mocap_grid.isChecked()
-        settings.show_millisecs = not self.frame_based.isChecked()
+        settings.show_millisecs = bool(self.frame_based.currentIndex())
         settings.small_skip = self.small_skip.value()
         settings.big_skip = self.big_skip.value()
         

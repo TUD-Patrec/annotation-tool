@@ -3,9 +3,8 @@ from typing import List
 import numpy as np
 import datetime
 import os
-from ..util import util
+from ..utility import filehandler
 from .datasets import DatasetDescription
-from .singletons import Paths
 from .sample import Sample
 from dataclasses import dataclass, field
 import random, string
@@ -24,10 +23,10 @@ class Annotation:
     _samples: list = field(init=False, default_factory=list)
     
     def __post_init__(self):
-        if not util.is_non_zero_file(self._input_file):
+        if not filehandler.is_non_zero_file(self._input_file):
             raise FileNotFoundError(self._input_file)
         
-        paths = Paths.instance()
+        paths = filehandler.Paths.instance()
     
         random_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
         file_name = self._name + '_' + random_str  + '_.pkl'
@@ -39,9 +38,9 @@ class Annotation:
             path = os.path.join(paths.annotations, file_name)
         
         self._path = path
-        self._footprint = util.footprint_of_file(self._input_file)
+        self._footprint = filehandler.footprint_of_file(self._input_file)
         
-        duration, frame_count, fps = util.meta_data(self._input_file)
+        duration, frame_count, fps = filehandler.meta_data(self._input_file)
         
         self._samples.append(Sample(0, frame_count - 1))
     
@@ -110,9 +109,9 @@ class Annotation:
     
     @input_file.setter
     def input_file(self, value: os.PathLike):
-        if not util.is_non_zero_file(value):
+        if not filehandler.is_non_zero_file(value):
             raise FileNotFoundError(value)
-        elif util.footprint_of_file(value) != self._footprint:
+        elif filehandler.footprint_of_file(value) != self._footprint:
             raise FileNotFoundError('footprint of {} does not match.'.format(value))
         else:
             self._input_file = value
@@ -131,17 +130,17 @@ class Annotation:
     
     @property
     def fps(self):
-        duration, frames, fps = util.meta_data(self.input_file)
+        duration, frames, fps = filehandler.meta_data(self.input_file)
         return fps
     
     @property
     def duration(self):
-        duration, frames, fps = util.meta_data(self.input_file)
+        duration, frames, fps = filehandler.meta_data(self.input_file)
         return duration
     
     @property
     def frames(self):
-        duration, frames, fps = util.meta_data(self.input_file)
+        duration, frames, fps = filehandler.meta_data(self.input_file)
         return frames
     
     def to_numpy(self):
@@ -166,13 +165,13 @@ class Annotation:
         return x
     
     def to_disk(self):
-        util.write_pickle(self._path, self)
+        filehandler.write_pickle(self._path, self)
         
     @staticmethod
     def from_disk(path):
-        if util.is_non_zero_file(path):
+        if filehandler.is_non_zero_file(path):
             try: 
-                annotation = util.read_pickle(path)
+                annotation = filehandler.read_pickle(path)
                 annotation._path = path
                 return annotation
             except:

@@ -1,7 +1,7 @@
 import logging
 import os
-from ..util import util
-from .singletons import Paths
+from ..utility import filehandler
+
 from dataclasses import dataclass, field
 import random, string
 
@@ -16,7 +16,7 @@ class DatasetDescription:
         assert type(self._scheme) == list
         assert len(self._scheme) > 0
         
-        paths = Paths.instance()
+        paths = filehandler.Paths.instance()
         datasets_path = paths.datasets
         random_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
         file_name = self._name + '_' + random_str  + '_.pkl'
@@ -52,22 +52,20 @@ class DatasetDescription:
     
     @dependencies.setter
     def dependencies(self, value):
-        logging.warning('ADD DEPENDENCIES')
         self._dependencies = value
-        pass
     
     def to_disk(self):
-        util.write_pickle(self._path, self)
+        filehandler.write_pickle(self._path, self)
     
     def delete(self):
-        util.remove_file(self.path)
+        filehandler.remove_file(self.path)
                
     
     @staticmethod
     def from_disk(path):
-        if util.is_non_zero_file(path):
+        if filehandler.is_non_zero_file(path):
             try: 
-                dataset_description = util.read_pickle(path)
+                dataset_description = filehandler.read_pickle(path)
                 dataset_description._path = path
                 return dataset_description
             except:

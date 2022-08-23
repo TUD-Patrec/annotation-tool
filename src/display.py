@@ -5,7 +5,7 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import functools
 
-from .data_classes.singletons import FrameTimeMapper
+from .utility.functions import FrameTimeMapper
 
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer
 from PyQt5.QtMultimediaWidgets import QVideoWidget
@@ -187,7 +187,7 @@ class VideoPlayerT(qtw.QWidget):
                 fps = 100
             logging.info('FPS = {}'.format(fps))
             
-            self.mediaPlayer.setNotifyInterval(1000 // (3*fps))
+            self.mediaPlayer.setNotifyInterval(int(1000 / (3 * fps)))
             self.video_loaded.emit(self)
      
     def pos_changed(self, pos):

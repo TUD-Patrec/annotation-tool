@@ -2,8 +2,8 @@ import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import logging
 
-from .data_classes.singletons import FrameTimeMapper
-from .util.lines import QHLine
+from .utility.functions import FrameTimeMapper
+from .qt_helper_widgets.lines import QHLine
 
 class PlayWidget(qtw.QWidget):
     playing = qtc.pyqtSignal()

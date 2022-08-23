@@ -1,48 +1,10 @@
 from dataclasses import dataclass, field, fields
-import os
 import logging
-from ..util import functions, util
+from ..utility.decorators import Singleton
+from ..utility import filehandler
 from distinctipy import distinctipy
 import PyQt5.QtGui as qtg
 import random
-
-class Singleton:
-    """
-    A non-thread-safe helper class to ease implementing singletons.
-    This should be used as a decorator -- not a metaclass -- to the
-    class that should be a singleton.
-
-    The decorated class can define one `__init__` function that
-    takes only the `self` argument. Also, the decorated class cannot be
-    inherited from. Other than that, there are no restrictions that apply
-    to the decorated class.
-
-    To get the singleton instance, use the `instance` method. Trying
-    to use `__call__` will result in a `TypeError` being raised.
-
-    """
-
-    def __init__(self, decorated):
-        self._decorated = decorated
-
-    def instance(self):
-        """
-        Returns the singleton instance. Upon its first call, it creates a
-        new instance of the decorated class and calls its `__init__` method.
-        On all subsequent calls, the already created instance is returned.
-
-        """
-        try:
-            return self._instance
-        except AttributeError:
-            self._instance = self._decorated()
-            return self._instance
-
-    def __call__(self):
-        raise TypeError('Singletons must be accessed through `instance()`.')
-
-    def __instancecheck__(self, inst):
-        return isinstance(inst, self._decorated)
 
 
 @Singleton
@@ -86,57 +48,11 @@ class ColorMapper:
             x %= len(self._color_map)
             
             r,g,b = self._color_map[x]
-            r, g, b = r * 255, g * 255, b * 255
+            r, g, b = int(r * 255), int(g * 255), int(b * 255)
             color = qtg.QColor(r,g,b)
             color.setAlpha(127)
             
             return color
-
-
-@Singleton
-@dataclass()
-class Paths:
-    _root: str = field(init=False, default=None)
-    _local_storage: str = field(init=False, default='__local__storage__')
-    _annotations: str = field(init=False, default='annotations')
-    _datasets: str = field(init=False, default='dataset_schemes')
-    _networks: str = field(init=False, default='networks')
-    _resources: str = field(init=False, default='resources')
-    _config: str = field(init=False, default='config.json')
-        
-    @property        
-    def root(self):
-        return self._root
-    
-    @root.setter
-    def root(self, path):
-        if self._root is None and os.path.isdir(path):
-           self._root = path
-    
-    @property
-    def local_storage(self):
-        return os.path.join(self.root, self._local_storage)
-    
-    @property
-    def annotations(self):
-        return os.path.join(self.local_storage, self._annotations)
-    
-    @property
-    def datasets(self):
-        return os.path.join(self.local_storage, self._datasets)
-    
-    @property
-    def networks(self):
-        return os.path.join(self.local_storage, self._networks)
-    
-    @property
-    def resources(self):
-        return os.path.join(self.local_storage, self._resources)
-    
-    @property
-    def config(self):
-        return os.path.join(self.local_storage, self._config)
-    
     
 
 @Singleton
@@ -159,8 +75,8 @@ class Settings:
     
     
     def __post_init__(self):
-        paths = Paths.instance()
-        if not util.is_non_zero_file(paths.config):
+        paths = filehandler.Paths.instance()
+        if not filehandler.is_non_zero_file(paths.config):
             self.to_disk()
         else:
             self.from_disk()
@@ -329,14 +245,14 @@ class Settings:
             setattr(self, field.name, field.default) 
         
     def from_disk(self):
-        paths = Paths.instance()
-        d = util.read_json(paths.config)
+        paths = filehandler.Paths.instance()
+        d = filehandler.read_json(paths.config)
         self.from_dict(d)
             
     def to_disk(self):
-        paths = Paths.instance()
+        paths = filehandler.Paths.instance()
         d = self.as_dict()
-        util.write_json(paths.config, d)
+        filehandler.write_json(paths.config, d)
     
     def from_dict(self, d):
         for field in fields(self):
@@ -346,34 +262,3 @@ class Settings:
     def as_dict(self):
         return dict((field.name, getattr(self, field.name)) for field in fields(self))
         
-
-@Singleton
-class FrameTimeMapper():
-    def __init__(self) -> None:
-        self.use_time = Settings.instance().show_millisecs
-        self.n_frames = 1
-        self.millisecs = 1
-        self._frame_to_ms, self._ms_to_frame = functions.scale_functions(1,1, True)
-        
-         
-    def settings_changed(self):
-        self.use_time = Settings.instance().show_millisecs
-        
-    def set_annotation(self, n_frames, millisecs):
-        self.n_frames = n_frames
-        self.millisecs = millisecs
-        logging.info('{}, {}'.format(n_frames, millisecs))
-        self._frame_to_ms, self._ms_to_frame = functions.scale_functions(self.n_frames, self.millisecs, True)
-        
-    def frame_repr(self, frame):
-        if self.use_time:
-            millisecs = self._frame_to_ms(frame)[0]
-            return functions.ms_to_time_string(millisecs)
-        else:
-            return str(frame)
-        
-    def frame_to_ms(self, ms):
-        return self._frame_to_ms(ms)[0]
-    
-    def ms_to_frame(self, frame):
-        return self._ms_to_frame(frame)[0]

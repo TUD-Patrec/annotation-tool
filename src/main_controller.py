@@ -9,9 +9,10 @@ from .annotation_widget import QAnnotationWidget
 from .gui import GUI
 from .playback import PlayWidget
 from .display_current_sample import QDisplaySample
-from .data_classes.singletons import Settings, FrameTimeMapper
-from .util import util
-from .breeze_resources import *
+from .data_classes.singletons import Settings
+from .utility.functions import FrameTimeMapper
+from .utility import filehandler
+from .utility.breeze_resources import *
     
 
 class MainApplication(qtw.QApplication):
@@ -131,7 +132,7 @@ class MainApplication(qtw.QApplication):
         
         FrameTimeMapper.instance().settings_changed()
         
-        log_config_dict = util.logging_config()
+        log_config_dict = filehandler.logging_config()
         log_config_dict['handlers']['screen_handler']['level'] = 'DEBUG' if settings.debugging_mode else 'WARNING'
         logging.config.dictConfig(log_config_dict)
         
