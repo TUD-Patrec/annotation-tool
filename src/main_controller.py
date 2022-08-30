@@ -4,7 +4,7 @@ import PyQt5.QtGui as qtg
 import sys, logging, logging.config
 
 from .data_classes.annotation import Annotation
-from .display import QMediaMainController
+#from .display import QMediaMainController
 from .annotation_widget import QAnnotationWidget
 from .gui import GUI
 from .playback import PlayWidget
@@ -13,7 +13,8 @@ from .data_classes.singletons import Settings
 from .utility.functions import FrameTimeMapper
 from .utility import filehandler
 from .utility.breeze_resources import *
-    
+
+from .media.media_controller import QMediaMainController
 
 class MainApplication(qtw.QApplication):
     def __init__(self, *args, **kwargs):
@@ -99,7 +100,7 @@ class MainApplication(qtw.QApplication):
         self.position = 0
                 
         # load video
-        self.media_player.load(self.annotation)
+        self.media_player.load_annotation(self.annotation)
         
         self.display_sample.set_annotation(self.annotation)
         

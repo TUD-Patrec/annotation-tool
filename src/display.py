@@ -90,8 +90,6 @@ class VideoDisplayerF(qtw.QWidget):
     
     def resizeEvent(self, event):
         qtw.QWidget.resizeEvent(self, event)
-        #print('BEFORE:', self.size())
-        #print(event.size())
         self.lblVid.resize(event.size())
         img = self.current_img.scaled(self.lblVid.size(), qtc.Qt.KeepAspectRatio, qtc.Qt.SmoothTransformation)
         pix = qtg.QPixmap.fromImage(img)

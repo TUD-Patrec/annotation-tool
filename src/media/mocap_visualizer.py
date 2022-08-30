@@ -12,6 +12,105 @@ import pyqtgraph.opengl as gl
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QWidget
 
+
+from .media_player import TimerBasedMediaPlayer
+
+class MocapPlayer(TimerBasedMediaPlayer):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.media = Mocap()
+        self.layout().addWidget(self.media)
+        
+    
+    def load(self, input_file):
+        self.media.load(input_file)
+        self.n_frames = self.media.frames.shape[0]
+        self.fps = 100
+        self.media.set_position(0)
+        self.loaded.emit(self)
+        
+        
+    def update_media_position(self):
+        pos = self.position + self.offset
+        if 0 <= pos < self.n_frames:
+            self.media.set_position(pos)
+    
+
+class Mocap(gl.GLViewWidget):
+    def __init__(self):
+        super().__init__()
+        self.number_samples = 0
+        self.frames = None
+
+        self.floor_grid = False
+        self.dynamic_floor = False
+        self.zgrid = None
+
+        self.current_skeleton = gl.GLLinePlotItem(pos=np.array([[0, 0, 0], [0, 0, 0]]),
+                                                  color=np.array([[0, 0, 0, 0], [0, 0, 0, 0]]),
+                                                  mode='lines')
+        self.addItem(self.current_skeleton)
+
+    @pyqtSlot(str, bool)
+    def load(self, path, normalize=True):
+        try:
+            if normalize:
+                array = np.loadtxt(path, delimiter=',', skiprows=5)
+                array = array[:, 2:]
+                # normalizing
+                normalizing_vector = array[:, 66:72]  # 66:72 are the columns for lowerback
+                for _ in range(21):
+                    normalizing_vector = np.hstack((normalizing_vector, array[:, 66:72]))
+                array = np.subtract(array, normalizing_vector)
+            else:
+                array = np.loadtxt(path, delimiter=',', skiprows=1)
+                array = array[:, 2:]
+
+            self.mocap_data = array
+            self.number_samples = self.mocap_data.shape[0]
+
+            # Calculate Skeleton
+            frames = np.zeros((self.number_samples, 44, 3))  # dimensions are( frames, bodysegments, xyz)
+            for frame_index in range(self.number_samples):
+                frame = array[frame_index, :]
+                frame = calculate_skeleton(frame)
+                frames[frame_index, :, :] = frame
+
+            self.frames = frames
+        except Exception as e:
+            raise e
+
+    @pyqtSlot(int)
+    def set_position(self, new_pos):
+        # Update skeleton
+        new_skeleton = self.frames[new_pos]
+        self.current_skeleton.setData(pos=new_skeleton, color=np.array(skeleton_colors), width=4, mode='lines')
+
+        # Add or remove floor grid
+        if (self.zgrid is None) and self.floor_grid:
+            self.zgrid = gl.GLGridItem()
+            self.addItem(self.zgrid)
+            self.zgrid.translate(0, 0, -1)
+        elif (self.zgrid is not None) and (not self.floor_grid):
+            self.removeItem(self.zgrid)
+            self.zgrid = None
+
+        # Update dynamic floor grid
+        if self.floor_grid and self.dynamic_floor:
+            floor_height = 0
+            for segment in [body_segments_reversed[i] for i in ['L toe', 'R toe', 'L foot', 'R foot']]:
+                segment_height = new_skeleton[segment * 2, 2]
+                floor_height = min((floor_height, segment_height))
+            self.zgrid.translate(0, 0, floor_height)
+        elif self.floor_grid:
+            self.zgrid.translate(0, 0, -1)
+
+    @pyqtSlot(bool, bool)
+    def set_floor_grid(self, enable, dynamic):
+        self.floor_grid = enable
+        self.dynamic_floor = dynamic
+
+
 body_segments = {
     -1: 'none',
     0: 'head',
@@ -133,86 +232,3 @@ def calculate_skeleton(frame: np.array) -> np.array:
     # convert the list into an array, convert millimeters to meters and return the result
     return np.array(t_all) / 1000
 
-
-class MocapVisualizer(gl.GLViewWidget):
-    position_changed = pyqtSignal(int)
-    loaded = pyqtSignal(QWidget)
-    loading_failed = pyqtSignal(QWidget)
-
-    def __init__(self):
-        super().__init__()
-        self.number_samples = 0
-        self.frames = None
-
-        self.floor_grid = False
-        self.dynamic_floor = False
-        self.zgrid = None
-
-        self.current_skeleton = gl.GLLinePlotItem(pos=np.array([[0, 0, 0], [0, 0, 0]]),
-                                                  color=np.array([[0, 0, 0, 0], [0, 0, 0, 0]]),
-                                                  mode='lines')
-        self.addItem(self.current_skeleton)
-
-    @pyqtSlot(str, bool)
-    def load_video(self, path, normalize):
-        try:
-            if normalize:
-                array = np.loadtxt(path, delimiter=',', skiprows=5)
-                array = array[:, 2:]
-                # normalizing
-                normalizing_vector = array[:, 66:72]  # 66:72 are the columns for lowerback
-                for _ in range(21):
-                    normalizing_vector = np.hstack((normalizing_vector, array[:, 66:72]))
-                array = np.subtract(array, normalizing_vector)
-            else:
-                array = np.loadtxt(path, delimiter=',', skiprows=1)
-                array = array[:, 2:]
-
-            self.number_samples = self.mocap_data.shape[0]
-
-            # Calculate Skeleton
-            frames = np.zeros((self.number_samples, 44, 3))  # dimensions are( frames, bodysegments, xyz)
-            for frame_index in range(self.number_samples):
-                frame = array[frame_index, :]
-                frame = calculate_skeleton(frame)
-                frames[frame_index, :, :] = frame
-
-            self.frames = frames
-
-            self.loaded.emit(self)
-        except Exception as e:  # TODO: Prüf ob du das Error handling hier ändern willst
-            self.loading_failed.emit(self)
-            raise e
-
-    @pyqtSlot(int)
-    def set_position(self, new_pos):
-
-        # Update skeleton
-        new_skeleton = self.frames[new_pos]
-        self.current_skeleton.setData(pos=new_skeleton, color=np.array(skeleton_colors), width=4, mode='lines')
-
-        # Add or remove floor grid
-        if (self.zgrid is None) and self.floor_grid:
-            self.zgrid = gl.GLGridItem()
-            self.addItem(self.zgrid)
-            self.zgrid.translate(0, 0, -1)
-        elif (self.zgrid is not None) and (not self.floor_grid):
-            self.removeItem(self.zgrid)
-            self.zgrid = None
-
-        # Update dynamic floor grid
-        if self.floor_grid and self.dynamic_floor:
-            floor_height = 0
-            for segment in [body_segments_reversed[i] for i in ['L toe', 'R toe', 'L foot', 'R foot']]:
-                segment_height = new_skeleton[segment * 2, 2]
-                floor_height = min((floor_height, segment_height))
-            self.zgrid.translate(0, 0, floor_height)
-        elif self.floor_grid:
-            self.zgrid.translate(0, 0, -1)
-
-        self.position_changed.emit(new_pos)
-
-    @pyqtSlot(bool, bool)
-    def set_floor_grid(self, enable, dynamic):
-        self.floor_grid = enable
-        self.dynamic_floor = dynamic

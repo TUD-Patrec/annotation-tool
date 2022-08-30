@@ -131,12 +131,20 @@ def path_to_dirname(path):
 def meta_data(path):
     if is_non_zero_file(path):
         if path.split('.')[-1] == 'csv':
-            raise NotImplementedError
+            return meta_data_of_mocap(path)
         if path.split('.')[-1] in ['mp4', 'avi']:
             return meta_data_of_video(path)
     else:
         raise FileNotFoundError
 
+
+def meta_data_of_mocap(path):
+    mocap = csv_to_numpy(path)
+    frame_count = mocap.shape[0]
+    fps = 100
+    
+    return 1000 * int(frame_count / fps), frame_count, fps 
+    
 
 def meta_data_of_video(path):
     video = cv2.VideoCapture(path)
