@@ -10,6 +10,7 @@ class SettingsDialog(qtw.QDialog):
     def __init__(self, *args, **kwargs):
         super(SettingsDialog, self).__init__(*args, **kwargs)
         settings = Settings.instance()
+        
         self.old_settings = settings.as_dict()
         
         form = qtw.QFormLayout()
@@ -35,6 +36,12 @@ class SettingsDialog(qtw.QDialog):
         
         self.mocap_grid = qtw.QCheckBox()
         form.addRow('Mocap_Grid:', self.mocap_grid)
+        
+        self.mocap_grid_dynamic = qtw.QCheckBox()
+        form.addRow('Use dynamic Grid', self.mocap_grid_dynamic)
+        
+        self.refresh_rate = qtw.QLineEdit()
+        form.addRow('Backup Refresh Rate', self.refresh_rate)
         
         self.frame_based = qtw.QComboBox()
         form.addRow('Timeline Style:', self.frame_based)
@@ -111,6 +118,13 @@ class SettingsDialog(qtw.QDialog):
         
         self.darkmode.setChecked(settings.darkmode)
         self.mocap_grid.setChecked(settings.mocap_grid)
+        self.mocap_grid_dynamic.setChecked(settings.mocap_grid_dynamic)
+        
+        refresh_validator = qtg.QIntValidator(1, 200, self)
+        self.refresh_rate.setValidator(refresh_validator)
+        self.refresh_rate.setText(str(settings.refresh_rate))
+        self.refresh_rate.setPlaceholderText(str(100))
+                
         
         show_millis = settings.show_millisecs
         self.frame_based.addItem('Show frame numbers')
@@ -149,11 +163,12 @@ class SettingsDialog(qtw.QDialog):
         settings.medium_font = int(self.font_size.currentText())
         settings.darkmode = self.darkmode.isChecked()
         settings.mocap_grid = self.mocap_grid.isChecked()
+        settings.mocap_grid_dynamic = self.mocap_grid_dynamic.isChecked()
+        settings.refresh_rate = int(self.refresh_rate.text())
         settings.show_millisecs = bool(self.frame_based.currentIndex())
         settings.small_skip = self.small_skip.value()
         settings.big_skip = self.big_skip.value()
-        
-        
+                
         settings.to_disk()
         self.settings_changed.emit()
         self.close()

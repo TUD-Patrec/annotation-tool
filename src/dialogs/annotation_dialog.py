@@ -233,13 +233,13 @@ class QAnnotationDialog(qtw.QDialog):
             self.close()
 
     def __reset_annotation__(self):
-        for idx in np.nonzero(self.current_selection)[0]:
-            btn : QPushButtonAdapted = self.buttons[idx]
-            if btn.isChecked():
-                btn.click()
-        
-        self.__update__()
-        self.accept_button.setEnabled(True)
+        #for idx in np.nonzero(self.current_selection)[0]:
+        #    btn : QPushButtonAdapted = self.buttons[idx]
+        #    if btn.isChecked():
+        #        btn.click()
+        #self.__update__()
+        self.new_annotation.emit({})
+        self.close()
     
     def __cancel_annotation__(self):
         self.close()

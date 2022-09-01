@@ -3,8 +3,9 @@ import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 from ..utility import filehandler
+from ..utility.functions import ms_to_time_string
 
-class TimerBasedMediaPlayer(qtw.QWidget):
+class AbstractMediaPlayer(qtw.QWidget):
     position_changed = qtc.pyqtSignal(int)
     loaded = qtc.pyqtSignal(qtw.QWidget)
     failed = qtc.pyqtSignal(qtw.QWidget)
@@ -12,7 +13,7 @@ class TimerBasedMediaPlayer(qtw.QWidget):
     new_input_wanted = qtc.pyqtSignal(str)
     
     def __init__(self, *args, **kwargs) -> None:
-        super(TimerBasedMediaPlayer, self).__init__(*args, **kwargs)
+        super(AbstractMediaPlayer, self).__init__(*args, **kwargs)
         
         # timer 
         self.timer = qtc.QTimer()
@@ -31,33 +32,32 @@ class TimerBasedMediaPlayer(qtw.QWidget):
         
         # layout
         self.hbox = qtw.QHBoxLayout(self)
-    
-       
-    def mousePressEvent(self, e):
-        # leftclick = play/pause
-        
+            
+    def mousePressEvent(self, e): 
         # rightclick = context_menu
         if e.button() == qtc.Qt.RightButton:
-            menu = qtw.QMenu(self)
-            
+            self.open_context_menu()
+
+    def open_context_menu(self):
+        menu = qtw.QMenu(self)
+        menu.addAction(
+            'Add another input source',
+            self.add_input
+        )
+        
+        if not self.is_main_replay_widget:
             menu.addAction(
-                'Add another input source',
-                self.add_input
+                'Remove input source',
+                self.remove_input
             )
             
-            if not self.is_main_replay_widget:
-                menu.addAction(
-                    'Remove input source',
-                    self.remove_input
-                )
-                
-                menu.addAction(
-                    'Adjust offset',
-                    self.adjust_offset
-                )
-                
-            menu.popup(qtg.QCursor.pos())
-
+            menu.addAction(
+                'Adjust offset',
+                self.adjust_offset
+            )
+            
+        menu.popup(qtg.QCursor.pos())
+    
     def set_main_replay_widget(self, x):
         self.is_main_replay_widget = bool(x)
     
@@ -75,7 +75,6 @@ class TimerBasedMediaPlayer(qtw.QWidget):
             print('new offset ', offset)
             self.set_offset(offset)
         
-     
     @abstractmethod
     @qtc.pyqtSlot(str)
     def load(self, input_file):
@@ -107,6 +106,16 @@ class TimerBasedMediaPlayer(qtw.QWidget):
             self.position = x
             self.update_media_position()
       
+    def get_timestamp(self):
+        if self.fps and self.n_frames:
+            frame_idx = self.position
+            seconds = frame_idx / self.fps
+            ms = int(seconds * 1000)
+            ms_string = ms_to_time_string(ms)
+            return 'FRAME_IDX = {} | TIME_STAMP = {}'.format(frame_idx, ms_string)
+        else:
+            return ''
+      
     @qtc.pyqtSlot(int)
     def set_offset(self, x):
         self.offset = x
@@ -118,12 +127,8 @@ class TimerBasedMediaPlayer(qtw.QWidget):
         self.update_media_position()
         pos = self.position + self.offset
         self.position_changed.emit(pos)
-        
+         
     @abstractmethod
     def update_media_position(self):
         raise NotImplementedError
 
-    
-
-
-        

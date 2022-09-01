@@ -69,6 +69,7 @@ class MainApplication(qtw.QApplication):
         self.gui.undo_pressed.connect(self.annotation_widget.undo)
         self.gui.redo_pressed.connect(self.annotation_widget.redo)
         self.gui.settings_changed.connect(self.settings_changed)
+        self.gui.settings_changed.connect(self.media_player.settings_changed)
     
     def skip_frames(self, forward_step, fast):
         if self.annotation is not None:
@@ -136,7 +137,6 @@ class MainApplication(qtw.QApplication):
         log_config_dict = filehandler.logging_config()
         log_config_dict['handlers']['screen_handler']['level'] = 'DEBUG' if settings.debugging_mode else 'WARNING'
         logging.config.dictConfig(log_config_dict)
-        
         
         self.annotation_widget.settings_changed()
         

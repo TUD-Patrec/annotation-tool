@@ -69,6 +69,8 @@ class Settings:
     _medium_font: int = field(init=False, default=10)
     _large_font: int = field(init=False, default=12)
     _mocap_grid: bool = field(init=False, default=True)
+    _mocap_grid_dynamic: bool = field(init=False, default=True)
+    _refresh_rate: int = field(init=False, default=100)
     _show_millisecs: bool = field(init=False, default=False)
     _small_skip: int = field(init=False, default=1)
     _big_skip: int = field(init=False, default=100)
@@ -206,6 +208,29 @@ class Settings:
             raise ValueError
         else:
             self._mocap_grid = value
+    
+    @property
+    def mocap_grid_dynamic(self):
+        return self._mocap_grid_dynamic
+    
+    @mocap_grid_dynamic.setter
+    def mocap_grid_dynamic(self, value):
+        if type(value) != bool:
+            raise ValueError
+        else:
+            self._mocap_grid_dynamic = value
+    
+    @property
+    def refresh_rate(self):
+        return self._refresh_rate
+    
+    @refresh_rate.setter
+    def refresh_rate(self, value):
+        if type(value) != int:
+            raise ValueError
+        else:
+            self._refresh_rate = min(max(1, value), 200)
+    
             
     @property
     def show_millisecs(self):

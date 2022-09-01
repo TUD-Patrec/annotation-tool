@@ -186,9 +186,6 @@ class GUI(qtw.QMainWindow):
             'Options',
             self.open_settings,
         )
-        #settings_menu.addAction(
-        #    'Help',
-        #)
     
     def file_menu(self):
         menu = self.menuBar()

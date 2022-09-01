@@ -6,22 +6,33 @@ Created on 26.07.2022
 
 """
 
+import logging
 import numpy as np
 import pyqtgraph.opengl as gl
+import time 
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QWidget
+import PyQt5.QtCore as qtc
+
+from ..data_classes.singletons import Settings
 
 
-from .media_player import TimerBasedMediaPlayer
+from .media_player import AbstractMediaPlayer
 
-class MocapPlayer(TimerBasedMediaPlayer):
+class MocapPlayer(AbstractMediaPlayer):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.media = Mocap()
+        self.media = MocapBackend()
+        settings = Settings.instance()
+
+        show_mocap_grid = settings.mocap_grid
+        use_dynamic_mocap_grid = settings.mocap_grid_dynamic
+        self.set_floor_grid(show_mocap_grid, use_dynamic_mocap_grid)
+        
+        self.media.right_mouse_btn_clicked.connect(self.open_context_menu)
         self.layout().addWidget(self.media)
         
-    
     def load(self, input_file):
         self.media.load(input_file)
         self.n_frames = self.media.frames.shape[0]
@@ -29,23 +40,37 @@ class MocapPlayer(TimerBasedMediaPlayer):
         self.media.set_position(0)
         self.loaded.emit(self)
         
-        
     def update_media_position(self):
         pos = self.position + self.offset
         if 0 <= pos < self.n_frames:
             self.media.set_position(pos)
     
+    def set_floor_grid(self, enable, dynamic):
+        if self.media:
+            self.media.set_floor_grid(enable, dynamic)
+    
 
-class Mocap(gl.GLViewWidget):
+class MocapBackend(gl.GLViewWidget):
+    right_mouse_btn_clicked = qtc.pyqtSignal()
+    
     def __init__(self):
         super().__init__()
         self.number_samples = 0
         self.frames = None
+        self.position = None
+        
+        self.DEFAULT_HEIGHT = -1
+        self.grid_height = -1
+        
+        self.RESET_INTERVAL = 100
+        self.reset_counter = 0
 
-        self.floor_grid = False
         self.dynamic_floor = False
-        self.zgrid = None
-
+        self.zgrid = gl.GLGridItem()
+        #self.zgrid.translate(0, 0, self.DEFAULT_HEIGHT)
+        self.addItem(self.zgrid)
+        
+        
         self.current_skeleton = gl.GLLinePlotItem(pos=np.array([[0, 0, 0], [0, 0, 0]]),
                                                   color=np.array([[0, 0, 0, 0], [0, 0, 0, 0]]),
                                                   mode='lines')
@@ -82,33 +107,72 @@ class Mocap(gl.GLViewWidget):
 
     @pyqtSlot(int)
     def set_position(self, new_pos):
-        # Update skeleton
-        new_skeleton = self.frames[new_pos]
-        self.current_skeleton.setData(pos=new_skeleton, color=np.array(skeleton_colors), width=4, mode='lines')
-
-        # Add or remove floor grid
-        if (self.zgrid is None) and self.floor_grid:
-            self.zgrid = gl.GLGridItem()
-            self.addItem(self.zgrid)
-            self.zgrid.translate(0, 0, -1)
-        elif (self.zgrid is not None) and (not self.floor_grid):
-            self.removeItem(self.zgrid)
-            self.zgrid = None
-
-        # Update dynamic floor grid
-        if self.floor_grid and self.dynamic_floor:
-            floor_height = 0
+        start = time.time()
+        self.position = new_pos # update position
+        skeleton = self.get_current_skeleton() # update skeleton
+        # skeleton = self.frames[self.position]
+        self.current_skeleton.setData(pos=skeleton, color=np.array(skeleton_colors), width=4, mode='lines')
+        #self.update_grid() # update grid
+        end = time.time()
+        # logging.info('SET_POSITION TOOK {}'.format(end - start ))
+    
+    def get_current_skeleton(self):
+        start = time.time()
+        skeleton = self.frames[self.position]
+        if self.dynamic_floor:            
+            height = 0
             for segment in [body_segments_reversed[i] for i in ['L toe', 'R toe', 'L foot', 'R foot']]:
-                segment_height = new_skeleton[segment * 2, 2]
-                floor_height = min((floor_height, segment_height))
-            self.zgrid.translate(0, 0, floor_height)
-        elif self.floor_grid:
-            self.zgrid.translate(0, 0, -1)
+                    segment_height = skeleton[segment * 2, 2]
+                    height = min((height, segment_height))
+            skeleton = skeleton - height
+        end = time.time()
+        # logging.info('get_current_skeleton TOOK {}'.format(end - start))
+        return skeleton
+        
+    def update_grid(self):
+        
+        start = time.time()
+        self.reset_counter += 1
+        if self.reset_counter >= self.RESET_INTERVAL:
+            self.reset_grid_location()
+            self.reset_counter = 0
+        if self.zgrid.visible():            
+            if self.dynamic_floor:
+                height = 0
+                skeleton = self.frames[self.position]
+                for segment in [body_segments_reversed[i] for i in ['L toe', 'R toe', 'L foot', 'R foot']]:
+                    segment_height = skeleton[segment * 2, 2]
+                    height = min((height, segment_height))
+            else:
+                height = self.DEFAULT_HEIGHT
+            
+            height_delta = height - self.grid_height
+            self.grid_height = height
+            self.zgrid.translate(0, 0, height_delta)
+            
+            
+        end = time.time()
+        logging.info('update_grid TOOK {}'.format(end - start))
+            
+    def reset_grid_location(self):
+        self.zgrid.resetTransform()
+        self.zgrid.translate(0,0, self.DEFAULT_HEIGHT)
+        self.grid_height = -1
+    
+    def mousePressEvent(self, ev):
+        lpos = ev.position() if hasattr(ev, 'position') else ev.localPos()
+        self.mousePos = lpos
+        if ev.button() == qtc.Qt.RightButton:
+            self.right_mouse_btn_clicked.emit()
 
     @pyqtSlot(bool, bool)
     def set_floor_grid(self, enable, dynamic):
-        self.floor_grid = enable
-        self.dynamic_floor = dynamic
+        self.zgrid.setVisible(enable)
+        # only update if needed
+        if dynamic != self.dynamic_floor:
+            self.dynamic_floor = dynamic
+            if self.position:
+                self.set_position(self.position)
 
 
 body_segments = {

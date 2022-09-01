@@ -4,9 +4,9 @@ import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 
-from .media_player import TimerBasedMediaPlayer
+from .media_player import AbstractMediaPlayer
 
-class VideoPlayer(TimerBasedMediaPlayer):
+class VideoPlayer(AbstractMediaPlayer):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         
@@ -74,6 +74,13 @@ class VideoPlayer(TimerBasedMediaPlayer):
             self.lblVid.setPixmap(pix)
     
     def resizeEvent(self, event):
+        qtw.QWidget.resizeEvent(self, event)
+        self.lblVid.resize(event.size())
+        img = self.current_img.scaled(self.lblVid.size(), qtc.Qt.KeepAspectRatio, qtc.Qt.SmoothTransformation)
+        pix = qtg.QPixmap.fromImage(img)
+        self.lblVid.setPixmap(pix)
+        
+
         qtw.QWidget.resizeEvent(self, event)
         self.lblVid.resize(event.size())
         img = self.current_img.scaled(self.lblVid.size(), qtc.Qt.KeepAspectRatio, qtc.Qt.SmoothTransformation)
