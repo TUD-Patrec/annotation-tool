@@ -9,7 +9,6 @@ from src.main_controller import main
 from src.utility import filehandler
 
 
-
 def get_application_path():
     if getattr(sys, 'frozen', False):
         application_path = os.path.dirname(sys.executable)

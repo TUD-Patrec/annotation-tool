@@ -4,7 +4,7 @@ import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 
-from .media_player import AbstractMediaPlayer
+from .media_player import AbstractMediaPlayer, MediaLoader
 
 class VideoPlayer(AbstractMediaPlayer):
     def __init__(self, *args, **kwargs) -> None:
@@ -13,9 +13,8 @@ class VideoPlayer(AbstractMediaPlayer):
         self.lblVid = qtw.QLabel(self)
         self.lblVid.setSizePolicy(qtw.QSizePolicy.Ignored, qtw.QSizePolicy.Ignored)
         self.lblVid.setAlignment(qtc.Qt.AlignCenter)
-
-        self.layout().addWidget(self.lblVid)
-        
+        self.current_img = None
+               
         # design 
         p = self.palette()
         p.setColor(self.backgroundRole(), qtc.Qt.black)
@@ -23,26 +22,32 @@ class VideoPlayer(AbstractMediaPlayer):
         self.layout().setContentsMargins(0,0,0,0)
         self.setAutoFillBackground(True)
         
+    def load(self, path):
+        self.loading_thread = VideoLoader(path)
+        self.loading_thread.progress.connect(self.pbar.setValue)
+        self.loading_thread.finished.connect(self._loading_finished)
+        self.loading_thread.start()
+    
+    @qtc.pyqtSlot(cv2.VideoCapture)
+    def _loading_finished(self, media):
+        self.media = media
         
-    def load(self, input_file):
-        try:
-            self.media = cv2.VideoCapture(input_file)
-        except:
-            print('Could NOT load the video from {}'.format(input_file))
-            self.failed.emit(self)
-            return
-        if self.media.get(cv2.CAP_PROP_FRAME_COUNT) < 1:
-            print('EMPTY VIDEO LOADED')
-            self.failed.emit(self)
-            return
+        self.layout().replaceWidget(self.pbar, self.lblVid)
+        
+        self.pbar.setParent(None)
+        del self.pbar
+        
         self.fps = self.media.get(cv2.CAP_PROP_FPS)
         self.n_frames = int(self.media.get(cv2.CAP_PROP_FRAME_COUNT))
         self.next_frame()
-        width = self.media.get(cv2.CAP_PROP_FRAME_WIDTH)   # float `width`
-        height = self.media.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        width = media.get(cv2.CAP_PROP_FRAME_WIDTH)   # float `width`
+        height = media.get(cv2.CAP_PROP_FRAME_HEIGHT)
         logging.info('Video-Shape: {} x {}.'.format(width, height))
+               
+        self.adjustSize()
+        
         self.loaded.emit(self)
-    
+        
     def update_media_position(self):
         cap_pos = int(self.media.get(cv2.CAP_PROP_POS_FRAMES))
         pos = self.position + self.offset
@@ -55,10 +60,11 @@ class VideoPlayer(AbstractMediaPlayer):
             self.next_frame()
         else:
             if pos < 0 and cap_pos != 1:
-                self.media.set(cv2.CAP_PROP_POS_FRAMES, pos)
+                self.media.set(cv2.CAP_PROP_POS_FRAMES, 0)
                 self.next_frame()
             if pos >= self.n_frames and cap_pos != self.n_frames:
-                self.media.set(cv2.CAP_PROP_POS_FRAMES, pos)
+                logging.info('loading last frame as placeholder')
+                self.media.set(cv2.CAP_PROP_POS_FRAMES, self.n_frames - 1)
                 self.next_frame()
         
     def next_frame(self):
@@ -74,15 +80,24 @@ class VideoPlayer(AbstractMediaPlayer):
             self.lblVid.setPixmap(pix)
     
     def resizeEvent(self, event):
-        qtw.QWidget.resizeEvent(self, event)
-        self.lblVid.resize(event.size())
-        img = self.current_img.scaled(self.lblVid.size(), qtc.Qt.KeepAspectRatio, qtc.Qt.SmoothTransformation)
-        pix = qtg.QPixmap.fromImage(img)
-        self.lblVid.setPixmap(pix)
+        if self.current_img:
+            qtw.QWidget.resizeEvent(self, event)
+            self.lblVid.resize(event.size())
+            img = self.current_img.scaled(self.lblVid.size(), qtc.Qt.KeepAspectRatio, qtc.Qt.SmoothTransformation)
+            pix = qtg.QPixmap.fromImage(img)
+            self.lblVid.setPixmap(pix)
         
 
-        qtw.QWidget.resizeEvent(self, event)
-        self.lblVid.resize(event.size())
-        img = self.current_img.scaled(self.lblVid.size(), qtc.Qt.KeepAspectRatio, qtc.Qt.SmoothTransformation)
-        pix = qtg.QPixmap.fromImage(img)
-        self.lblVid.setPixmap(pix)
+class VideoLoader(MediaLoader):
+    def __init__(self, path) -> None:
+        super().__init__(path)
+        
+    def load(self):
+        try:
+            self.media = cv2.VideoCapture(self.path)
+        except:
+            logging.error('Could NOT load the video from {}'.format(self.path))
+            return
+        if self.media.get(cv2.CAP_PROP_FRAME_COUNT) < 1:
+            logging.error('EMPTY VIDEO LOADED')
+    

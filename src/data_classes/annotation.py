@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import List
 import numpy as np
 import datetime
@@ -40,9 +41,9 @@ class Annotation:
         self._path = path
         self._footprint = filehandler.footprint_of_file(self._input_file)
         
-        duration, frame_count, fps = filehandler.meta_data(self._input_file)
+        self._duration, self._frame_count, self._fps = filehandler.meta_data(self._input_file)
         
-        self._samples.append(Sample(0, frame_count - 1))
+        self._samples.append(Sample(0, self._frame_count - 1))
     
     def __len__(self):
         return self._samples[-1].end_position + 1
@@ -130,18 +131,19 @@ class Annotation:
     
     @property
     def fps(self):
-        duration, frames, fps = filehandler.meta_data(self.input_file)
-        return fps
+        return self._fps
     
     @property
     def duration(self):
-        duration, frames, fps = filehandler.meta_data(self.input_file)
-        return duration
+        return self._duration
     
     @property
     def frames(self):
-        duration, frames, fps = filehandler.meta_data(self.input_file)
-        return frames
+        # only for compatibility
+        # remove later
+        if not hasattr(self, '_frame_count'):
+            self._duration, self._frame_count, self._fps = filehandler.meta_data(self._input_file)
+        return self._frame_count 
     
     def to_numpy(self):
         x = []
@@ -166,7 +168,7 @@ class Annotation:
     
     def to_disk(self):
         filehandler.write_pickle(self._path, self)
-        
+  
     @staticmethod
     def from_disk(path):
         if filehandler.is_non_zero_file(path):

@@ -1,9 +1,31 @@
 from abc import abstractmethod
+import time
+import logging
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 from ..utility import filehandler
 from ..utility.functions import ms_to_time_string
+
+class MediaLoader(qtc.QThread):
+    progress = qtc.pyqtSignal(int)
+    finished = qtc.pyqtSignal(object)
+    
+    def __init__(self, path:str) -> None:
+        super().__init__()
+        self.path = path
+        self.media = None
+        
+    def run(self):
+        self.load()
+        self.finished.emit(self.media)
+
+ 
+    @abstractmethod
+    def load(self):
+        raise NotImplementedError
+
+    
 
 class AbstractMediaPlayer(qtw.QWidget):
     position_changed = qtc.pyqtSignal(int)
@@ -19,7 +41,7 @@ class AbstractMediaPlayer(qtw.QWidget):
         self.timer = qtc.QTimer()
         self.timer.setTimerType(qtc.Qt.PreciseTimer)
         self.timer.timeout.connect(self.on_timeout)
-        
+         
         # controll atributes
         self.running_flag = False
         self.replay_speed = 1
@@ -32,6 +54,18 @@ class AbstractMediaPlayer(qtw.QWidget):
         
         # layout
         self.hbox = qtw.QHBoxLayout(self)
+                
+        # Progress bar
+        
+        self.PROGRESS_UPDATE = 5
+        self.pbar = qtw.QProgressBar(self)
+        self.pbar.setValue(0)
+        self.pbar.setRange(0, 100)
+        self.hbox.addWidget(self.pbar)
+        
+        # Worker thread for loading media
+        self.loading_thread : MediaLoader = None
+        
             
     def mousePressEvent(self, e): 
         # rightclick = context_menu
@@ -68,7 +102,7 @@ class AbstractMediaPlayer(qtw.QWidget):
     
     def remove_input(self):
         self.remove_wanted.emit(self)
-    
+        
     def adjust_offset(self):
         offset, ok = qtw.QInputDialog.getInt(self, 'Offset', 'Enter offset', value=self.offset)
         if ok:
@@ -78,6 +112,10 @@ class AbstractMediaPlayer(qtw.QWidget):
     @abstractmethod
     @qtc.pyqtSlot(str)
     def load(self, input_file):
+        raise NotImplementedError
+    
+    @abstractmethod
+    def init_loader_thread(self):
         raise NotImplementedError
     
     @qtc.pyqtSlot()

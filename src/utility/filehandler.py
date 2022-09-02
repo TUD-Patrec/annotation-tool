@@ -139,9 +139,13 @@ def meta_data(path):
 
 
 def meta_data_of_mocap(path):
+    logging.info('meta_mocap Start')
+    
     mocap = csv_to_numpy(path)
     frame_count = mocap.shape[0]
-    fps = 100
+    fps = Settings.instance().refresh_rate
+    
+    logging.info('meta_mocap End')
     
     return 1000 * int(frame_count / fps), frame_count, fps 
     
