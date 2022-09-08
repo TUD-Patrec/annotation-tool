@@ -40,3 +40,4 @@ if __name__ == '__main__':
     logging.info('Running relative to {}'.format(application_path))
         
     main()
+    

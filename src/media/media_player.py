@@ -54,9 +54,11 @@ class AbstractMediaPlayer(qtw.QWidget):
         
         # layout
         self.hbox = qtw.QHBoxLayout(self)
-                
-        # Progress bar
         
+        # speed improvements
+        self.allow_frame_merges = True
+        
+        # Progress bar
         self.PROGRESS_UPDATE = 5
         self.pbar = qtw.QProgressBar(self)
         self.pbar.setValue(0)
@@ -169,4 +171,3 @@ class AbstractMediaPlayer(qtw.QWidget):
     @abstractmethod
     def update_media_position(self):
         raise NotImplementedError
-

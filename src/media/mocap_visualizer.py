@@ -38,9 +38,19 @@ class MocapLoader(MediaLoader):
                 self.progress.emit(prog)
                 frame = array[frame_index, :]
                 frame = calculate_skeleton(frame)
+                
+                # NORMALIZATION
+                height = 0
+                for segment in [body_segments_reversed[i] for i in ['L toe', 'R toe', 'L foot', 'R foot']]:
+                        segment_height = frame[segment * 2, 2]
+                        height = min((height, segment_height))
+                frame[:,2] -= height
+                # END NORMALIZATION
+                
                 frames[frame_index, :, :] = frame
 
-            self.media = frames
+            self.media = frames.astype(np.float16)
+            # self.media = frames
             
         except Exception as e:
             raise e
@@ -52,6 +62,8 @@ class MocapPlayer(AbstractMediaPlayer):
         self.media_backend = MocapBackend()
         settings = Settings.instance()
 
+        self.allow_frame_merges = True
+        
         show_mocap_grid = settings.mocap_grid
         use_dynamic_mocap_grid = settings.mocap_grid_dynamic
         self.set_floor_grid(show_mocap_grid, use_dynamic_mocap_grid)
@@ -66,10 +78,12 @@ class MocapPlayer(AbstractMediaPlayer):
         logging.info('Loading start')
     
     @qtc.pyqtSlot(np.ndarray)
-    def _loading_finished(self, media):            
+    def _loading_finished(self, media):
         logging.info('Loading done')   
         self.n_frames = media.shape[0]
         self.fps = Settings.instance().refresh_rate
+        
+        logging.info(f'{media.dtype = }, {media.nbytes = }')
         
         self.media_backend.media = media
         self.media_backend.set_position(0)
@@ -77,13 +91,12 @@ class MocapPlayer(AbstractMediaPlayer):
         self.pbar.setParent(None)
         del self.pbar
         
-        self.loaded.emit(self)
-            
+        self.loaded.emit(self)     
         
     def update_media_position(self):
         pos = self.position + self.offset
-        pos = max(0, min(pos, self.n_frames - 1))
-        self.media_backend.set_position(pos)
+        pos_adjusted = max(0, min(pos, self.n_frames - 1))
+        self.media_backend.set_position(pos_adjusted)
     
     def set_floor_grid(self, enable, dynamic):
         if self.media_backend:
@@ -110,10 +123,12 @@ class MocapBackend(gl.GLViewWidget):
     @qtc.pyqtSlot(int)
     def set_position(self, new_pos):
         self.position = new_pos # update position
-        skeleton = self.get_current_skeleton() # update skeleton
+        #skeleton = self.get_current_skeleton() # update skeleton
+        skeleton = self.media[self.position]
         self.current_skeleton.setData(pos=skeleton, color=np.array(skeleton_colors), width=4, mode='lines')
     
     def get_current_skeleton(self):
+        # Outdated code
         skeleton = np.copy(self.media[self.position])
         if self.dynamic_floor:
             height = 0
@@ -122,7 +137,6 @@ class MocapBackend(gl.GLViewWidget):
                     height = min((height, segment_height))
             skeleton[:,2] -= height
         else:
-            pass
             NORMAL_HEIGHT_OFFSET = 1
             skeleton[:,2] += NORMAL_HEIGHT_OFFSET
         return skeleton
@@ -135,6 +149,7 @@ class MocapBackend(gl.GLViewWidget):
 
     @qtc.pyqtSlot(bool, bool)
     def set_floor_grid(self, enable, dynamic):
+        # Outdated code
         self.zgrid.setVisible(enable)
         # only update if needed
         if dynamic != self.dynamic_floor:
@@ -264,3 +279,6 @@ def calculate_skeleton(frame: np.array) -> np.array:
     # convert the list into an array, convert millimeters to meters and return the result
     return np.array(t_all) / 1000
 
+
+
+        

@@ -1,5 +1,4 @@
 import logging
-from re import S
 import time
 
 import PyQt5.QtWidgets as qtw
@@ -74,13 +73,7 @@ class FairQueue():
                 self.count -= self.items[idx][1]
                 del self.items[idx]
                 break
-            
-    def _check_consistency(self):
-        # Check: sum of counts = self.count
-        # Check: No duplicated items
-        # Check: Efficiency (?)    
-        pass
-            
+                
     def clear(self):
         self.items = []
         self.count = 0
@@ -88,25 +81,29 @@ class FairQueue():
     def __len__(self):
         return self.count
     
-    
+
 class Timer(qtc.QObject):
-    new_task = qtc.pyqtSignal(qtw.QWidget)
     finished = qtc.pyqtSignal()
-    
-    def __init__(self):
-        super().__init__()
+    timeout_signal = qtc.pyqtSignal(qtw.QWidget)
+    change_position_signal = qtc.pyqtSignal(int)
+    sync_needed = qtc.pyqtSignal()
+     
+    def init(self):
         self.queue = FairQueue()
-        self.currently_updating = []
+        self.next_position = None
+        self.open_tasks = []
+        
+        self.queried_pos_updates = 0
         
         # Constants
         self.MAX_OPEN_TASKS = 10
-        
-        self.PASSIVE_IDLE_TIME = 0.2
         self.ACTIVE_IDLE_TIME = 0.005
+        self.PASSIVE_IDLE_TIME = 0.05
         
         self.subscribers = []
         self.active = True
-        self.pause = True
+        self.paused = True
+        self.sync_after_pause = False
         
         self.alpha = 1
         self.replay_speed = 1
@@ -114,7 +111,10 @@ class Timer(qtc.QObject):
         self.time = 0
         self.last_real_time_ms = None
         
+        self.thread_ = self.thread()
+     
     def compute_time(self):
+        assert qtc.QThread.currentThread() is self.thread_
         current = time_in_millis()
         time_multiplier = self.replay_speed * self.alpha
         delta = int(time_multiplier * (current - self.last_real_time_ms))
@@ -123,33 +123,44 @@ class Timer(qtc.QObject):
             self.last_real_time_ms = current
     
     def run(self):
+        self.init()
         self.last_real_time_ms = time_in_millis()
                 
         while self.active:
-            if self.pause or len(self.subscribers) == 0:
+            assert qtc.QThread.currentThread() is self.thread_
+            
+            # Clearing the event
+            qtc.QCoreApplication.processEvents()
+            
+            # Position update available - has priority over all other tasks
+            if self.next_position:
+                self.change_position()
+                continue
+                           
+            elif self.paused or len(self.subscribers) == 0:
                 self.queue.clear()
+                if self.sync_after_pause:
+                    self.sync_after_pause = False
+                    self.sync_needed.emit()
                 time.sleep(self.PASSIVE_IDLE_TIME)
                 self.last_real_time_ms = time_in_millis()
                 continue
             
-            self.update_alpha()
             self.compute_time()
             self.update_queue()
+            self.update_alpha()
+            logging.info('ALPHA = {} | QUEUE_SIZE = {} | OPEN_TASKS_SIZE = {} '.format(self.alpha, len(self.queue), len(self.open_tasks)))
             
-            logging.info('ALPHA = {} | QUEUE_SIZE = {} '.format(self.alpha, len(self.queue)))
-            
-            free = len(self.currently_updating) < self.MAX_OPEN_TASKS
-            if free and self.queue.has_elements():
+            if len(self.open_tasks) < self.MAX_OPEN_TASKS and self.queue.has_elements():
                 self.process_queue()
             else:
                 time.sleep(self.ACTIVE_IDLE_TIME)
+            
         logging.info('*** Timer FINISHED ***')
         self.finished.emit()
-        
-    def setPaused(self, x):
-        self.pause = bool(x)
-            
+          
     def update_queue(self):
+        assert qtc.QThread.currentThread() is self.thread_
         for idx, (listener, cnt) in enumerate(self.subscribers):
             old_cnt = cnt
             r = 1000 / (listener.fps)
@@ -159,120 +170,117 @@ class Timer(qtc.QObject):
                 self.queue.push(listener)
     
     def process_queue(self):
-        if self.queue.has_elements():
+        assert qtc.QThread.currentThread() is self.thread_
+        while len(self.open_tasks) < self.MAX_OPEN_TASKS and self.queue.has_elements():
             listener = self.queue.pop()
-            self.currently_updating.append(listener)
-            self.new_task.emit(listener)
-            logging.info('CURRENTLY_UPDATING = {}'.format(len(self.currently_updating)))
-           
-    @qtc.pyqtSlot(qtw.QWidget)
-    def confirm_task(self, listener):
-        for idx, l in enumerate(self.currently_updating):
-            if listener == l:
-                del self.currently_updating[idx]
-                break
-            
+            self.open_tasks.append(listener)
+            # logging.info(f'SENDING TIMEOUT FROM {qtc.QThread.currentThread() = }')
+            self.timeout_signal.emit(listener)
+
     def update_alpha(self):
-        n = len(self.queue)
-        self.alpha = (100 - n) / 100
-        
+        assert qtc.QThread.currentThread() is self.thread_
+        N = len(self.queue)
+        THETA = len(self.subscribers) * 2
+        if N < THETA:
+            self.alpha = 1
+        else:
+            MAX_QUEUE_LEN = 25
+            EPSILON = 0.001
+            
+            self.alpha = max(EPSILON, 1 - (N - THETA) / (MAX_QUEUE_LEN - THETA) )
+            
+    def change_position(self):
+        assert qtc.QThread.currentThread() is self.thread_
+        pos = self.next_position
+        self.next_position = None
+        # logging.debug(f'{self.queried_pos_updates = }')
+        self.queried_pos_updates = 0
+        # logging.info(f'SENDING POSITION UPDATE FROM {qtc.QThread.currentThread() = }')
+        self.change_position_signal.emit(pos)
+    
+    @qtc.pyqtSlot(qtw.QWidget)    
+    def confirm_task(self, t):
+        assert qtc.QThread.currentThread() is self.thread_
+        for idx, l in enumerate(self.open_tasks):
+            if t == l:
+                del self.open_tasks[idx]
+                break     
+    
+    @qtc.pyqtSlot()    
     def stop(self):
+        assert qtc.QThread.currentThread() is self.thread_
         self.active = False
     
+    @qtc.pyqtSlot(qtw.QWidget)
     def subscribe(self, listener):
+        assert qtc.QThread.currentThread() is self.thread_
         r = 1000 / listener.fps
         cnt = self.time / r
         self.subscribers.append([listener, int(cnt)])
         
+        # resetting
+        self.sync_needed.emit()
+        self.queue.clear()
+        self.open_tasks = []
+        self.time = 0
+        self.last_real_time_ms = time_in_millis()
+     
+    @qtc.pyqtSlot(qtw.QWidget)
     def unsubscribe(self, listener):
+        assert qtc.QThread.currentThread() is self.thread_
         for idx in range(len(self.subscribers)):
-            if self.subscribers[idx][0] == listener:
+            if self.subscribers[idx][0] is listener:
                 break
         else:
-            # listener not found!
             raise RuntimeError
         del self.subscribers[idx]
         self.queue.remove_item(listener)
-       
+        # HACKY - reimplement later
+        for _ in range(len(self.open_tasks)):
+            self.confirm_task(listener)
+    
+    @qtc.pyqtSlot(bool)
+    def setPaused(self, x):
+        assert qtc.QThread.currentThread() is self.thread_
+        # logging.info(f'PAUSE SIGNAL RECEIVED in {qtc.QThread.currentThread() = }')
+        self.paused = bool(x)
+        if self.paused:
+            self.sync_after_pause = True
+    
+    @qtc.pyqtSlot()
     def reset(self):
-        self.queue = FairQueue()
-        self.currently_updating = []
+        assert qtc.QThread.currentThread() is self.thread_
+        self.queue.clear()
+        self.open_tasks = []
         self.subscribers = []
         self.time = 0
         self.last_real_time_ms = time_in_millis()
+        self.paused = True
     
+    @qtc.pyqtSlot(float)
     def set_replay_speed(self, x):
+        assert qtc.QThread.currentThread() is self.thread_
+        # logging.info('Signal received!')
         self.replay_speed = max(.01, x)
-    
 
-class TaskScheduler(qtc.QObject):
-    task_finished = qtc.pyqtSignal(qtw.QWidget)
-    finished = qtc.pyqtSignal()
-    
-    def __init__(self) -> None:
-        super().__init__()
-        self.active = False
-        
-        self.open_timeouts = []
-        
-        self.next_position = None
-        self.widgets = None
-               
-    def run(self):
-        self.active = True
-        
-        print(self.widgets, self.next_position)
-        
-        while self.active:
-            if self.next_position and self.widgets:
-                self.change_position()
-                continue
-            if self.open_timeouts:
-                self.process_timeout()
-            time.sleep(0.005)
-        logging.info('*** TaskScheduler FINISHED ***')
-        self.finished.emit()
-    
-    def process_timeout(self):
-        # logging.info('solving timeout')
-        listener = self.open_timeouts.pop(0)
-        listener.on_timeout()
-        self.task_finished.emit(listener)
-        
-    @qtc.pyqtSlot(qtw.QWidget)
-    def add_timeout_for(self, widget):
-        # logging.info('ADDING TIMEOUT')
-        self.open_timeouts.append(widget)
-    
-    @qtc.pyqtSlot(qtw.QWidget, int)
-    def set_position(self, widgets, pos):
-        # logging.info('setting new position')
+    @qtc.pyqtSlot(int)
+    def set_position(self, pos):
+        assert qtc.QThread.currentThread() is self.thread_
         self.next_position = pos
-        self.widgets = widgets
+        self.queried_pos_updates += 1
         
-        if not self.active:
-            self.change_position()
-        
-    def change_position(self):
-        # logging.info('changing position')
-        widgets, pos = self.widgets, self.next_position
-        self.widgets, self.next_position = None, None
-        
-        if widgets:
-            main_widget = widgets[0]
-            main_widget.set_position(pos)
-            for w in widgets[1:]:
-                synchronize(w, main_widget)
-    
-    def stop(self):
-        self.active = False
-
 
 class QMediaMainController(qtw.QWidget):
     position_changed = qtc.pyqtSignal(int)
-    widget_pos_update = qtc.pyqtSignal(qtw.QWidget, int)
+    setPaused = qtc.pyqtSignal(bool)
+    replay_speed_changed = qtc.pyqtSignal(float)
+    subscribe = qtc.pyqtSignal(qtw.QWidget)
+    unsubscribe = qtc.pyqtSignal(qtw.QWidget)
+    reset = qtc.pyqtSignal()
+    task_finished = qtc.pyqtSignal(qtw.QWidget)
+    query_new_position = qtc.pyqtSignal(int)
+    stop_signal = qtc.pyqtSignal()
     
-
     def __init__(self, *args, **kwargs):
         super(QMediaMainController, self).__init__(*args, **kwargs)
         self.replay_widgets = []
@@ -281,17 +289,19 @@ class QMediaMainController(qtw.QWidget):
 
         self.replay_speed = 1        
         
+        self.init_timer()
+        self.timer_thread.start()
+        
         self.vbox = qtw.QVBoxLayout()
         self.grid.addLayout(self.vbox, 0, 1)
         
-        self.init_workers()
-        
-
+        self.thread_ = self.thread()
+      
     @qtc.pyqtSlot(str)
     def load_annotation(self, annotation):
         self.pause()
+        self.reset.emit()
         self.clear()
-        self.timer_worker.reset()
         self.add_replay_widget(annotation.input_file)
       
     def clear(self):
@@ -333,9 +343,9 @@ class QMediaMainController(qtw.QWidget):
     @qtc.pyqtSlot(AbstractMediaPlayer)
     def widget_loaded(self, widget):
         self.replay_widgets.append(widget)
+        self.subscribe.emit(widget)
         if len(self.replay_widgets) > 1:
             synchronize(widget, self.replay_widgets[0])
-        self.timer_worker.subscribe(widget)
         
     @qtc.pyqtSlot(AbstractMediaPlayer)
     def widget_failed(self, widget):
@@ -344,94 +354,82 @@ class QMediaMainController(qtw.QWidget):
     def remove_replay_source(self, widget):
         self.replay_widgets.remove(widget)
         self.grid.removeWidget(widget)
-        self.timer_worker.unsubscribe(widget)
+        self.unsubscribe.emit(widget)
         widget.setParent(None)
-        del widget
 
     @qtc.pyqtSlot(int)
     def set_position(self, pos):
-        if self.scheduler_worker:
-            self.scheduler_worker.set_position(self.replay_widgets, pos)
-        else:
-            self.init_workers()
-            self.scheduler_worker.set_position(self.replay_widgets, pos)
+        # logging.info(f'QUERYING POSITION UPDATE IN {qtc.QThread.currentThread() = }')
+        self.query_new_position.emit(pos)
+    
+    qtc.pyqtSlot(int)
+    def solve_position_update(self, pos):
+        assert qtc.QThread.currentThread() is self.thread_
+        # logging.info(f'SOLVING POSITION UPDATE IN {qtc.QThread.currentThread() = }')
+        if self.replay_widgets:
+            main_widget = self.replay_widgets[0]
+            main_widget.set_position(pos)
+        self.synchronize()
          
     @qtc.pyqtSlot()
     def play(self):
-        self.start_threads()
-        self.timer_worker.setPaused(False)
+        self.replay_speed_changed.emit(self.replay_speed)
+        # logging.info(f'PLAY SIGNAL SENT from {qtc.QThread.currentThread() = }')
+        self.setPaused.emit(False)
         
     @qtc.pyqtSlot()
     def pause(self):
-        self.stop_threads()
-        
-        if self.replay_widgets:
-            self.scheduler_worker.set_position(self.replay_widgets, self.replay_widgets[0].position)
+        self.setPaused.emit(True)
     
-    def init_workers(self):
+    @qtc.pyqtSlot()
+    def synchronize(self):
+        assert qtc.QThread.currentThread() is self.thread_
+        if self.replay_widgets:
+            main_widget = self.replay_widgets[0]
+            for w in self.replay_widgets[1:]:
+                synchronize(w, main_widget)
+    
+    def init_timer(self):
         self.timer_thread = qtc.QThread()
-        self.scheduler_thread = qtc.QThread()
-        
-        # TIMER
         self.timer_worker = Timer()
-        self.scheduler_worker = TaskScheduler()
-        
-        self.timer_worker.moveToThread(self.timer_thread)      
+        self.timer_worker.moveToThread(self.timer_thread)
         
         self.timer_thread.started.connect(self.timer_worker.run)
         self.timer_worker.finished.connect(self.timer_thread.quit)
         self.timer_worker.finished.connect(self.timer_worker.deleteLater)
         self.timer_thread.finished.connect(self.timer_thread.deleteLater)
         
-        # SCHEDULER        
-        self.scheduler_worker.moveToThread(self.scheduler_thread)
+        # connecting slots
+        self.setPaused.connect(self.timer_worker.setPaused)
+        self.reset.connect(self.timer_worker.reset)
+        self.replay_speed_changed.connect(self.timer_worker.set_replay_speed)
+        self.subscribe.connect(self.timer_worker.subscribe)
+        self.unsubscribe.connect(self.timer_worker.unsubscribe)
+        self.task_finished.connect(self.timer_worker.confirm_task)
+        self.query_new_position.connect(self.timer_worker.set_position)
+        self.stop_signal.connect(self.timer_worker.stop)
         
-        self.scheduler_thread.started.connect(self.scheduler_worker.run)
-        self.scheduler_worker.finished.connect(self.scheduler_thread.quit)
-        self.scheduler_worker.finished.connect(self.scheduler_worker.deleteLater)
-        self.scheduler_worker.finished.connect(self.scheduler_thread.deleteLater)
+        self.timer_worker.timeout_signal.connect(self.on_timeout)
+        self.timer_worker.change_position_signal.connect(self.solve_position_update)
+        self.timer_worker.sync_needed.connect(self.synchronize)
         
-        # Inter-Thread connections
-        # self.timer_worker.new_task.connect(self.scheduler_worker.add_timeout_for)
-        # self.scheduler_worker.task_finished.connect(self.timer_worker.confirm_task)
+    def closeEvent(self, a0: qtg.QCloseEvent) -> None:
+        self.stop_signal.emit()
+        self.timer_thread.wait()
+        return super().closeEvent(a0)
         
-        self.timer_worker.new_task.connect(self.on_timeout)
-        self.scheduler_worker.task_finished.connect(self.confirm_task)
-    
-    def stop_threads(self):
-        old_timer = self.timer_worker
-        old_timer_thread = self.timer_thread
-        old_scheduler = self.scheduler_worker
-        old_scheduler_thread = self.scheduler_thread
-        
-        old_timer.stop()
-        old_scheduler.stop()
-        
-        old_timer_thread.quit()
-        old_scheduler_thread.quit()
-        
-        #old_timer_thread.wait()
-        #old_scheduler_thread.wait()
-        
-        # self.init_workers()
-    
-        logging.info('All threads stopped!')
-        
-    def start_threads(self):
-        self.init_workers()
-        
-        # Init timer
-        self.timer_worker.set_replay_speed(self.replay_speed)
-        for w in self.replay_widgets:
-            self.timer_worker.subscribe(w)               
-        
-        self.timer_thread.start()
-        self.scheduler_thread.start()
-                   
+    @qtc.pyqtSlot(qtw.QWidget)
+    def on_timeout(self, w):
+        assert qtc.QThread.currentThread() is self.thread_
+        # logging.info(f'SOLVING TIMEOUT FROM {qtc.QThread.currentThread() = }')
+        w.on_timeout()
+        self.task_finished.emit(w)
+                       
     @qtc.pyqtSlot(float)
     def set_replay_speed(self, x):
         self.replay_speed = x
-        self.timer_worker.set_replay_speed(x)
+        # self.timer_worker.set_replay_speed(x)
+        self.replay_speed_changed.emit(self.replay_speed)
     
     @qtc.pyqtSlot()
     def settings_changed(self):
@@ -443,30 +441,15 @@ class QMediaMainController(qtw.QWidget):
                 widget.set_floor_grid(show_mocap_grid, use_dynamic_mocap_grid)
                 if widget.fps != settings.refresh_rate:
                     # reloading mocap_widget with new refresh rate
-                    self.timer_worker.unsubscribe(widget)
+                    self.unsubscribe.emit(widget)
                     widget.fps = settings.refresh_rate
-                    synchronize(widget, self.replay_widgets[0])                    
-                    self.timer_worker.subscribe(widget)
-    
-    @qtc.pyqtSlot(qtw.QWidget)
-    def on_timeout(self, widget):
-        self.scheduler_worker.add_timeout_for(widget)
-    
-    @qtc.pyqtSlot(qtw.QWidget)
-    def confirm_task(self, widget):
-        self.timer_worker.confirm_task(widget)
-        
-
-def sleep_(duration, get_now=time.perf_counter):
-    now = get_now()
-    end = now + duration
-    while now < end:
-        now = get_now() 
-    
-    
+                    self.timer_worker.set_position(self.replay_widgets, self.replay_widgets[0].position)
+                    self.subscribe.emit(widget) 
+                
 def time_in_millis():
-    t = time.time()
+    t = time.perf_counter()
     return int(t * 1000)
+    
     
 def synchronize(to_sync, sync_with):
     if to_sync != sync_with:

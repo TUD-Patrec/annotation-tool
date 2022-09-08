@@ -4,7 +4,6 @@ import PyQt5.QtGui as qtg
 import sys, logging, logging.config
 
 from .data_classes.annotation import Annotation
-#from .display import QMediaMainController
 from .annotation_widget import QAnnotationWidget
 from .gui import GUI
 from .playback import PlayWidget
@@ -203,5 +202,4 @@ def main():
     #import qdarkstyle
     #app.setStyleSheet(qdarkstyle.load_stylesheet(qt_api='pyqt5'))
     
-    app.exec_()
-
+    sys.exit(app.exec_())
