@@ -14,11 +14,9 @@ def get_application_path():
     if getattr(sys, 'frozen', False):
         application_path = os.path.dirname(sys.executable)
     elif __file__:
-        application_path = os.path.dirname(__file__)
-        print(os.path.realpath(__file__))
-        print(os.path.dirname(__file__))
+        application_path = os.path.split(os.path.realpath(__file__))[0]
     else:
-        raise RuntimeError('Could not determine the path to this document')
+        raise RuntimeError('Could not get the path of this script')
     return application_path
     
     
