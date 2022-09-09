@@ -1,5 +1,7 @@
 numpy
 PyQt5
 pyinstaller
+pyqtgraph==0.11.0
+PyOpenGL
 distinctipy
 opencv-python
