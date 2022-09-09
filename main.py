@@ -41,7 +41,7 @@ def enable_high_dpi_scaling():
         PROCESS_PER_MONITOR_DPI_AWARE = 2
         errorCode = ctypes.windll.shcore.SetProcessDpiAwareness(PROCESS_DPI_UNAWARE)
         if errorCode == 0:
-            logging.info('Process runs DPI unaware')
+            logging.info('Running DPI-unaware')
     
     
     

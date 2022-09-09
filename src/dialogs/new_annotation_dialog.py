@@ -36,9 +36,6 @@ class QNewAnnotationDialog(qtw.QDialog):
         self.line_edit.mousePressed.connect(lambda: self.select_input_source())
         
         form.addRow('Input File:', self.line_edit)
-                        
-        self.try_using_experimental_media_player = qtw.QCheckBox()
-        form.addRow('Try experimental media-player:', self.try_using_experimental_media_player)
         
         self.open_button = qtw.QPushButton()
         self.open_button.setText('Open')
@@ -81,11 +78,10 @@ class QNewAnnotationDialog(qtw.QDialog):
         self.check_enabled()
         if self.open_button.isEnabled():
             idx = self.combobox.currentIndex()
-            use_media_player = self.try_using_experimental_media_player.isChecked()
             
             dataset_description = self.datasets[idx]
             
             annotator_id = Settings.instance().annotator_id
-            annotation = Annotation(annotator_id, dataset_description, self.annotation_name.text(), self.line_edit.text(), use_media_player)
+            annotation = Annotation(annotator_id, dataset_description, self.annotation_name.text(), self.line_edit.text(), False)
             self.load_annotation.emit(annotation)
             self.close()
