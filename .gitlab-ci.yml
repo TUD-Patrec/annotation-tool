@@ -37,3 +37,19 @@ flake8 linting:
     - pip install poetry
     - poetry install
     - poetry run flake8 "${CI_PROJECT_DIR}"
+
+black format check:
+  stage: "Build and test"
+  script:
+    - pip install --upgrade pip
+    - pip install poetry
+    - poetry install
+    - poetry run black --check "${CI_PROJECT_DIR}"
+
+isort format check:
+  stage: "Build and test"
+  script:
+    - pip install --upgrade pip
+    - pip install poetry
+    - poetry install
+    - poetry run isort --check --settings-path pyproject.toml --recursive "${CI_PROJECT_DIR}"
