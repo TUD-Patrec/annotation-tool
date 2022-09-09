@@ -36,4 +36,4 @@ flake8 linting:
     - pip install --upgrade pip
     - pip install poetry
     - poetry install
-    - flake8 "${CI_PROJECT_DIR}"
+    - poetry run flake8 "${CI_PROJECT_DIR}"
