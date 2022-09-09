@@ -8,27 +8,27 @@ before_script:
 stages:
   - "Build and test"
 
-build executables:
-  stage: "Build and test"
-  variables:
-    SRCDIR: "$CI_PROJECT_DIR"
-    PLATFORMS: "linux,windows"
-  image:
-    name: fydeinc/pyinstaller
-    entrypoint: [""]
-  script:
-    - pwd
-    - pip install --upgrade pip
-    - pip install poetry
-    - poetry config virtualenvs.create false
-    - poetry export --without-hashes -o requirements.txt
-    - /entrypoint.sh --onefile --noconsole main.py
-    - mv "dist/linux/main" "${CI_PROJECT_DIR}/annotation-tool-linux"
-    - mv "dist/windows/main.exe" "${CI_PROJECT_DIR}/annotation-tool-windows.exe"
-  artifacts:
-    paths:
-      - annotation-tool-linux
-      - annotation-tool-windows.exe
+    # build executables:
+    #   stage: "Build and test"
+    #   variables:
+    #     SRCDIR: "$CI_PROJECT_DIR"
+    #     PLATFORMS: "linux,windows"
+    #   image:
+    #     name: fydeinc/pyinstaller
+    #     entrypoint: [""]
+    #   script:
+    #     - pwd
+    #     - pip install --upgrade pip
+    #     - pip install poetry
+    #     - poetry config virtualenvs.create false
+    #     - poetry export --without-hashes -o requirements.txt
+    #     - /entrypoint.sh --onefile --noconsole main.py
+    #     - mv "dist/linux/main" "${CI_PROJECT_DIR}/annotation-tool-linux"
+    #     - mv "dist/windows/main.exe" "${CI_PROJECT_DIR}/annotation-tool-windows.exe"
+    #   artifacts:
+    #     paths:
+    #       - annotation-tool-linux
+    #       - annotation-tool-windows.exe
 
 flake8 linting:
   stage: "Build and test"
