@@ -187,6 +187,7 @@ def main():
     sys.excepthook = except_hook
     
     app = MainApplication(sys.argv)
+    app.setStyle("Fusion")    
         
     settings = Settings.instance()
     custom_font = qtg.QFont()
@@ -197,9 +198,5 @@ def main():
     file.open(qtc.QFile.ReadOnly | qtc.QFile.Text)
     stream = qtc.QTextStream(file)
     app.setStyleSheet(stream.readAll())
-    
-    
-    #import qdarkstyle
-    #app.setStyleSheet(qdarkstyle.load_stylesheet(qt_api='pyqt5'))
-    
+        
     sys.exit(app.exec_())

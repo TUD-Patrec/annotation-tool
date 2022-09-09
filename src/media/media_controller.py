@@ -209,6 +209,7 @@ class Timer(qtc.QObject):
     @qtc.pyqtSlot()    
     def stop(self):
         assert qtc.QThread.currentThread() is self.thread_
+        logging.info('STOPPING TIMER')
         self.active = False
     
     @qtc.pyqtSlot(qtw.QWidget)
