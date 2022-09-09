@@ -64,10 +64,6 @@ class MocapPlayer(AbstractMediaPlayer):
 
         self.allow_frame_merges = True
         
-        show_mocap_grid = settings.mocap_grid
-        use_dynamic_mocap_grid = settings.mocap_grid_dynamic
-        self.set_floor_grid(show_mocap_grid, use_dynamic_mocap_grid)
-        
         self.media_backend.right_mouse_btn_clicked.connect(self.open_context_menu)
         
     def load(self, path):
@@ -98,10 +94,6 @@ class MocapPlayer(AbstractMediaPlayer):
         pos_adjusted = max(0, min(pos, self.n_frames - 1))
         self.media_backend.set_position(pos_adjusted)
     
-    def set_floor_grid(self, enable, dynamic):
-        if self.media_backend:
-            self.media_backend.set_floor_grid(enable, dynamic)
-    
 
 class MocapBackend(gl.GLViewWidget):
     right_mouse_btn_clicked = qtc.pyqtSignal()
@@ -111,7 +103,6 @@ class MocapBackend(gl.GLViewWidget):
         self.media = None
         self.position = None
 
-        self.dynamic_floor = None
         self.zgrid = gl.GLGridItem()
         self.addItem(self.zgrid)
         
@@ -123,39 +114,14 @@ class MocapBackend(gl.GLViewWidget):
     @qtc.pyqtSlot(int)
     def set_position(self, new_pos):
         self.position = new_pos # update position
-        #skeleton = self.get_current_skeleton() # update skeleton
         skeleton = self.media[self.position]
         self.current_skeleton.setData(pos=skeleton, color=np.array(skeleton_colors), width=4, mode='lines')
-    
-    def get_current_skeleton(self):
-        # Outdated code
-        skeleton = np.copy(self.media[self.position])
-        if self.dynamic_floor:
-            height = 0
-            for segment in [body_segments_reversed[i] for i in ['L toe', 'R toe', 'L foot', 'R foot']]:
-                    segment_height = skeleton[segment * 2, 2]
-                    height = min((height, segment_height))
-            skeleton[:,2] -= height
-        else:
-            NORMAL_HEIGHT_OFFSET = 1
-            skeleton[:,2] += NORMAL_HEIGHT_OFFSET
-        return skeleton
                         
     def mousePressEvent(self, ev):
         lpos = ev.position() if hasattr(ev, 'position') else ev.localPos()
         self.mousePos = lpos
         if ev.button() == qtc.Qt.RightButton:
             self.right_mouse_btn_clicked.emit()
-
-    @qtc.pyqtSlot(bool, bool)
-    def set_floor_grid(self, enable, dynamic):
-        # Outdated code
-        self.zgrid.setVisible(enable)
-        # only update if needed
-        if dynamic != self.dynamic_floor:
-            self.dynamic_floor = dynamic
-            if self.position and self.media:
-                self.set_position(self.position)
 
 
 body_segments = {

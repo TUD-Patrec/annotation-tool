@@ -238,6 +238,7 @@ class GUI(qtw.QMainWindow):
     def open_settings(self):
         self.dialog = SettingsDialog()
         self.dialog.settings_changed.connect(self.settings_changed)
+        self.dialog.window_size_changed.connect(self.resize)
         self.dialog.open()
     
     def create_new_annotation(self):

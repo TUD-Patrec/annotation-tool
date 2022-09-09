@@ -435,17 +435,16 @@ class QMediaMainController(qtw.QWidget):
     @qtc.pyqtSlot()
     def settings_changed(self):
         settings = Settings.instance()
-        show_mocap_grid = settings.mocap_grid
-        use_dynamic_mocap_grid = settings.mocap_grid_dynamic
         for widget in self.replay_widgets:
             if isinstance(widget, MocapPlayer):
-                widget.set_floor_grid(show_mocap_grid, use_dynamic_mocap_grid)
                 if widget.fps != settings.refresh_rate:
                     # reloading mocap_widget with new refresh rate
+                    logging.info(f'RESETTING {widget = }')
                     self.unsubscribe.emit(widget)
                     widget.fps = settings.refresh_rate
-                    self.timer_worker.set_position(self.replay_widgets, self.replay_widgets[0].position)
-                    self.subscribe.emit(widget) 
+                    self.subscribe.emit(widget)
+                    pos = self.replay_widgets[0].position
+                    self.query_new_position.emit(pos)
                 
 def time_in_millis():
     t = time.perf_counter()

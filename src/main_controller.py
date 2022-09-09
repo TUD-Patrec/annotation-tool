@@ -140,7 +140,7 @@ class MainApplication(qtw.QApplication):
         app = qtw.QApplication.instance()
         
         custom_font = qtg.QFont()
-        custom_font.setPointSize(settings.medium_font);
+        custom_font.setPointSize(settings.font);
         app.setFont(custom_font)
         
         FrameTimeMapper.instance().settings_changed()
@@ -150,16 +150,9 @@ class MainApplication(qtw.QApplication):
         logging.config.dictConfig(log_config_dict)
         
         self.annotation_widget.settings_changed()
-        
-        new_size = qtc.QSize(settings.window_x, settings.window_y)
-        self.gui.resize(new_size)
-        
-        self.reload_color_scheme()
-        
-    def reload_color_scheme(self):
-        settings = Settings.instance()
+                
         toggle_stylesheet(settings.darkmode)
-
+        
 
 def toggle_stylesheet(darkmode):
     '''
@@ -191,7 +184,7 @@ def main():
         
     settings = Settings.instance()
     custom_font = qtg.QFont()
-    custom_font.setPointSize(settings.medium_font);
+    custom_font.setPointSize(settings.font);
     app.setFont(custom_font)
     
     file = qtc.QFile(":/dark/stylesheet.qss") if settings.darkmode else qtc.QFile(":/light/stylesheet.qss")

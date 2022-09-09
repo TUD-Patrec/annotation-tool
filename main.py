@@ -15,6 +15,10 @@ def get_application_path():
         application_path = os.path.dirname(sys.executable)
     elif __file__:
         application_path = os.path.dirname(__file__)
+        print(os.path.realpath(__file__))
+        print(os.path.dirname(__file__))
+    else:
+        raise RuntimeError('Could not determine the path to this document')
     return application_path
     
     

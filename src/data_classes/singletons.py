@@ -59,17 +59,11 @@ class ColorMapper:
 @dataclass()
 class Settings:
     _annotator_id: int = field(init=False, default=0)
-    _language: int = field(init=False, default=0)
     _debugging_mode: bool = field(init=False, default=False)
-    _window_x: int = field(init=False, default=1600)
-    _window_y: int = field(init=False, default=900)
+    _window_x: int = field(init=False, default=1200)
+    _window_y: int = field(init=False, default=700)
     _dark_mode: bool = field(init=False, default=False)
-    _tiny_font: int = field(init=False, default=6)
-    _small_font: int = field(init=False, default=8)
-    _medium_font: int = field(init=False, default=10)
-    _large_font: int = field(init=False, default=12)
-    _mocap_grid: bool = field(init=False, default=True)
-    _mocap_grid_dynamic: bool = field(init=False, default=True)
+    _font: int = field(init=False, default=10)
     _refresh_rate: int = field(init=False, default=100)
     _show_millisecs: bool = field(init=False, default=False)
     _small_skip: int = field(init=False, default=1)
@@ -82,10 +76,7 @@ class Settings:
             self.to_disk()
         else:
             self.from_disk()
-    
-    def window_extrema(self):
-        return 1280, 720, 5000, 3000
-    
+        
     @property
     def annotator_id(self):
         return self._annotator_id
@@ -96,18 +87,7 @@ class Settings:
             raise ValueError
         else:
             self._annotator_id = value
-    
-    @property
-    def language(self):
-        return self._language
-    
-    @language.setter
-    def language(self, value):
-        if type(value) != int or value not in [0,1]:
-            raise ValueError
-        else:
-            self._language = value
-    
+        
     @property
     def debugging_mode(self):
         return self._debugging_mode
@@ -128,8 +108,7 @@ class Settings:
         if type(value) != int:
             raise ValueError
         else:
-            x_min, y_min, x_max, y_max = self.window_extrema()
-            self._window_x = max(min(value, x_max), x_min)
+            self._window_x = value
         
     @property    
     def window_y(self):
@@ -140,8 +119,7 @@ class Settings:
         if type(value) != int:
             raise ValueError
         else:
-            x_min, y_min, x_max, y_max = self.window_extrema()
-            self._window_y = max(min(value, y_max), y_min)
+            self._window_y = value
     
     @property
     def darkmode(self):
@@ -155,71 +133,16 @@ class Settings:
             self._dark_mode = value
             
     @property
-    def tiny_font(self):
-        return self._tiny_font
+    def font(self):
+        return self._font
     
-    @tiny_font.setter
-    def tiny_font(self, value):
+    @font.setter
+    def font(self, value):
         if type(value) != int:
             raise ValueError
         else:
-            self._tiny_font = min(max(6, value), 30)
+            self._font = min(max(6, value), 30)        
             
-    @property
-    def small_font(self):
-        return self._small_font
-    
-    @small_font.setter
-    def small_font(self, value):
-        if type(value) != int:
-            raise ValueError
-        else:
-            self._small_font = min(max(6, value), 30)        
-            
-    @property
-    def medium_font(self):
-        return self._medium_font
-    
-    @medium_font.setter
-    def medium_font(self, value):
-        if type(value) != int:
-            raise ValueError
-        else:
-            self._medium_font = min(max(6, value), 30)        
-            
-    @property
-    def large_font(self):
-        return self._large_font
-    
-    @large_font.setter
-    def large_font(self, value):
-        if type(value) != int:
-            raise ValueError
-        else:
-            self._large_font = min(max(6, value), 30)
-
-    @property
-    def mocap_grid(self):
-        return self._mocap_grid
-    
-    @mocap_grid.setter
-    def mocap_grid(self, value):
-        if type(value) != bool:
-            raise ValueError
-        else:
-            self._mocap_grid = value
-    
-    @property
-    def mocap_grid_dynamic(self):
-        return self._mocap_grid_dynamic
-    
-    @mocap_grid_dynamic.setter
-    def mocap_grid_dynamic(self, value):
-        if type(value) != bool:
-            raise ValueError
-        else:
-            self._mocap_grid_dynamic = value
-    
     @property
     def refresh_rate(self):
         return self._refresh_rate
@@ -230,8 +153,7 @@ class Settings:
             raise ValueError
         else:
             self._refresh_rate = min(max(1, value), 200)
-    
-            
+         
     @property
     def show_millisecs(self):
         return self._show_millisecs
