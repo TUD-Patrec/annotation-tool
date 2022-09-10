@@ -149,7 +149,7 @@ class QAnnotationWidget(qtw.QWidget):
         return self.samples[self.sample_idx]
     
     @qtc.pyqtSlot()
-    def cut_and_annotate(self):    
+    def cut_and_annotate(self):
         self.split_selected_sample()
         self.annotate_selected_sample()
         
