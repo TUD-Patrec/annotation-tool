@@ -43,8 +43,11 @@ class QMediaMainController(qtw.QWidget):
       
     def clear(self):
         if self.replay_widgets:
-            self.grid.removeWidget(self.replay_widgets[0])
+            main_widget = (self.replay_widgets[0])
+            main_widget.shutdown()
+            self.grid.removeWidget(main_widget)
             for w in self.replay_widgets[1:]:
+                w.shutdown()
                 self.vbox.removeWidget(w)
             self.replay_widgets = []
     
@@ -88,8 +91,10 @@ class QMediaMainController(qtw.QWidget):
         raise RuntimeError
         
     def remove_replay_source(self, widget):
+        widget.shutdown()
         self.replay_widgets.remove(widget)
         self.grid.removeWidget(widget)
+        self.vbox.removeWidget(widget)
         self.unsubscribe.emit(widget)
 
     @qtc.pyqtSlot()

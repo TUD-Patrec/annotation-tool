@@ -78,6 +78,9 @@ class AbstractMediaPlayer(qtw.QWidget):
             )
             
         menu.popup(qtg.QCursor.pos())
+     
+    def shutdown(self):
+        pass
            
     @qtc.pyqtSlot()    
     def add_input(self):
@@ -227,7 +230,8 @@ class AbstractMediaPlayer(qtw.QWidget):
     @returns(bool)
     def is_main_replay_widget(self):
         return self._is_main_replay_widget
-        
+    
+    
 
 class AbstractMediaLoader(qtc.QThread):
     progress = qtc.pyqtSignal(int)

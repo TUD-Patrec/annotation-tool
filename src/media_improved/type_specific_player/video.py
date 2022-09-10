@@ -11,6 +11,7 @@ from ..player import AbstractMediaPlayer, AbstractMediaLoader, UpdateReason
 class VideoPlayer(AbstractMediaPlayer):
     get_update = qtc.pyqtSignal(int, int, int, UpdateReason)
     media_loaded = qtc.pyqtSignal(object)
+    stop_worker = qtc.pyqtSignal()
     
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -101,10 +102,12 @@ class VideoPlayer(AbstractMediaPlayer):
 
     # not used right now   
     @qtc.pyqtSlot(qtg.QImage, qtg.QPixmap, UpdateReason)
-    def update_ready(self, img, pix, update_reason):
+    def update_ready(self, img: qtg.QImage, pix: qtg.QPixmap, update_reason):
         assert qtc.QThread.currentThread() is self.thread()
         logging.info('UPDATE READY')
+        logging.info(f'{img = }')
         self.current_img = img
+        # pix = qtg.QPixmap.fromImage(self.current_img)
         self.lblVid.setPixmap(pix)
         
         self.send_ACK(update_reason)
@@ -120,8 +123,7 @@ class VideoPlayer(AbstractMediaPlayer):
         
         self.get_update.emit(width, height, pos, update_reason)
         logging.info('GET_UPDATE emitted')
-    
-    
+        
     def init_worker(self):
         logging.info('INIT Worker Thread')
         self.worker_thread = qtc.QThread()
@@ -136,11 +138,18 @@ class VideoPlayer(AbstractMediaPlayer):
         # connecting to worker
         self.get_update.connect(self.worker.prepare_update)
         self.media_loaded.connect(self.worker.load_media)
+        self.stop_worker.connect(self.worker.stop)
         self.worker.update_ready.connect(self.update_ready)
         
         self.worker_thread.start()
         
-    
+    def shutdown(self):
+        logging.info('SHUTTING DOWN')
+        self.stop_worker.emit()
+        self.worker_thread.quit()
+        self.worker_thread.wait()
+        
+        logging.info('Thread cleaned up')
      
 # Not used right now   
 class VideoHelper(qtc.QObject):
@@ -154,9 +163,7 @@ class VideoHelper(qtc.QObject):
      
     @qtc.pyqtSlot(int, int, int, UpdateReason)
     def prepare_update(self, width, height, pos, update_reason):
-        logging.info('t1')
         assert self.media is not None
-        logging.info('t2')
         assert qtc.QThread.currentThread() is self.thread()
         logging.info(f'PREPARING UPDATE {pos = }')
         media = self.media
@@ -176,31 +183,19 @@ class VideoHelper(qtc.QObject):
                 logging.info('loading last frame as placeholder')
                 media.set(cv2.CAP_PROP_POS_FRAMES, n_frames - 1)
             
-        logging.info('177')
         assert 0 <= int(media.get(cv2.CAP_PROP_POS_FRAMES)) < n_frames
-        logging.info('178')
-        logging.info(f'{int(media.get(cv2.CAP_PROP_POS_FRAMES)) = }')
 
         # Loading image and pixmap
         ret, frame = media.read()
-        logging.info('183')
         if ret:
-            logging.info('ret_1')
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            logging.info('ret_2')
             h, w, ch = frame.shape
-            logging.info('ret_3')
             bytes_per_line = ch * w
-            logging.info('ret_4')
             current_img = qtg.QImage(frame,  w, h, bytes_per_line, qtg.QImage.Format_RGB888)
-            logging.info('ret_5')
             img = current_img.scaled(width, height, qtc.Qt.KeepAspectRatio, qtc.Qt.SmoothTransformation)
-            logging.info('ret_6')
             pix = qtg.QPixmap.fromImage(img)
-            logging.info('ret_7')
         
-            self.update_ready.emit(current_img, pix, update_reason)
-            logging.info('193')
+            self.update_ready.emit(img, pix, update_reason)
         else:
             logging.info('CRASHED')
             raise RuntimeError
@@ -208,6 +203,7 @@ class VideoHelper(qtc.QObject):
     @qtc.pyqtSlot()       
     def stop(self):
         self.finished.emit()
+        logging.info('STOPPING WORKER')
 
 
 class VideoLoader(AbstractMediaLoader):

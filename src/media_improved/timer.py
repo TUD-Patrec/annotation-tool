@@ -84,6 +84,7 @@ class Timer(qtc.QObject):
         
         if self.next_position is None:
             # There exists no queried position_update -> query a faked one to synchronize all widgets
+            logging.info('FAKING QUERY POSITION UPDATE')
             pos = self.subscribers[0][0].position
             self.query_position_update(pos)
         logging.info(f'SUBSCRIBED = { x = }')
