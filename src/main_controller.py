@@ -13,7 +13,7 @@ from .utility.functions import FrameTimeMapper
 from .utility import filehandler
 from .utility.breeze_resources import *
 
-from .media.media_controller import QMediaMainController
+from .media_improved.controller import QMediaMainController
 
 class MainApplication(qtw.QApplication):
     def __init__(self, *args, **kwargs):
