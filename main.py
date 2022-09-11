@@ -44,8 +44,6 @@ def enable_high_dpi_scaling():
             logging.info('Running DPI-unaware')
     
     
-    
-    
 if __name__ == '__main__':
     application_path = get_application_path()
       
