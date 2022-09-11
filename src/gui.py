@@ -30,6 +30,7 @@ class GUI(qtw.QMainWindow):
     redo_pressed = qtc.pyqtSignal()
     merge_adjacent_pressed = qtc.pyqtSignal()
     settings_changed = qtc.pyqtSignal()
+    
 
     def __init__(self, *args, **kwargs):
         super(GUI, self).__init__(*args, **kwargs)
@@ -293,6 +294,9 @@ class GUI(qtw.QMainWindow):
         self.bottom_widget.setParent(None)
         self.bottom_widget = widget
     
+    def cleaned_up(self):
+        self.close()
+    
     @qtc.pyqtSlot(qtg.QCloseEvent)
     def closeEvent(self, a0: qtg.QCloseEvent) -> None:
         self._exit()
@@ -302,6 +306,5 @@ class GUI(qtw.QMainWindow):
             logging.info('Closing open dialog')
             self.dialog.close()
         self.exit_pressed.emit()
-        self.close()
  
  

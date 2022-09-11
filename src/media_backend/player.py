@@ -12,6 +12,7 @@ class UpdateReason(Enum):
     TIMEOUT = 1
     SETPOS = 2
     OFFSET = 3
+    INIT = 4
 
 
 class AbstractMediaPlayer(qtw.QWidget):
@@ -22,6 +23,8 @@ class AbstractMediaPlayer(qtw.QWidget):
     ACK_timeout = qtc.pyqtSignal(qtw.QWidget)       # Confirm timeout processed
     ACK_setpos = qtc.pyqtSignal(qtw.QWidget)        # Confirm set_positon processed
     position_changed = qtc.pyqtSignal(int)          # Broadcast position after change
+    
+    cleaned_up = qtc.pyqtSignal(qtw.QWidget)
     
     def __init__(self, is_main, *args, **kwargs):
         super(AbstractMediaPlayer, self).__init__(*args, **kwargs)
@@ -144,7 +147,10 @@ class AbstractMediaPlayer(qtw.QWidget):
         if self._is_main_replay_widget:
             assert self.offset == 0 # offset must not be changed for the main replay widget
             self.position_changed.emit(self.position)
-
+          
+    def shutdown(self):
+        pass
+    
     # Thread safe getter and setter
     # Settings properties is only allowed from the main GUI-Thread - see assertions
     @property 

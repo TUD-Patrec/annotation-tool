@@ -1,4 +1,5 @@
 import logging, cv2
+from decord import VideoReader
 import time
 import numpy as np
 
@@ -29,24 +30,18 @@ class VideoPlayer(AbstractMediaPlayer):
         self.setAutoFillBackground(True)
                 
         self.init_worker()
-        
-    def load(self, path):
-        self.loading_thread = VideoLoader(path)
-        self.loading_thread.progress.connect(self.pbar.setValue)
-        self.loading_thread.finished.connect(self._loading_finished)
-        self.loading_thread.start()
     
-    @qtc.pyqtSlot(cv2.VideoCapture)
-    def _loading_finished(self, media):
+    def load(self, path):
+        vr = VideoReader(path)
         self.layout().replaceWidget(self.pbar, self.lblVid)
         self.pbar.setParent(None)
         del self.pbar
-        self.fps = media.get(cv2.CAP_PROP_FPS)
-        self.n_frames = int(media.get(cv2.CAP_PROP_FRAME_COUNT))
-        self.media_loaded.emit(media)
+        self.fps = vr.get_avg_fps()
+        self.n_frames = len(vr)
+        self.media_loaded.emit(vr)
         self.update_media_position(UpdateReason.OFFSET) # HACK
         self.loaded.emit(self)
-    
+            
     def resizeEvent(self, event):
         if self.current_img:
             qtw.QWidget.resizeEvent(self, event)
@@ -84,6 +79,7 @@ class VideoPlayer(AbstractMediaPlayer):
         width, height = self.lblVid.width(), self.lblVid.height()
         pos = self.position + self.offset
         self.get_update.emit(width, height, pos, update_reason)
+        
         
     def init_worker(self):
         logging.info('INIT Worker Thread')
@@ -130,62 +126,39 @@ class VideoHelper(qtc.QObject):
     def prepare_update(self, width, height, pos, update_reason):
         assert self.media is not None
         assert qtc.QThread.currentThread() is self.thread()
-        media = self.media
-        cap_pos = int(media.get(cv2.CAP_PROP_POS_FRAMES))
-        n_frames =  int(media.get(cv2.CAP_PROP_FRAME_COUNT))
         
-        # Default case: Updating the media-position if necessary (remember that media.read() automatically increments the position by 1)
-        if 0 <= pos < n_frames:
-            if pos != cap_pos:
-                # cap_pos == new_pos <=> Jump to the next frame, which is exactly what next_frame() does 
-                # only manually update the cap_pos if we want to jump anywhere else
-                media.set(cv2.CAP_PROP_POS_FRAMES, pos)
-        else:
-            # Case 2: Due to some offset, or this video not being alignigned with the reference video, we're at a position where this video has not started yet (pos < 0) or is already over (pos >= n_frames) 
-            if pos < 0 and cap_pos != 1:
-                # Case 2.1: The video has not yet started and the currently displayed frame is not the first one -> load the first frame as a placeholder
-                logging.info('loading first frame as placeholder')
-                media.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            elif pos >= n_frames and cap_pos != n_frames:
-                # Case 2.2: The video is over and the currently displayed frame is not the last one -> load the last frame as a placeholder
-                logging.info('loading last frame as placeholder')
-                media.set(cv2.CAP_PROP_POS_FRAMES, n_frames - 1)
-            else:
-                # Case 2.3: The current position is out of the videos bounds, but the correct frame is already being displayed -> nothing to do; return
-                self.no_update_needed.emit(update_reason)
-                return
+        n_frames =  len(self.media)
+        pos = max(0, min(n_frames, pos))
+        
+        frame = self.media[pos]
+        frame = frame.asnumpy()
+        h, w, ch = frame.shape
+        bytes_per_line = ch * w
+        current_img = qtg.QImage(frame,  w, h, bytes_per_line, qtg.QImage.Format_RGB888)
+        if current_img.isNull():
+            logging.info('current_img already Null')
+            # Stop here in case of a Null-image
+            self.update_failed.emit(update_reason)
+            return
+        
+        # start = time.perf_counter()
+        # Not sure why this is needed, but, just sending current_img somehow crashes
+        # takes noticable time, might be too expensive
+        # img_copy = current_img.copy()
+        # end = time.perf_counter()
+        # logging.info(f'{end - start = }')
+        img = current_img.scaled(width, height, qtc.Qt.KeepAspectRatio, qtc.Qt.SmoothTransformation)
+        if img.isNull():
+            logging.info('img is Null')
+            # Stop here in case of a Null-image
+            self.update_failed.emit(update_reason)
+            return
             
-        assert 0 <= int(media.get(cv2.CAP_PROP_POS_FRAMES)) < n_frames, f'{int(media.get(cv2.CAP_PROP_POS_FRAMES)) = }, {n_frames = }'
-        
-        # Loading image and pixmap
-        ret, frame = media.read()
-        if ret:
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            logging.info(f'{frame.shape = }')
-            h, w, ch = frame.shape
-            bytes_per_line = ch * w
-            current_img = qtg.QImage(frame,  w, h, bytes_per_line, qtg.QImage.Format_RGB888)
-                        
-            start = time.perf_counter()
-            # Not sure why this is needed, but, just sending current_img somehow crashes the tool
-            # takes approx 2ms, might be too expensive
-            img_copy = current_img.copy()
-            end = time.perf_counter()
-            # logging.info(f'{end - start = }')
-            img = current_img.scaled(width, height, qtc.Qt.KeepAspectRatio, qtc.Qt.SmoothTransformation)
-            # assert not (img is None or img.isNull())
-            if img.isNull():
-                # Stop here in case of a Null-image
-                self.update_failed.emit(update_reason)
-                return
-                
-            pix = qtg.QPixmap.fromImage(img)
+        pix = qtg.QPixmap.fromImage(img)
 
-            # self.update_ready.emit(img, pix, update_reason)
-            self.update_ready.emit(img_copy, pix, update_reason)
-        else:
-            logging.error('CRASHED')
-            raise RuntimeError
+        self.update_ready.emit(img, pix, update_reason)
+        # self.update_ready.emit(img_copy, pix, update_reason)
+    
                
     @qtc.pyqtSlot()       
     def stop(self):

@@ -13,7 +13,7 @@ from .utility.functions import FrameTimeMapper
 from .utility import filehandler
 from .utility.breeze_resources import *
 
-from .media_improved.controller import QMediaMainController
+from .media import Media
 
 class MainApplication(qtw.QApplication):
     def __init__(self, *args, **kwargs):
@@ -28,7 +28,7 @@ class MainApplication(qtw.QApplication):
                 
         self.annotation_widget = QAnnotationWidget()
         self.player = PlayWidget()
-        self.media_player = QMediaMainController()
+        self.media_player = Media()
         self.display_sample = QDisplaySample()
         
         self.gui.set_left_widget(self.player)
@@ -45,6 +45,7 @@ class MainApplication(qtw.QApplication):
 
         # from media_player
         self.media_player.position_changed.connect(lambda x: self.set_position(x, update_media=False))
+        self.media_player.cleaned_up.connect(self.gui.cleaned_up)
         
         # from annotation_widget
         self.annotation_widget.samples_changed.connect(lambda x,y: self.display_sample.set_selected(y))
@@ -69,6 +70,7 @@ class MainApplication(qtw.QApplication):
         self.gui.redo_pressed.connect(self.annotation_widget.redo)
         self.gui.settings_changed.connect(self.settings_changed)
         self.gui.settings_changed.connect(self.media_player.settings_changed)
+        self.gui.exit_pressed.connect(self.media_player.shutdown)
     
     def skip_frames(self, forward_step, fast):
         if self.annotation is not None:
@@ -87,7 +89,7 @@ class MainApplication(qtw.QApplication):
             if update_annotation:
                 self.annotation_widget.set_position(self.position)
             if update_media:
-                self.media_player.set_position(self.position)
+                self.media_player.setPosition(self.position)
     
     def is_active(self):
         return self.annotation is not None

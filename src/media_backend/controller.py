@@ -23,15 +23,20 @@ class QMediaMainController(qtw.QWidget):
     unsubscribe = qtc.pyqtSignal(qtw.QWidget)
     reset = qtc.pyqtSignal()
     
+    cleaned_up = qtc.pyqtSignal()
+        
     def __init__(self, *args, **kwargs):
         super(QMediaMainController, self).__init__(*args, **kwargs)
         self.replay_widgets = []
+        
         self.grid = qtw.QGridLayout(self)
+        self.grid.setContentsMargins(0,0,0,10)
         self.MAX_WIDGETS = 4   
         
         self.init_timer()
         
         self.vbox = qtw.QVBoxLayout()
+        self.vbox.setContentsMargins(0,0,0,10)
         self.grid.addLayout(self.vbox, 0, 1)
               
     @qtc.pyqtSlot(str)
@@ -46,6 +51,7 @@ class QMediaMainController(qtw.QWidget):
             main_widget = (self.replay_widgets[0])
             main_widget.shutdown()
             self.grid.removeWidget(main_widget)
+            
             for w in self.replay_widgets[1:]:
                 w.shutdown()
                 self.vbox.removeWidget(w)
@@ -72,7 +78,7 @@ class QMediaMainController(qtw.QWidget):
             else:
                 widget.remove_wanted.connect(self.remove_replay_source)
                 self.vbox.addWidget(widget)
-            
+                        
             widget.loaded.connect(self.widget_loaded)
             widget.failed.connect(self.widget_failed)
             widget.load(path)
@@ -105,6 +111,11 @@ class QMediaMainController(qtw.QWidget):
     def pause(self):
         self.setPaused.emit(True)
     
+    def closeEvent(self, a0: qtg.QCloseEvent) -> None:
+        logging.info('closeEvent called')
+        self.shutdown()
+        return super().closeEvent(a0)
+    
     @qtc.pyqtSlot(int)
     def set_position(self, pos):
         self.query_position_update.emit(pos)
@@ -114,7 +125,6 @@ class QMediaMainController(qtw.QWidget):
         self.replay_speed_changed.emit(x)
     
     def init_timer(self):
-        logging.info('INIT TIMER')
         self.timer_thread = qtc.QThread()
         self.timer_worker = Timer()
         self.timer_worker.moveToThread(self.timer_thread)
@@ -127,20 +137,23 @@ class QMediaMainController(qtw.QWidget):
         
         # connecting signals and slots
         self.setPaused.connect(self.timer_worker.setPaused)
+        self.stop.connect(self.timer_worker.stop)
         self.reset.connect(self.timer_worker.reset)
         self.replay_speed_changed.connect(self.timer_worker.set_replay_speed)
         self.subscribe.connect(self.timer_worker.subscribe)
         self.unsubscribe.connect(self.timer_worker.unsubscribe)
         self.query_position_update.connect(self.timer_worker.query_position_update)
-        
+                
         self.timer_thread.start()
-        logging.info('THREAD STARTED')
-        
-    def closeEvent(self, a0: qtg.QCloseEvent) -> None:
+    
+    def shutdown(self):
+        self.clear()
         self.stop.emit()
+        self.timer_thread.quit()
         self.timer_thread.wait()
-        return super().closeEvent(a0)
-        
+        self.cleaned_up.emit()
+        logging.info('Shut down MediaController successfully')
+    
     @qtc.pyqtSlot()
     def settings_changed(self):
         settings = Settings.instance()
@@ -152,4 +165,4 @@ class QMediaMainController(qtw.QWidget):
                     self.unsubscribe.emit(widget)
                     widget.fps = settings.refresh_rate
                     self.subscribe.emit(widget)
- 
+    

@@ -1,21 +1,13 @@
-"""
-Created on 26.07.2022
-
-@author: Erik Altermann
-@email: Erik.Altermann@tu-dortmund.de
-
-"""
 import logging
-import time
 import numpy as np
 import pyqtgraph.opengl as gl
 import PyQt5.QtCore as qtc
 
-from ..data_classes.singletons import Settings
-from .media_player import AbstractMediaPlayer, MediaLoader
+from ...data_classes.singletons import Settings
+from ..player import AbstractMediaPlayer, AbstractMediaLoader, UpdateReason
 
 
-class MocapLoader(MediaLoader):
+class MocapLoader(AbstractMediaLoader):
     def __init__(self, path) -> None:
         super().__init__( path)
         
@@ -60,12 +52,9 @@ class MocapPlayer(AbstractMediaPlayer):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.media_backend = MocapBackend()
-        settings = Settings.instance()
-
         self.allow_frame_merges = True
-        
         self.media_backend.right_mouse_btn_clicked.connect(self.open_context_menu)
-        
+    
     def load(self, path):
         self.loading_thread = MocapLoader( path)
         self.loading_thread.progress.connect(self.pbar.setValue)
@@ -75,6 +64,7 @@ class MocapPlayer(AbstractMediaPlayer):
     
     @qtc.pyqtSlot(np.ndarray)
     def _loading_finished(self, media):
+        assert qtc.QThread.currentThread() is self.thread()
         logging.info('Loading done')   
         self.n_frames = media.shape[0]
         self.fps = Settings.instance().refresh_rate
@@ -87,14 +77,28 @@ class MocapPlayer(AbstractMediaPlayer):
         self.pbar.setParent(None)
         del self.pbar
         
-        self.loaded.emit(self)     
+        self.loading_thread.quit()
+        self.loading_thread.wait()
+        self.loading_thread = None
         
-    def update_media_position(self):
+        self.loaded.emit(self)     
+    
+    def update_media_position(self, update_reason: UpdateReason):
         pos = self.position + self.offset
         pos_adjusted = max(0, min(pos, self.n_frames - 1))
         self.media_backend.set_position(pos_adjusted)
+        self.send_ACK(update_reason)
+        if update_reason == UpdateReason.TIMEOUT:
+            self.emit_position()
     
+    def shutdown(self):
+        assert qtc.QThread.currentThread() is self.thread()
+        if self.loading_thread:
+            logging.info('Waiting for loading thread to finish')
+            self.loading_thread.quit()
+            self.loading_thread.wait()
 
+        
 class MocapBackend(gl.GLViewWidget):
     right_mouse_btn_clicked = qtc.pyqtSignal()
     

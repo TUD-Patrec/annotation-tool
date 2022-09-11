@@ -113,8 +113,7 @@ class Timer(qtc.QObject):
                 else:
                     if subscriber.position != pos:
                         return False
-        return True
-            
+        return True 
             
     def synchronize(self):
         if self.subscribers and self.next_position is None:
@@ -216,12 +215,10 @@ class Timer(qtc.QObject):
     
     @qtc.pyqtSlot(AbstractMediaPlayer)
     def ACK_timeout(self, x):
-        logging.info(f'ACK TIMEOUT {x = }')
         self.confirm(x, self.open_timeouts)
     
     @qtc.pyqtSlot(AbstractMediaPlayer)
     def ACK_setpos(self, x):
-        logging.info(f'ACK SETPOS {x = }')
         self.confirm(x, self.open_position_updates)
     
     def confirm(self, x, open_tasks):
