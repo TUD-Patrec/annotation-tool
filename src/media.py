@@ -7,21 +7,38 @@ import PyQt5.QtGui as qtg
 
 from .media_backend.controller import QMediaMainController
 
-class Media(qtw.QWidget):
-       position_changed = qtc.pyqtSignal(int)       
-       cleaned_up = qtc.pyqtSignal()
+class QMediaWidget(qtw.QWidget):
+       """ 
+       A simple facade, forwarding all necessary slots and signals between the main-application and the media-backend.
+       
+       Signals:
+              positionChanged: Transports the current position of the main replaysource (always the leftmost on the screen) 
+              cleanedUp: Signals that all sub widgets and threads have been shutdown successfully. Should be waited for befor exiting the app.
+              
+       Slots:
+              loadAnnotation: Expects a Annotation-instance
+              setPosition: Updates the current displayed frame
+              play: Starts running the media
+              pause: Pauses the media
+              setReplaySpeed: Updates how fast the media is played
+              settingsChanged: Needed for updating FPS of Media, which itself does not contain information about its refresh-rate
+              shutdown: Cleans up all threads and subwidgets
+       """
+       
+       positionChanged = qtc.pyqtSignal(int)       
+       cleanedUp = qtc.pyqtSignal()
        
        def __init__(self, *args, **kwargs) -> None:
               super().__init__(*args, **kwargs)
               self.controller = QMediaMainController()
-              self.controller.cleaned_up.connect(self.cleaned_up)
-              self.controller.position_changed.connect(self.position_changed)
+              self.controller.cleaned_up.connect(self.cleanedUp)
+              self.controller.position_changed.connect(self.positionChanged)
               self._layout = qtw.QHBoxLayout(self)
               self._layout.setContentsMargins(0,0,0,0)
               self._layout.addWidget(self.controller)
               
        @qtc.pyqtSlot(object)
-       def load_annotation(self, o):
+       def loadAnnotation(self, o):
               self.controller.load_annotation(o)
 
        @qtc.pyqtSlot(int)
@@ -37,11 +54,11 @@ class Media(qtw.QWidget):
               self.controller.pause()
        
        @qtc.pyqtSlot(float)
-       def set_replay_speed(self, x):
+       def setReplaySpeed(self, x):
               self.controller.set_replay_speed(x)
        
        @qtc.pyqtSlot()
-       def settings_changed(self):
+       def settingsChanges(self):
               self.controller.settings_changed()
        
        @qtc.pyqtSlot()

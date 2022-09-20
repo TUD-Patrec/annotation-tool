@@ -13,7 +13,7 @@ from .utility.functions import FrameTimeMapper
 from .utility import filehandler
 from .utility.breeze_resources import *
 
-from .media import Media
+from .media import QMediaWidget
 
 class MainApplication(qtw.QApplication):
     def __init__(self, *args, **kwargs):
@@ -28,7 +28,7 @@ class MainApplication(qtw.QApplication):
                 
         self.annotation_widget = QAnnotationWidget()
         self.player = PlayWidget()
-        self.media_player = Media()
+        self.media_player = QMediaWidget()
         self.display_sample = QDisplaySample()
         
         self.gui.set_left_widget(self.player)
@@ -41,11 +41,11 @@ class MainApplication(qtw.QApplication):
         self.player.playing.connect(self.media_player.play)
         self.player.paused.connect(self.media_player.pause)
         self.player.skip_frames.connect(self.skip_frames)
-        self.player.replay_speed_changed.connect(self.media_player.set_replay_speed)
+        self.player.replay_speed_changed.connect(self.media_player.setReplaySpeed)
 
         # from media_player
-        self.media_player.position_changed.connect(lambda x: self.set_position(x, update_media=False))
-        self.media_player.cleaned_up.connect(self.gui.cleaned_up)
+        self.media_player.positionChanged.connect(lambda x: self.set_position(x, update_media=False))
+        self.media_player.cleanedUp.connect(self.gui.cleaned_up)
         
         # from annotation_widget
         self.annotation_widget.samples_changed.connect(lambda x,y: self.display_sample.set_selected(y))
@@ -69,7 +69,7 @@ class MainApplication(qtw.QApplication):
         self.gui.undo_pressed.connect(self.annotation_widget.undo)
         self.gui.redo_pressed.connect(self.annotation_widget.redo)
         self.gui.settings_changed.connect(self.settings_changed)
-        self.gui.settings_changed.connect(self.media_player.settings_changed)
+        self.gui.settings_changed.connect(self.media_player.settingsChanges)
         self.gui.exit_pressed.connect(self.media_player.shutdown)
     
     def skip_frames(self, forward_step, fast):
@@ -104,7 +104,7 @@ class MainApplication(qtw.QApplication):
         self.position = 0
                 
         # load video
-        self.media_player.load_annotation(self.annotation)
+        self.media_player.loadAnnotation(self.annotation)
         
         logging.info('load_annotation 3)')
         self.display_sample.set_annotation(self.annotation)

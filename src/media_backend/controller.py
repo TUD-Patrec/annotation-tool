@@ -36,7 +36,7 @@ class QMediaMainController(qtw.QWidget):
         self.init_timer()
         
         self.vbox = qtw.QVBoxLayout()
-        self.vbox.setContentsMargins(0,0,0,10)
+        self.vbox.setContentsMargins(0,0,0,0)
         self.grid.addLayout(self.vbox, 0, 1)
               
     @qtc.pyqtSlot(str)
@@ -76,6 +76,8 @@ class QMediaMainController(qtw.QWidget):
                 widget.position_changed.connect(self.position_changed)
                 self.grid.addWidget(widget, 0, 0)
             else:
+                widget._reference_fps = self.replay_widgets[0].fps
+                widget._reference_N = self.replay_widgets[0].n_frames
                 widget.remove_wanted.connect(self.remove_replay_source)
                 self.vbox.addWidget(widget)
                         

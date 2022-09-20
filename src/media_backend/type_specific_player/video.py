@@ -33,13 +33,13 @@ class VideoPlayer(AbstractMediaPlayer):
         self.init_worker()
     
     def load(self, path):
-        vr = VideoReader(path)
+        media = cv2.VideoCapture(path)
         self.layout().replaceWidget(self.pbar, self.lblVid)
         self.pbar.setParent(None)
         del self.pbar
-        self.fps = vr.get_avg_fps()
-        self.n_frames = len(vr)
-        self.media_loaded.emit(vr)
+        self.fps = int(media.get(cv2.CAP_PROP_FPS))
+        self.n_frames = int(media.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.media_loaded.emit(media)
         self.update_media_position(UpdateReason.INIT)
         self.loaded.emit(self)
             
@@ -60,7 +60,10 @@ class VideoPlayer(AbstractMediaPlayer):
     
     @qtc.pyqtSlot(qtg.QImage, np.ndarray, int, int, int, UpdateReason)
     def image_ready(self, img, frame, w, h, bytes_per_line, update_reason):
-        assert not img.isNull()
+        if img.isNull():   
+            # Currently loading another video/replay_source
+            self.confirm_update(update_reason)
+            return
         
         self.current_img = qtg.QImage(frame,  w, h, bytes_per_line, qtg.QImage.Format_RGB888)
         assert not self.current_img.isNull()
@@ -120,8 +123,7 @@ class VideoHelper(qtc.QObject):
         self.last_position = -1
         self.last_width = -1
         self.last_height = -1 
-        self.n_frames = len(media)
-        logging.info(f'LOADED {self.media = }')
+        self.n_frames = int(media.get(cv2.CAP_PROP_FRAME_COUNT))
      
     @qtc.pyqtSlot(int, int, int, UpdateReason)
     def prepare_update(self, pos, width, height, update_reason):
@@ -133,13 +135,24 @@ class VideoHelper(qtc.QObject):
         width_changed = width != self.last_width or height != self.last_height
         
         if pos == self.last_position and not width_changed:
+            logging.info('no update needed')
             self.no_update_needed.emit(update_reason)
-        else: 
-            self.last_position = pos
-            self.last_width = width
-            self.last_height = height
+            return 
+        if pos != self.last_position + 1:
+            logging.info('no seq-reading - update needed')
+            self.media.set(cv2.CAP_PROP_POS_FRAMES, pos)
+        
+        self.last_position = pos
+        self.last_width = width
+        self.last_height = height
+                   
+        assert 0 <= int(self.media.get(cv2.CAP_PROP_POS_FRAMES)) < self.n_frames, f'{int(self.media.get(cv2.CAP_PROP_POS_FRAMES)) = }, {self.n_frames = }'
+        
+        # Loading image and pixmap
+        ret, frame = self.media.read()
+        if ret:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
-            frame = self.media[pos].asnumpy()
             h, w, ch = frame.shape
             bytes_per_line = ch * w
             
@@ -148,10 +161,14 @@ class VideoHelper(qtc.QObject):
             # img = self.current_img.scaled(self.lblVid.width(), self.lblVid.height(), qtc.Qt.KeepAspectRatio, qtc.Qt.FastTransformation) 
             
             self.image_ready.emit(img, frame, w, h, bytes_per_line, update_reason)
+            
+        else:
+            logging.error('CRASHED')
+            raise RuntimeError
+
         
     @qtc.pyqtSlot()       
     def stop(self):
-        logging.info('STOPPING VideoHelper')
         self.finished.emit()
 
 

@@ -87,14 +87,14 @@ class Timer(qtc.QObject):
             self.compute_time()
             self.update_queue()
             self.update_alpha()
-            logging.info('ALPHA = {} | QUEUE_SIZE = {} | OPEN_TIMEOUTS_SIZE = {} '.format(self.alpha, len(self.queue), len(self.open_timeouts)))
+            # logging.info('ALPHA = {} | QUEUE_SIZE = {} | OPEN_TIMEOUTS_SIZE = {} '.format(self.alpha, len(self.queue), len(self.open_timeouts)))
             
             if len(self.open_timeouts) < self.MAX_OPEN_TIMEOUTS and self.queue.has_elements():
                 self.process_queue()
             else:
                 time.sleep(self.ACTIVE_IDLE_TIME)
             
-        logging.info('*** Timer FINISHED ***')
+        # logging.info('*** Timer FINISHED ***')
         self.finished.emit()
     
     def subscribers_in_sync(self):
@@ -117,7 +117,6 @@ class Timer(qtc.QObject):
             
     def synchronize(self):
         if self.subscribers and self.next_position is None:
-            logging.info('Synchronizing all subscribers')
             pos = self.subscribers[0][0].position
             self.query_position_update(pos)
     
@@ -137,8 +136,6 @@ class Timer(qtc.QObject):
         x.ACK_setpos.connect(self.ACK_setpos)
                 
         self.synchronize()
-        
-        logging.info(f'NEW SUBSCRIBER {x}')
     
     @qtc.pyqtSlot(AbstractMediaPlayer)
     def unsubscribe(self,  x):

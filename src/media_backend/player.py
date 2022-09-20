@@ -30,13 +30,17 @@ class AbstractMediaPlayer(qtw.QWidget):
         super(AbstractMediaPlayer, self).__init__(*args, **kwargs)
         
         # media 
-        self._media = None     
+        self._media = None
         
         # media controll attributes
         self._fps = None 
-        self._n_frames = None
+        self._N = None
         self._position = 0 
         self._offset = 0
+        
+        # reference informations
+        self._reference_fps = None 
+        self._reference_N = None
         
         # distinct between primary player and added ones
         self._is_main_replay_widget = is_main
@@ -49,6 +53,11 @@ class AbstractMediaPlayer(qtw.QWidget):
         self._mutex_n_frames = qtc.QMutex()
         self._mutex_position = qtc.QMutex()
         self._mutex_offset = qtc.QMutex()
+    
+    
+    def set_reference_player(self, p):
+        self._reference_fps = p.fps
+        self._reference_N = p.N
     
     def init_layout(self):
         self.hbox = qtw.QHBoxLayout(self)
@@ -106,24 +115,39 @@ class AbstractMediaPlayer(qtw.QWidget):
     @qtc.pyqtSlot(str)
     def load(self, input_file):
         raise NotImplementedError
-    
+                    
     @qtc.pyqtSlot(qtw.QWidget)
     def on_timeout(self, w):
         if self is w:
-            self.position += 1
-            self.update_media_position(UpdateReason.TIMEOUT)
+            logging.info(f'{self.is_main_replay_widget = }, {self.position = }')
+            # dont perform unnessecary updates
+            if self.position + 1 < self.N_FRAMES():
+                self.position += 1
+                self.update_media_position(UpdateReason.TIMEOUT)
+            else:
+                self.send_ACK(UpdateReason.TIMEOUT)
+                if self._is_main_replay_widget:
+                    self.emit_position()
     
     @qtc.pyqtSlot(qtw.QWidget, int)
-    def set_position(self, w, x):
+    def set_position(self, w, new_pos):
         if self is w:
-            update_needed = x != self.position
-            if update_needed:
-                self.position = x
+            if new_pos != self.position:
+                self.position = new_pos
                 self.update_media_position(UpdateReason.SETPOS)
             else:
                 # Short circuting if no position change has happened
                 # Still need to senc ACK 
                 self.send_ACK(UpdateReason.SETPOS)
+    
+    def N_FRAMES(self):
+        if self._is_main_replay_widget:
+            N = self.n_frames
+        else:
+            assert self._reference_fps is not None
+            assert self._reference_N is not None
+            N = max(self._reference_N * self.fps // self._reference_fps, self.n_frames)
+        return N
             
     @qtc.pyqtSlot()
     def ack_timeout(self):
@@ -134,6 +158,8 @@ class AbstractMediaPlayer(qtw.QWidget):
         self.ACK_setpos.emit(self) 
      
     def send_ACK(self, r):
+        assert self.position < self.N_FRAMES()
+        
         if r == UpdateReason.TIMEOUT:
             self.ACK_timeout.emit(self)
         if r == UpdateReason.SETPOS:
@@ -146,6 +172,7 @@ class AbstractMediaPlayer(qtw.QWidget):
     def emit_position(self):
         if self._is_main_replay_widget:
             assert self.offset == 0 # offset must not be changed for the main replay widget
+            assert 0  <= self.position < self.n_frames
             self.position_changed.emit(self.position)
           
     def shutdown(self):
@@ -203,7 +230,7 @@ class AbstractMediaPlayer(qtw.QWidget):
     @returns(int)
     def n_frames(self):
         self._mutex_n_frames.lock()
-        x = self._n_frames
+        x = self._N
         self._mutex_n_frames.unlock()
         return x
 
@@ -213,7 +240,7 @@ class AbstractMediaPlayer(qtw.QWidget):
         assert qtc.QThread.currentThread() is self.thread()
         assert 0 <= x
         self._mutex_n_frames.lock()
-        self._n_frames = x
+        self._N = x
         self._mutex_n_frames.unlock()
     
     @property
