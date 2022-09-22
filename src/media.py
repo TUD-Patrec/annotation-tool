@@ -23,6 +23,9 @@ class QMediaWidget(qtw.QWidget):
               setReplaySpeed: Updates how fast the media is played
               settingsChanged: Needed for updating FPS of Media, which itself does not contain information about its refresh-rate
               shutdown: Cleans up all threads and subwidgets
+              startLoop: Starts looping the video-segment within the specified interval
+              endLoop: Stops looping
+              skipFrames: Skips n frames forward or backward in the video - n is given by the user specified settings
        """
        
        positionChanged = qtc.pyqtSignal(int)       

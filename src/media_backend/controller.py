@@ -22,7 +22,6 @@ class QMediaMainController(qtw.QWidget):
     subscribe = qtc.pyqtSignal(qtw.QWidget)
     unsubscribe = qtc.pyqtSignal(qtw.QWidget)
     reset = qtc.pyqtSignal()
-    
     start_loop = qtc.pyqtSignal(int, int)
     end_loop = qtc.pyqtSignal()
     
@@ -94,9 +93,15 @@ class QMediaMainController(qtw.QWidget):
         self.start_loop.connect(widget.start_loop)
         self.end_loop.connect(widget.end_loop)
         
+        if self.replay_widgets and self.replay_widgets[0]._looping:
+            start = self.self.replay_widgets[0]._loop_lower
+            end = self.self.replay_widgets[0]._loop_uppper
+            widget.start_loop(start, end)
+            
         self.replay_widgets.append(widget)        
         logging.info('WIDGET LOADED')
-        self.subscribe.emit(widget)
+        self.subscribe.emit(widget)       
+            
            
     @qtc.pyqtSlot(AbstractMediaPlayer)
     def widget_failed(self, widget):

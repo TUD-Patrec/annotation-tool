@@ -93,8 +93,9 @@ class MainApplication(qtw.QApplication):
         self.player.reset()
         self.save_annotation()
         
-        self.media_player.startLoop(1000, 1500)
-    
+        #self.media_player.startLoop(1000, 1500)
+        #self.annotation_widget.restrict_range(1000, 1500)
+        
     def save_annotation(self):
         if self.annotation is None:
             logging.info('Nothing to save - annotation-object is None')
