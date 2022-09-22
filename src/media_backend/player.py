@@ -23,8 +23,8 @@ class AbstractMediaPlayer(qtw.QWidget):
     ACK_timeout = qtc.pyqtSignal(qtw.QWidget)       # Confirm timeout processed
     ACK_setpos = qtc.pyqtSignal(qtw.QWidget)        # Confirm set_positon processed
     position_changed = qtc.pyqtSignal(int)          # Broadcast position after change
-    
     cleaned_up = qtc.pyqtSignal(qtw.QWidget)
+    
     
     def __init__(self, is_main, *args, **kwargs):
         super(AbstractMediaPlayer, self).__init__(*args, **kwargs)
@@ -37,6 +37,10 @@ class AbstractMediaPlayer(qtw.QWidget):
         self._N = None
         self._position = 0 
         self._offset = 0
+
+        self._looping = False
+        self._loop_lower = None
+        self._loop_upper = None
         
         # reference informations
         self._reference_fps = None 
@@ -54,7 +58,6 @@ class AbstractMediaPlayer(qtw.QWidget):
         self._mutex_position = qtc.QMutex()
         self._mutex_offset = qtc.QMutex()
     
-    
     def set_reference_player(self, p):
         self._reference_fps = p.fps
         self._reference_N = p.N
@@ -66,7 +69,7 @@ class AbstractMediaPlayer(qtw.QWidget):
         self.pbar.setRange(0, 100)
         self.hbox.addWidget(self.pbar)
        
-    def mousePressEvent(self, e): 
+    def mousePressEvent(self, e):
         # rightclick = context_menu
         if e.button() == qtc.Qt.RightButton:
             self.open_context_menu()
@@ -119,26 +122,38 @@ class AbstractMediaPlayer(qtw.QWidget):
     @qtc.pyqtSlot(qtw.QWidget)
     def on_timeout(self, w):
         if self is w:
-            logging.info(f'{self.is_main_replay_widget = }, {self.position = }')
+            # logging.info(f'{self.is_main_replay_widget = }, {self.position = }')
             # dont perform unnessecary updates
+            
+            if self._looping:
+                next_position = self.position + 1
+                if next_position > self._loop_upper + 1:
+                    raise RuntimeError
+                if next_position == self._loop_upper + 1:
+                    self.position = self._loop_lower - 1
+            
             if self.position + 1 < self.N_FRAMES():
                 self.position += 1
                 self.update_media_position(UpdateReason.TIMEOUT)
             else:
-                self.send_ACK(UpdateReason.TIMEOUT)
-                if self._is_main_replay_widget:
-                    self.emit_position()
+                self.confirm_update(UpdateReason.TIMEOUT)
     
     @qtc.pyqtSlot(qtw.QWidget, int)
     def set_position(self, w, new_pos):
         if self is w:
+            new_pos = self.translate_frame_position(new_pos)
+            
+            if self._looping:
+                new_pos = max(self._loop_lower, min(new_pos, self._loop_upper))
+                logging.info(new_pos)
+                
             if new_pos != self.position:
                 self.position = new_pos
                 self.update_media_position(UpdateReason.SETPOS)
             else:
                 # Short circuting if no position change has happened
-                # Still need to senc ACK 
-                self.send_ACK(UpdateReason.SETPOS)
+                # Still need to senc ACK
+                self.confirm_update(UpdateReason.SETPOS)
     
     def N_FRAMES(self):
         if self._is_main_replay_widget:
@@ -146,7 +161,7 @@ class AbstractMediaPlayer(qtw.QWidget):
         else:
             assert self._reference_fps is not None
             assert self._reference_N is not None
-            N = max(self._reference_N * self.fps // self._reference_fps, self.n_frames)
+            N = min(self.translate_frame_position(self._reference_N), self.n_frames)
         return N
             
     @qtc.pyqtSlot()
@@ -156,6 +171,29 @@ class AbstractMediaPlayer(qtw.QWidget):
     @qtc.pyqtSlot()
     def ack_position_update(self):
         self.ACK_setpos.emit(self) 
+    
+    qtc.pyqtSlot(int, int)
+    def start_loop(self, lower, upper):
+        self._loop_lower = self.translate_frame_position(lower)
+        self._loop_upper = self.translate_frame_position(upper)
+        self._looping = True
+        
+        assert self._loop_lower <= self._loop_upper
+        assert 0 <= self._loop_lower 
+        assert self._loop_upper < self.N_FRAMES()
+        
+        self.position = self._loop_lower
+        self.update_media_position(UpdateReason.INIT)
+    
+    def translate_frame_position(self, x):
+        if self._is_main_replay_widget:
+            return x
+        else:
+            return x * self.fps // self._reference_fps
+    
+    @qtc.pyqtSlot()
+    def end_loop(self):
+        self._looping = False
      
     def send_ACK(self, r):
         assert self.position < self.N_FRAMES()
@@ -164,6 +202,10 @@ class AbstractMediaPlayer(qtw.QWidget):
             self.ACK_timeout.emit(self)
         if r == UpdateReason.SETPOS:
             self.ACK_setpos.emit(self)
+    
+    def confirm_update(self, update_reason):
+        self.send_ACK(update_reason)
+        self.emit_position()
     
     @abstractmethod
     def update_media_position(self, reason: UpdateReason):

@@ -271,17 +271,8 @@ class Timer(qtc.QObject):
         assert len(self.open_position_updates) == 0
         pos = self.next_position
         self.next_position = None
-        
-        if self.subscribers:
-            fps_sync = self.subscribers[0][0].fps
-                    
-            for subscriber, _ in self.subscribers:
-                self.open_position_updates.append(subscriber)
-                fps = subscriber.fps
-                if fps != fps_sync:
-                    frame_rate_ratio =  fps / fps_sync
-                    pos_adjusted = int(frame_rate_ratio * pos)
-                    self.set_position.emit(subscriber, pos_adjusted)
-                else:
-                    self.set_position.emit(subscriber, pos)
+                      
+        for subscriber, _ in self.subscribers:
+            self.open_position_updates.append(subscriber)
+            self.set_position.emit(subscriber, pos)
     

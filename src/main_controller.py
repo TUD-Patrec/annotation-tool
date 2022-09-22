@@ -20,7 +20,6 @@ class MainApplication(qtw.QApplication):
         super().__init__(*args, **kwargs)
         
         # Controll-Attributes
-        self.position = 0
         self.annotation = None
         
         # Main Window
@@ -44,12 +43,12 @@ class MainApplication(qtw.QApplication):
         self.player.replay_speed_changed.connect(self.media_player.setReplaySpeed)
 
         # from media_player
-        self.media_player.positionChanged.connect(lambda x: self.set_position(x, update_media=False))
+        self.media_player.positionChanged.connect(self.annotation_widget.set_position)
         self.media_player.cleanedUp.connect(self.gui.cleaned_up)
         
         # from annotation_widget
         self.annotation_widget.samples_changed.connect(lambda x,y: self.display_sample.set_selected(y))
-        self.annotation_widget.position_changed.connect(lambda x: self.set_position(x, update_annotation=False))
+        self.annotation_widget.position_changed.connect(self.media_player.setPosition)
         self.annotation_widget.interrupt_replay.connect(self.media_player.pause)
         self.annotation_widget.interrupt_replay.connect(self.player.pause)
         self.annotation_widget.update_label.connect(self.player.update_label)
@@ -73,57 +72,28 @@ class MainApplication(qtw.QApplication):
         self.gui.exit_pressed.connect(self.media_player.shutdown)
     
     def skip_frames(self, forward_step, fast):
-        if self.annotation is not None:
+        if self.annotation:
             settings = Settings.instance()
             n = settings.big_skip if fast else settings.small_skip
             if not forward_step:
                 n *= -1
-            self.set_position(self.position + n)
-    
-    # find better idea -> more scaleable
-    def set_position(self, pos, update_media=True, update_annotation=True):
-        if self.is_active():
-            n = len(self.annotation)
-            pos = max(0, min(n-1, pos))
-            self.position = pos 
-            if update_annotation:
-                self.annotation_widget.set_position(self.position)
-            if update_media:
-                self.media_player.setPosition(self.position)
-    
-    def is_active(self):
-        return self.annotation is not None
+            self.media_player.skipFrames(n)
         
     @qtc.pyqtSlot(Annotation)
     def load_annotation(self, annotation):
-        logging.info('load_annotation 1)')
         FrameTimeMapper.instance().set_annotation(annotation.frames, annotation.duration)
         
-        logging.info('load_annotation 2)')
         self.annotation = annotation
-        self.position = 0
                 
         # load video
         self.media_player.loadAnnotation(self.annotation)
-        
-        logging.info('load_annotation 3)')
         self.display_sample.set_annotation(self.annotation)
-        
-        logging.info('load_annotation 4)')
         self.annotation_widget.set_annotation(self.annotation)
-        
-        
-        logging.info('load_annotation 5)')
-        self.annotation_widget.set_position(self.position)
-        
-        
-        logging.info('load_annotation 6)')
+        self.annotation_widget.set_position(0)
         self.player.reset()
-        
-        
-        logging.info('load_annotation 7)')
         self.save_annotation()
-        logging.info('load_annotation End')
+        
+        self.media_player.startLoop(1000, 1500)
     
     def save_annotation(self):
         if self.annotation is None:

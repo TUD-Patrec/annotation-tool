@@ -79,11 +79,7 @@ class VideoPlayer(AbstractMediaPlayer):
     @qtc.pyqtSlot(UpdateReason)
     def no_update_needed(self, update_reason):
         self.confirm_update(update_reason)
-        
-    def confirm_update(self, update_reason):
-        self.send_ACK(update_reason)
-        if update_reason == UpdateReason.TIMEOUT:
-            self.emit_position()
+  
     
     def init_worker(self):
         logging.info('INIT Worker Thread')
@@ -135,11 +131,11 @@ class VideoHelper(qtc.QObject):
         width_changed = width != self.last_width or height != self.last_height
         
         if pos == self.last_position and not width_changed:
-            logging.info('no update needed')
+            #no update needed
             self.no_update_needed.emit(update_reason)
             return 
         if pos != self.last_position + 1:
-            logging.info('no seq-reading - update needed')
+            #no seq-reading - update needed
             self.media.set(cv2.CAP_PROP_POS_FRAMES, pos)
         
         self.last_position = pos

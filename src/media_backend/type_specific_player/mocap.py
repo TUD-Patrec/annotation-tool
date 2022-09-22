@@ -87,9 +87,8 @@ class MocapPlayer(AbstractMediaPlayer):
         pos = self.position + self.offset
         pos_adjusted = max(0, min(pos, self.n_frames - 1))
         self.media_backend.set_position(pos_adjusted)
-        self.send_ACK(update_reason)
-        if update_reason == UpdateReason.TIMEOUT:
-            self.emit_position()
+        
+        self.confirm_update(update_reason)
     
     def shutdown(self):
         assert qtc.QThread.currentThread() is self.thread()

@@ -85,7 +85,8 @@ class QAnnotationWidget(qtw.QWidget):
     # TODO Maybe more fancy with functool.partial
     @qtc.pyqtSlot(int)
     def set_position(self, new_pos, update_timeline=True):
-        if self.is_loaded() and self.position != new_pos:
+        #if self.is_loaded() and self.position != new_pos:
+        if self.is_loaded():
             self.position = new_pos
             self.__update_label__()
             self.check_for_selected_sample()
@@ -296,7 +297,7 @@ class QTimeLine(qtw.QWidget):
         pixel_pos = self._frame_to_pixel(pos)[0]
         if pixel_pos != self.pointer_position:
             self.pointer_position = pixel_pos
-            self.update()
+        self.update()
  
     @qtc.pyqtSlot(list, Sample)
     def set_samples(self, samples, selected_sample):
@@ -411,7 +412,7 @@ class QTimeLine(qtw.QWidget):
             frame_position = self._pixel_to_frame(x)[0]
             self.position_changed.emit(frame_position)
 
-        self.update()
+        # self.update()
 
     # Mouse pressed
     def mousePressEvent(self, e):
@@ -423,7 +424,7 @@ class QTimeLine(qtw.QWidget):
             
             self.clicking = True  # Set clicking check to true
         
-        self.update()
+        # self.update()
 
     # Mouse release
     def mouseReleaseEvent(self, e):

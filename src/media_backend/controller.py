@@ -23,6 +23,9 @@ class QMediaMainController(qtw.QWidget):
     unsubscribe = qtc.pyqtSignal(qtw.QWidget)
     reset = qtc.pyqtSignal()
     
+    start_loop = qtc.pyqtSignal(int, int)
+    end_loop = qtc.pyqtSignal()
+    
     cleaned_up = qtc.pyqtSignal()
         
     def __init__(self, *args, **kwargs):
@@ -88,7 +91,10 @@ class QMediaMainController(qtw.QWidget):
     @qtc.pyqtSlot(AbstractMediaPlayer)
     def widget_loaded(self, widget: AbstractMediaPlayer):
         widget.new_input_wanted.connect(self.add_replay_widget)
-        self.replay_widgets.append(widget)
+        self.start_loop.connect(widget.start_loop)
+        self.end_loop.connect(widget.end_loop)
+        
+        self.replay_widgets.append(widget)        
         logging.info('WIDGET LOADED')
         self.subscribe.emit(widget)
            
@@ -120,12 +126,24 @@ class QMediaMainController(qtw.QWidget):
     
     @qtc.pyqtSlot(int)
     def set_position(self, pos):
-        self.query_position_update.emit(pos)
+        if self.replay_widgets:
+            N = self.replay_widgets[0].n_frames
+            new_pos = max(0, min(pos, N - 1))
+            
+            self.query_position_update.emit(new_pos)
     
     @qtc.pyqtSlot(float)    
     def set_replay_speed(self, x):
         self.replay_speed_changed.emit(x)
     
+    @qtc.pyqtSlot(int, int)
+    def start_loop_slot(self, x, y):
+        self.start_loop.emit(x,y)
+    
+    @qtc.pyqtSlot()
+    def end_loop_slot(self):
+        self.end_loop.emit()
+        
     def init_timer(self):
         self.timer_thread = qtc.QThread()
         self.timer_worker = Timer()
@@ -168,3 +186,8 @@ class QMediaMainController(qtw.QWidget):
                     widget.fps = settings.refresh_rate
                     self.subscribe.emit(widget)
     
+    @qtc.pyqtSlot(int)
+    def skip_frames(self, n):
+        if self.replay_widgets:
+            pos = self.replay_widgets[0].position
+            self.set_position(pos + n)

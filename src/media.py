@@ -64,3 +64,17 @@ class QMediaWidget(qtw.QWidget):
        @qtc.pyqtSlot()
        def shutdown(self):
               self.controller.shutdown()
+              
+       @qtc.pyqtSlot(int, int)
+       def startLoop(self, x, y):
+              self.controller.start_loop_slot(x, y)
+       
+       @qtc.pyqtSlot()
+       def endLoop(self):
+              self.controller.end_loop_slot()
+       
+       @qtc.pyqtSlot(int)
+       def skipFrames(self, n):
+              self.controller.skip_frames(n)
+       
+       
