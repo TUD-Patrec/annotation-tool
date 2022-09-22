@@ -1,4 +1,5 @@
 from abc import abstractmethod, ABC
+import re
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
@@ -93,10 +94,7 @@ class AbstractMediaPlayer(qtw.QWidget):
             )
             
         menu.popup(qtg.QCursor.pos())
-     
-    def shutdown(self):
-        pass
-           
+                
     @qtc.pyqtSlot()    
     def add_input(self):
         filename, _ = qtw.QFileDialog.getOpenFileName(directory='', filter='Video MoCap (*.mp4 *.avi *.csv)')
@@ -142,7 +140,6 @@ class AbstractMediaPlayer(qtw.QWidget):
             
             if self._looping:
                 new_pos = max(self._loop_lower, min(new_pos, self._loop_upper))
-                logging.info(new_pos)
                             
             if new_pos != self.position:
                 self.position = new_pos
@@ -150,16 +147,7 @@ class AbstractMediaPlayer(qtw.QWidget):
             else:
                 # Short circuting if no position change has happened
                 self.confirm_update(UpdateReason.SETPOS)
-    
-    def N_FRAMES(self):
-        if self._is_main_replay_widget:
-            N = self.n_frames
-        else:
-            assert self._reference_fps is not None
-            assert self._reference_N is not None
-            N = min(self.translate_frame_position(self._reference_N), self.n_frames)
-        return N
-            
+               
     @qtc.pyqtSlot()
     def ack_timeout(self):
         self.ACK_timeout.emit(self)
@@ -180,6 +168,19 @@ class AbstractMediaPlayer(qtw.QWidget):
         
         self.position = self._loop_lower
         self.update_media_position(UpdateReason.INIT)
+        
+    @qtc.pyqtSlot()
+    def end_loop(self):
+        self._looping = False
+     
+    def N_FRAMES(self):
+        if self._is_main_replay_widget:
+            N = self.n_frames
+        else:
+            assert self._reference_fps is not None
+            assert self._reference_N is not None
+            N = min(self.translate_frame_position(self._reference_N), self.n_frames)
+        return N
     
     def translate_frame_position(self, x):
         if self._is_main_replay_widget:
@@ -187,10 +188,6 @@ class AbstractMediaPlayer(qtw.QWidget):
         else:
             return x * self.fps // self._reference_fps
     
-    @qtc.pyqtSlot()
-    def end_loop(self):
-        self._looping = False
-     
     def send_ACK(self, r):
         if r == UpdateReason.TIMEOUT:
             self.ACK_timeout.emit(self)
@@ -202,19 +199,16 @@ class AbstractMediaPlayer(qtw.QWidget):
         if update_reason == UpdateReason.TIMEOUT:
             self.emit_position()
     
-    @abstractmethod
-    def update_media_position(self, reason: UpdateReason):
-        raise NotImplementedError
-    
     def emit_position(self):
         if self._is_main_replay_widget:
             assert self.offset == 0 # offset must not be changed for the main replay widget
             assert 0  <= self.position < self.n_frames
             self.position_changed.emit(self.position)
-          
-    def shutdown(self):
-        pass
     
+    @abstractmethod
+    def update_media_position(self, reason: UpdateReason):
+        raise NotImplementedError
+           
     # Thread safe getter and setter
     # Settings properties is only allowed from the main GUI-Thread - see assertions
     @property 
@@ -301,7 +295,32 @@ class AbstractMediaPlayer(qtw.QWidget):
     def is_main_replay_widget(self):
         return self._is_main_replay_widget    
 
-
+    @property
+    @returns(int)
+    def reference_fps(self):
+        return self._reference_fps
+    
+    @property
+    @returns(int)
+    def reference_N(self):
+        return self._reference_N
+  
+    @property
+    @returns(int)
+    def lower_bound(self):
+        return self._loop_lower
+    
+    @property
+    @returns(int)
+    def upper_bound(self):
+        return self._loop_upper
+    
+    @property
+    @returns(bool)
+    def is_looping(self):
+        return self._looping
+        
+        
 class AbstractMediaLoader(qtc.QThread):
     progress = qtc.pyqtSignal(int)
     finished = qtc.pyqtSignal(object)

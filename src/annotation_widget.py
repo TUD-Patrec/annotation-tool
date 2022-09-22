@@ -25,6 +25,11 @@ class QAnnotationWidget(qtw.QWidget):
         self.sample_idx = 0
         self.position = 0
         self.n_frames = 0
+                
+        self.range_restriced = False
+        self.lower_bound = None
+        self.upper_bound = None
+        
         
         self.dataset_scheme = None
         self.dataset_dependencies = None
@@ -68,8 +73,8 @@ class QAnnotationWidget(qtw.QWidget):
         grid = qtw.QGridLayout(self)
         
         self.timeline = QTimeLine()
-        # self.timeline.position_changed.connect(lambda x: self.set_position(x, False))       # Update own position
-        self.timeline.position_changed.connect(self.position_changed)                       # Notify listeners
+        self.timeline.position_changed.connect(lambda x: self.set_position(x, True))       # Update own position
+        # self.timeline.position_changed.connect(self.position_changed)                       # Notify listeners
         self.samples_changed.connect(self.timeline.set_samples)
 
         # grid.addWidget(self.lbl, 0, 0)
@@ -83,16 +88,26 @@ class QAnnotationWidget(qtw.QWidget):
        
     # TODO Maybe more fancy with functool.partial
     @qtc.pyqtSlot(int)
-    def set_position(self, new_pos, update_timeline=True):
-        if self.is_loaded() and self.position != new_pos:
-            self.position = new_pos
-            self.__update_label__()
-            self.check_for_selected_sample()
-            self.timeline.set_position(new_pos)
-        
+    def set_position(self, new_pos, from_timeline=False):
+        if self.is_loaded():
+            new_pos = self.apply_restriction(new_pos)
+            assert 0 <= new_pos < self.n_frames
+            if new_pos != self.position:
+                self.position = new_pos
+                self.__update_label__()
+                self.check_for_selected_sample()
+                self.timeline.set_position(new_pos)
+                
+                if from_timeline:
+                    self.position_changed.emit(self.position)
+                
+                
     def skip_frames(self, n):
-        pass    
-            
+        pos = self.position + n
+        N = self.n_frames
+        new_pos = max(0, min(pos, N - 1))
+        self.set_position(new_pos)
+                            
     # TODO try get rid of self.n_frames -> apply set_position partially?
     @qtc.pyqtSlot(Annotation)
     def set_annotation(self, annotation):
@@ -257,12 +272,25 @@ class QAnnotationWidget(qtw.QWidget):
 
     @qtc.pyqtSlot(int,int)
     def restrict_range(self, lower, upper):
-        self.timeline.restrict_range(lower, upper)
+        assert lower <= upper
+        assert 0 <= lower
+        assert upper < self.n_frames
+        
+        self.range_restriced = True 
+        self.lower_bound = lower
+        self.upper_bound = upper
+        
+        self.set_position(lower)
     
     @qtc.pyqtSlot()
     def remove_restriction(self):
-        self.timeline.remove_restriction()
-        
+        self.range_restriced = False
+    
+    def apply_restriction(self, x):
+        if self.range_restriced:
+            return max(self.lower_bound, min(self.upper_bound, x))
+        else:
+            return x
         
         
     
@@ -274,10 +302,6 @@ class QTimeLine(qtw.QWidget):
         self.pointer_position = 0
         self.pos = None # Dont remove
         self.n_frames = self.width()
-        
-        self.range_restriced = False
-        self.lower_bound = None
-        self.upper_bound = None
     
         self._frame_to_pixel, self._pixel_to_frame = functions.scale_functions(N=self.n_frames, M=self.width(), last_to_last=True)
 
@@ -424,9 +448,8 @@ class QTimeLine(qtw.QWidget):
             # self.pointer_position = x
             
             frame_position = self._pixel_to_frame(x)[0]
-            frame_position = self.apply_restriction(frame_position)
             self.position_changed.emit(frame_position)
-
+            
         self.update()
 
     # Mouse pressed
@@ -435,16 +458,10 @@ class QTimeLine(qtw.QWidget):
             x = e.pos().x()
             # self.pointer_position = x
             frame_position = self._pixel_to_frame(x)[0]
-            frame_position = self.apply_restriction(frame_position)
             self.position_changed.emit(frame_position)
             
             self.clicking = True  # Set clicking check to true
                
-    def apply_restriction(self, x):
-        if self.range_restriced:
-            return max(self.lower_bound, min(self.upper_bound, x))
-        else:
-            return x
     
     # Mouse release
     def mouseReleaseEvent(self, e):
@@ -466,11 +483,4 @@ class QTimeLine(qtw.QWidget):
         self._frame_to_pixel, self._pixel_to_frame = functions.scale_functions(N=self.n_frames, M=event.size().width(), last_to_last=True)
         self.update()
 
-    @ qtc.pyqtSlot(int, int)
-    def restrict_range(self, lower, upper):
-        self.range_restriced = True 
-        self.lower_bound = lower
-        self.upper_bound = upper
-        
-    def remove_restriction(self):
-        self.range_restriced = False
+   

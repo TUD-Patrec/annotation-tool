@@ -93,9 +93,9 @@ class QMediaMainController(qtw.QWidget):
         self.start_loop.connect(widget.start_loop)
         self.end_loop.connect(widget.end_loop)
         
-        if self.replay_widgets and self.replay_widgets[0]._looping:
-            start = self.self.replay_widgets[0]._loop_lower
-            end = self.self.replay_widgets[0]._loop_uppper
+        if self.replay_widgets and self.replay_widgets[0].is_looping:
+            start = self.replay_widgets[0].lower_bound
+            end = self.replay_widgets[0].upper_bound
             widget.start_loop(start, end)
             
         self.replay_widgets.append(widget)        
