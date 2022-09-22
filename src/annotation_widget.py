@@ -99,16 +99,9 @@ class QAnnotationWidget(qtw.QWidget):
                 self.timeline.set_position(new_pos)
                 
                 if from_timeline:
-                    self.position_changed.emit(self.position)
-                
-                
-    def skip_frames(self, n):
-        pos = self.position + n
-        N = self.n_frames
-        new_pos = max(0, min(pos, N - 1))
-        self.set_position(new_pos)
-                            
-    # TODO try get rid of self.n_frames -> apply set_position partially?
+                    self.position_changed.emit(new_pos)
+        
+    
     @qtc.pyqtSlot(Annotation)
     def set_annotation(self, annotation):
         self.clear_undo_redo()
@@ -133,6 +126,7 @@ class QAnnotationWidget(qtw.QWidget):
         else:
             raise RuntimeError('annotation cant be None!')
     
+    @qtc.pyqtSlot()
     def settings_changed(self):
         self.__update_label__()
         self.timeline.update()
@@ -245,7 +239,7 @@ class QAnnotationWidget(qtw.QWidget):
         self.undo_stack.append(current_samples)
         
         
-        while len(self.undo_stack) > 20:
+        while len(self.undo_stack) > 50:
             self.undo_stack.pop(0)
         
         logging.info('undo_stack = {}'.format(len(self.undo_stack)))
@@ -292,7 +286,6 @@ class QAnnotationWidget(qtw.QWidget):
         else:
             return x
         
-        
     
 class QTimeLine(qtw.QWidget):
     position_changed = qtc.pyqtSignal(int)
@@ -333,8 +326,7 @@ class QTimeLine(qtw.QWidget):
     @qtc.pyqtSlot(int)
     def set_position(self, pos):
         pixel_pos = self._frame_to_pixel(pos)[0]
-        if pixel_pos != self.pointer_position:
-            self.pointer_position = pixel_pos
+        self.pointer_position = pixel_pos
         self.update()
  
     @qtc.pyqtSlot(list, Sample)
@@ -445,7 +437,6 @@ class QTimeLine(qtw.QWidget):
             x = self.pos.x()
             x = max(0, x)
             x = min(x, self.width()-1)
-            # self.pointer_position = x
             
             frame_position = self._pixel_to_frame(x)[0]
             self.position_changed.emit(frame_position)
@@ -456,7 +447,6 @@ class QTimeLine(qtw.QWidget):
     def mousePressEvent(self, e):
         if e.button() == qtc.Qt.LeftButton:
             x = e.pos().x()
-            # self.pointer_position = x
             frame_position = self._pixel_to_frame(x)[0]
             self.position_changed.emit(frame_position)
             

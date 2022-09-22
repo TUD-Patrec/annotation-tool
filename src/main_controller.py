@@ -16,11 +16,16 @@ from .utility.breeze_resources import *
 from .media import QMediaWidget
 
 class MainApplication(qtw.QApplication):
+    update_media_pos = qtc.pyqtSignal(int)
+    update_annotation_pos = qtc.pyqtSignal(int)
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
         # Controll-Attributes
         self.annotation = None
+        self.position = None
+        self.n_frames = None 
         
         # Main Window
         self.gui = GUI()
@@ -43,12 +48,12 @@ class MainApplication(qtw.QApplication):
         self.player.replay_speed_changed.connect(self.media_player.setReplaySpeed)
 
         # from media_player
-        self.media_player.positionChanged.connect(self.annotation_widget.set_position)
+        self.media_player.positionChanged.connect(lambda x: self.update_position(x, update_media=False, update_annotation=True))
         self.media_player.cleanedUp.connect(self.gui.cleaned_up)
         
         # from annotation_widget
         self.annotation_widget.samples_changed.connect(lambda x,y: self.display_sample.set_selected(y))
-        self.annotation_widget.position_changed.connect(self.media_player.setPosition)
+        self.annotation_widget.position_changed.connect(lambda x: self.update_position(x, update_media=True, update_annotation=False))
         self.annotation_widget.interrupt_replay.connect(self.media_player.pause)
         self.annotation_widget.interrupt_replay.connect(self.player.pause)
         self.annotation_widget.update_label.connect(self.player.update_label)
@@ -70,6 +75,10 @@ class MainApplication(qtw.QApplication):
         self.gui.settings_changed.connect(self.settings_changed)
         self.gui.settings_changed.connect(self.media_player.settingsChanges)
         self.gui.exit_pressed.connect(self.media_player.shutdown)
+        
+        # from main_controller
+        self.update_annotation_pos.connect(self.annotation_widget.set_position)
+        self.update_media_pos.connect(self.media_player.setPosition)
     
     def skip_frames(self, forward_step, fast):
         if self.annotation:
@@ -77,14 +86,25 @@ class MainApplication(qtw.QApplication):
             n = settings.big_skip if fast else settings.small_skip
             if not forward_step:
                 n *= -1
-            self.media_player.skipFrames(n)
-            self.annotation_widget.skip_frames(n)
+            
+            new_pos = max(0, min(self.n_frames - 1, self.position + n))
+            self.update_position(new_pos, True, False)
+                    
+    def update_position(self, new_pos, update_media, update_annotation):
+        assert 0 <= new_pos < self.n_frames
+        self.position = new_pos
         
+        if update_annotation:
+            self.update_annotation_pos.emit(self.position)
+        if update_media:
+            self.update_media_pos.emit(self.position)
+    
     @qtc.pyqtSlot(Annotation)
     def load_annotation(self, annotation):
         FrameTimeMapper.instance().set_annotation(annotation.frames, annotation.duration)
         
         self.annotation = annotation
+        self.n_frames = annotation.frames
                 
         # load video
         self.media_player.loadAnnotation(self.annotation)
@@ -92,11 +112,9 @@ class MainApplication(qtw.QApplication):
         self.annotation_widget.set_annotation(self.annotation)
         self.annotation_widget.set_position(0)
         self.player.reset()
+        self.update_position(0, True, True)
         self.save_annotation()
-        
-        self.media_player.startLoop(1000, 1500)
-        self.annotation_widget.restrict_range(1000, 1500)
-        
+    
     def save_annotation(self):
         if self.annotation is None:
             logging.info('Nothing to save - annotation-object is None')

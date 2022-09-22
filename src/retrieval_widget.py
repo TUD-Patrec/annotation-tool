@@ -7,7 +7,7 @@ from .qt_helper_widgets.lines import QHLine
 
 class QRetrievalWidget(qtw.QWidget):
     def __init__(self, *args, **kwargs):
-        super(QDisplaySample, self).__init__(*args, **kwargs)
+        super(QRetrievalWidget, self).__init__(*args, **kwargs)
         self.scheme = None
         self.sample = None
         self.scroll_widgets = []

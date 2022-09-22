@@ -1,5 +1,4 @@
-from abc import abstractmethod, ABC
-import re
+from abc import abstractmethod
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg

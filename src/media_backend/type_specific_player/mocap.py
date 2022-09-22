@@ -41,7 +41,7 @@ class MocapLoader(AbstractMediaLoader):
                 
                 frames[frame_index, :, :] = frame
 
-            self.media = frames.astype(np.float16)
+            self.media = frames.astype(np.float32)
             # self.media = frames
             
         except Exception as e:

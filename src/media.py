@@ -25,7 +25,6 @@ class QMediaWidget(qtw.QWidget):
               shutdown: Cleans up all threads and subwidgets
               startLoop: Starts looping the video-segment within the specified interval
               endLoop: Stops looping
-              skipFrames: Skips n frames forward or backward in the video - n is given by the user specified settings
        """
        
        positionChanged = qtc.pyqtSignal(int)       
@@ -75,9 +74,6 @@ class QMediaWidget(qtw.QWidget):
        @qtc.pyqtSlot()
        def endLoop(self):
               self.controller.end_loop_slot()
-       
-       @qtc.pyqtSlot(int)
-       def skipFrames(self, n):
-              self.controller.skip_frames(n)
+
        
        
