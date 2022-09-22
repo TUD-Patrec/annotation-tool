@@ -69,7 +69,6 @@ class QAnnotationWidget(qtw.QWidget):
         grid = qtw.QGridLayout(self)
         
         self.timeline = QTimeLine()
-        self.timeline.position_changed.connect(lambda x: self.set_position(x, False))       # Update own position
         self.timeline.position_changed.connect(self.position_changed)                       # Notify listeners
         self.samples_changed.connect(self.timeline.set_samples)
 
@@ -84,14 +83,12 @@ class QAnnotationWidget(qtw.QWidget):
     
     # TODO Maybe more fancy with functool.partial
     @qtc.pyqtSlot(int)
-    def set_position(self, new_pos, update_timeline=True):
-        #if self.is_loaded() and self.position != new_pos:
-        if self.is_loaded():
+    def set_position(self, new_pos):
+        if self.is_loaded() and self.position != new_pos:
             self.position = new_pos
             self.__update_label__()
             self.check_for_selected_sample()
-            if update_timeline:
-                self.timeline.set_position(new_pos)
+            self.timeline.set_position(new_pos)
             
     # TODO try get rid of self.n_frames -> apply set_position partially?
     @qtc.pyqtSlot(Annotation)
@@ -407,24 +404,22 @@ class QTimeLine(qtw.QWidget):
             x = self.pos.x()
             x = max(0, x)
             x = min(x, self.width()-1)
-            self.pointer_position = x
+            # self.pointer_position = x
             
             frame_position = self._pixel_to_frame(x)[0]
             self.position_changed.emit(frame_position)
 
-        # self.update()
+        self.update()
 
     # Mouse pressed
     def mousePressEvent(self, e):
         if e.button() == qtc.Qt.LeftButton:
             x = e.pos().x()
-            self.pointer_position = x
+            # self.pointer_position = x
             frame_position = self._pixel_to_frame(x)[0]
             self.position_changed.emit(frame_position)
             
             self.clicking = True  # Set clicking check to true
-        
-        # self.update()
 
     # Mouse release
     def mouseReleaseEvent(self, e):
@@ -446,10 +441,3 @@ class QTimeLine(qtw.QWidget):
         self._frame_to_pixel, self._pixel_to_frame = functions.scale_functions(N=self.n_frames, M=event.size().width(), last_to_last=True)
         self.update()
 
-    
-if __name__ == "__main__":
-    app = qtw.QApplication(sys.argv)
-    MainWindow = QAnnotationWidget()
-    MainWindow.resize(400,300)
-    MainWindow.show()
-    sys.exit(app.exec_())
