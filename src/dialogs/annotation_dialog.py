@@ -24,7 +24,6 @@ class QAnnotationDialog(qtw.QDialog):
         
         if annotation:
             self._set_annotation(annotation)
-        print('SizeHint:', self.sizeHint().width(), self.sizeHint().height())
   
     def _set_annotation(self, annotation):        
         if type(annotation) not in [dict, np.ndarray]:
@@ -119,7 +118,6 @@ class QAnnotationDialog(qtw.QDialog):
         hbox.addWidget(self.cancel_button)
                     
     def __update__(self):
-        print('Before, SizeHint:', self.sizeHint().width(), self.sizeHint().height())
         if self.dependencies is None or len(self.dependencies) == 0:
             # Nothing to update here
             return
@@ -149,7 +147,7 @@ class QAnnotationDialog(qtw.QDialog):
             wid.updateUI()
             
         self.check_selection_valid()
-        print('After, SizeHint:', self.sizeHint().width(), self.sizeHint().height())
+        
         
     def __init_current_selection__(self):
         N = len(self.buttons)

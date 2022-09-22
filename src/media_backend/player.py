@@ -119,15 +119,14 @@ class AbstractMediaPlayer(qtw.QWidget):
     @qtc.pyqtSlot(qtw.QWidget)
     def on_timeout(self, w):
         if self is w:
-            logging.info(f'{self.is_main_replay_widget = }, {self.position = }')
+            # logging.info(f'{self.is_main_replay_widget = }, {self.position = }')
             # dont perform unnessecary updates
             if self.position + 1 < self.N_FRAMES():
                 self.position += 1
                 self.update_media_position(UpdateReason.TIMEOUT)
             else:
                 self.send_ACK(UpdateReason.TIMEOUT)
-                if self._is_main_replay_widget:
-                    self.emit_position()
+                self.emit_position()
     
     @qtc.pyqtSlot(qtw.QWidget, int)
     def set_position(self, w, new_pos):
@@ -146,7 +145,7 @@ class AbstractMediaPlayer(qtw.QWidget):
         else:
             assert self._reference_fps is not None
             assert self._reference_N is not None
-            N = max(self._reference_N * self.fps // self._reference_fps, self.n_frames)
+            N = min(self._reference_N * self.fps // self._reference_fps, self.n_frames)
         return N
             
     @qtc.pyqtSlot()

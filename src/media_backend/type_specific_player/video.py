@@ -135,11 +135,11 @@ class VideoHelper(qtc.QObject):
         width_changed = width != self.last_width or height != self.last_height
         
         if pos == self.last_position and not width_changed:
-            logging.info('no update needed')
+            # logging.info('no update needed')
             self.no_update_needed.emit(update_reason)
             return 
         if pos != self.last_position + 1:
-            logging.info('no seq-reading - update needed')
+            # logging.info('no seq-reading - update needed')
             self.media.set(cv2.CAP_PROP_POS_FRAMES, pos)
         
         self.last_position = pos

@@ -96,34 +96,19 @@ class MainApplication(qtw.QApplication):
         
     @qtc.pyqtSlot(Annotation)
     def load_annotation(self, annotation):
-        logging.info('load_annotation 1)')
         FrameTimeMapper.instance().set_annotation(annotation.frames, annotation.duration)
         
-        logging.info('load_annotation 2)')
         self.annotation = annotation
         self.position = 0
                 
         # load video
         self.media_player.loadAnnotation(self.annotation)
-        
-        logging.info('load_annotation 3)')
         self.display_sample.set_annotation(self.annotation)
-        
-        logging.info('load_annotation 4)')
         self.annotation_widget.set_annotation(self.annotation)
-        
-        
-        logging.info('load_annotation 5)')
         self.annotation_widget.set_position(self.position)
-        
-        
-        logging.info('load_annotation 6)')
         self.player.reset()
         
-        
-        logging.info('load_annotation 7)')
         self.save_annotation()
-        logging.info('load_annotation End')
     
     def save_annotation(self):
         if self.annotation is None:
