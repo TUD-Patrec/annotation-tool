@@ -48,9 +48,9 @@ class Query:
     def __init__(self, intervals: list) -> None:
         self._intervals = intervals
         self._indices = []  # for querying
-        self._idx = 0
+        self._idx = -1
         self._marked_intervals = set()  # for marking intervals as DONE
-        self._mode: RetrievalMode = RetrievalMode.DESCENDING
+        self._mode: RetrievalMode = RetrievalMode.DEFAULT
         self._filter_criteria: FilterCriteria = None
 
         self.debug_count = 0
@@ -116,7 +116,7 @@ class Query:
     def update_indices(self):
         self.apply_filter()
         self.reorder_indices()
-        self._idx = 0
+        self._idx = -1
 
     # modify _indices to only include those that match the filter criterium
     def change_filter(self, criteria: FilterCriteria):
@@ -226,11 +226,12 @@ class QRetrievalWidget(qtw.QWidget):
         self._overlap = 0  # TODO: Import from settings
         intervals = self.generate_intervals()
         self._query = Query(intervals)
-        print("query len", len(self._query))
         self.load_next()
 
     # initialize the intervals from the given annotation
     # TODO REWORK -> Currently just prove of concept
+    # REWORK = ONLY get intervals inside samples that are currently not annotated!
+    # Maybe just loop through the sample, and grab all unannotated ones
     def generate_intervals(self):
         start_time = time.time()
         print("STARTING TO GENERATE INTERVALS")
@@ -240,30 +241,31 @@ class QRetrievalWidget(qtw.QWidget):
         N = self._annotation.frames
 
         COMBINATIONS = np.array(self._annotation.dataset.dependencies)
-        array_length = len(COMBINATIONS[0])
-        cnt = 0
         while start < N:
-            cnt += 1
             end = min(N - 1, start + self._interval_size)
 
-            random_arr = np.random.randint(2, size=(1, array_length))
+            predicted_attributes = self.get_prediction_for_interval(start, end)
 
-            DIST = spatial.distance.cdist(COMBINATIONS, random_arr, "cosine")
+            DIST = spatial.distance.cdist(COMBINATIONS, predicted_attributes, "cosine")
             DIST = DIST.flatten()
 
             indices = np.argsort(DIST)
             for idx in indices[: self.TRIES_PER_INTERVAL]:
-                prediction = COMBINATIONS[idx]
+                proposed_classification = COMBINATIONS[idx]
                 similarity = 1 - DIST[idx]
 
-                interval = Interval(start, end, prediction, similarity)
+                interval = Interval(start, end, proposed_classification, similarity)
                 intervals.append(interval)
 
             start = end + 1
-        print(f"{cnt = }")
         end_time = time.time()
-        print(f"GENERATING INTERVALS TOOK {end_time - start_time}ms")
+        logging.info(f"GENERATING INTERVALS TOOK {end_time - start_time}ms")
         return intervals
+
+    def get_prediction_for_interval(self, lower, upper):
+        COMBINATIONS = np.array(self._annotation.dataset.dependencies)
+        array_length = len(COMBINATIONS[0])
+        return np.random.randint(2, size=(1, array_length))
 
     # Display the current interval to the user: Show him the Interval boundaries and the predicted annotation, start the loop,
     def display_interval(self):
@@ -290,8 +292,8 @@ class QRetrievalWidget(qtw.QWidget):
             for idx, (group_name, group_elements) in enumerate(self.scheme):
                 scroll_wid = QAdaptiveScrollArea(self)
 
-                for idx, elem in enumerate(group_elements):
-                    adjusted_idx = offset + idx
+                for elem_idx, elem in enumerate(group_elements):
+                    adjusted_idx = offset + elem_idx
                     if (
                         self._current_interval.predicted_classification[adjusted_idx]
                         == 1
@@ -344,10 +346,14 @@ class QRetrievalWidget(qtw.QWidget):
     def load_next(self):
         if self._query:
             if self._query.has_next():
+                old_interval = self._current_interval
                 self._current_interval = self._query.get_next()
                 self.display_interval()
-                l, r = self._current_interval.start, self._current_interval.end
-                self.start_loop.emit(l, r)
+                if old_interval != self._current_interval:
+                    # only emit new loop if the interval has changed
+                    # remember that for each interval there might be multiple predictions that get testet one after another
+                    l, r = self._current_interval.start, self._current_interval.end
+                    self.start_loop.emit(l, r)
             else:
                 logging.info("ALL intervals_done")
                 self.all_intervals_done()

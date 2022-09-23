@@ -122,8 +122,9 @@ class AbstractMediaPlayer(qtw.QWidget):
                 if next_position > self._loop_upper + 1:
                     raise RuntimeError
                 if next_position == self._loop_upper + 1:
-                    self.position = self._loop_lower - 1
-
+                    self.position = self._loop_lower
+                    self.update_media_position(UpdateReason.TIMEOUT)
+                    return
             if self.position + 1 < self.N_FRAMES():
                 self.position += 1
                 self.update_media_position(UpdateReason.TIMEOUT)

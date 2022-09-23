@@ -116,7 +116,7 @@ class MainApplication(qtw.QApplication):
                 n *= -1
 
             new_pos = max(0, min(self.n_frames - 1, self.position + n))
-            self.update_position(new_pos, True, False)
+            self.update_position(new_pos, True, True)
 
     def update_position(self, new_pos, update_media, update_annotation):
         assert 0 <= new_pos < self.n_frames
