@@ -1,108 +1,132 @@
+from dataclasses import dataclass
 import logging
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
+import enum
+import numpy as np
 
-from .qt_helper_widgets.adaptive_scroll_area import QAdaptiveScrollArea
-from .qt_helper_widgets.lines import QHLine
+from .data_classes.sample import Sample
+
+
+class RetrievalMode(enum):
+    DEFAULT = 0
+    RANDOM = 1
+    DESCENDING = 2
+    QUERY = 3
+
+
+@dataclass(frozen=True)
+class Interval:
+    start: int
+    end: int
+    predicted_classification: np.ndarray
+    similarity: float
+
+
+@dataclass(frozen=True)
+class FilterCriteria:
+    filter_array: np.ndarray
+
+    # test whether a given interval matches the criterion
+    def matches(self, i):
+        pass
+
+
+class Query:
+    def __init__(self) -> None:
+        self._filter_criteria = None
+        self._intervalls = []
+        self._indices = []  # for querying
+        self._marked_intervals = set()  # for marking intervals as DONE
+        self._mode: RetrievalMode = None
+
+    def __iter__(self):
+        if self.has_next():
+            pass
+        else:
+            raise StopIteration
+        pass
+
+    def __next__(self) -> Interval:
+        pass
+
+    def has_next(self):
+        pass
+
+    def interval_to_sample(self, x):
+        pass
+
+    def order_intervals(self, mode: RetrievalMode):
+        pass
+
+    # modify _indices to only include those that match the filter criterium
+    def apply_filter(self, criteria: FilterCriteria):
+        # only if mode == QUERY
+        pass
+
+    # reorder the indices
+    def mode_changed(self, mode: RetrievalMode):
+        pass
+
+    def mark_as_done(self, i: Interval):
+        self._marked_intervals.add(i)
 
 
 class QRetrievalWidget(qtw.QWidget):
+    new_sample = qtc.pyqtSignal(Sample)
+    start_loop = qtc.pyqtSignal(int, int)
+
     def __init__(self, *args, **kwargs):
         super(QRetrievalWidget, self).__init__(*args, **kwargs)
-        self.scheme = None
-        self.sample = None
-        self.scroll_widgets = []
+        # Controll attributes
+        self.query: Query = None
+        self.current_interval = None
+        self._overlap: float = 0
+        self._window_size: int = None
+        self.init_layout()
 
-        self.top_widget = qtw.QLabel("CURRENT SAMPLE", alignment=qtc.Qt.AlignCenter)
+    def init_layout(self):
+        pass
 
-        self.start_label = qtw.QLabel("Start Frame:", alignment=qtc.Qt.AlignCenter)
-        self.start_value = qtw.QLabel("A", alignment=qtc.Qt.AlignCenter)
-        self.end_label = qtw.QLabel("End Frame:", alignment=qtc.Qt.AlignCenter)
-        self.end_value = qtw.QLabel("B", alignment=qtc.Qt.AlignCenter)
+    def load_annotation(self, a):
+        pass
 
-        self.middle_widget = qtw.QWidget()
-        self.middle_widget.setLayout(qtw.QHBoxLayout())
+    # initialize the intervals from the given annotation
+    def init_intervals(self):
+        pass
 
-        self.bottom_left_widget = qtw.QWidget()
-        self.bottom_left_widget.setLayout(qtw.QFormLayout())
-        self.bottom_left_widget.layout().addRow(self.start_label, self.start_value)
-        self.bottom_left_widget.layout().addRow(self.end_label, self.end_value)
+    # Display the current interval to the user: Show him the Interval boundaries and the predicted annotation, start the loop,
+    def display_interval(self):
+        pass
 
-        self.bottom_right_widget = qtw.QWidget()
-        self.bottom_right_widget.setLayout(qtw.QVBoxLayout())
+    # ask user for manual annotation -> used as a last option kind of thing or also whenever the user feels like it is needed
+    def manually_annotate_interval(self):
+        pass
 
-        self.bottom_widget = qtw.QWidget()
-        self.bottom_widget.setLayout(qtw.QHBoxLayout())
-        self.bottom_widget.layout().addWidget(self.bottom_left_widget)
-        self.bottom_widget.layout().addWidget(self.bottom_right_widget)
+    # same as manually_annotate_interval except that the annotation is preloaded with the suggested annotation
+    def modify_interval_prediction(self):
+        pass
 
-        vbox = qtw.QVBoxLayout()
-        vbox.addWidget(self.top_widget, alignment=qtc.Qt.AlignCenter)
-        vbox.addWidget(QHLine())
-        vbox.addWidget(self.middle_widget, alignment=qtc.Qt.AlignCenter, stretch=1)
-        vbox.addWidget(QHLine())
-        vbox.addWidget(self.bottom_widget, alignment=qtc.Qt.AlignCenter)
+    # accept the prediction from the network -> mark the interval as done
+    def accept_interval(self):
+        pass
 
-        self.setLayout(vbox)
-        self.setMinimumWidth(300)
-        self.__update__()
+    # dont accept the prediction
+    def decline_interval(self):
+        pass
 
-    def set_annotation(self, annotation):
-        self.scheme = annotation.dataset.scheme
-        self.sample = None
-        self.__update__()
+    # Main function
+    def retieval(self):
+        pass
 
-    def set_selected(self, sample):
-        self.sample = sample
-        self.__update__()
+    @qtc.pyqtSlot()
+    def settings_changed(self):
+        pass
 
-    def __update__(self):
-        if self.sample is None:
-            widget = qtw.QLabel(
-                "There is no sample to show yet.", alignment=qtc.Qt.AlignCenter
-            )
-            self.layout().replaceWidget(self.middle_widget, widget)
-            self.middle_widget.setParent(None)
-            self.middle_widget = widget
-            self.start_value.setText(str(0))
-            self.end_value.setText(str(0))
+    @qtc.pyqtSlot(RetrievalMode)
+    def change_mode(self, mode):
+        pass
 
-        # Case 2: Sample is not annotated yet
-        elif not self.sample.annotation_exists:
-            widget = qtw.QLabel(
-                "The sample is not annotated yet.", alignment=qtc.Qt.AlignCenter
-            )
-            self.layout().replaceWidget(self.middle_widget, widget)
-            self.middle_widget.setParent(None)
-            self.middle_widget = widget
-            self.start_value.setText(str(self.sample.start_position))
-            self.end_value.setText(str(self.sample.end_position))
-
-        # Case 3: Sample and scheme loaded
-        else:
-            widget = qtw.QWidget(self)
-            grid = qtw.QGridLayout()
-            grid.setColumnStretch(1, 1)
-
-            for idx, (group_name, group_elements) in enumerate(self.scheme):
-                scroll_wid = QAdaptiveScrollArea(self)
-
-                for elem in group_elements:
-                    if self.sample.annotation[group_name][elem] == 1:
-                        lbl = qtw.QLabel(elem, alignment=qtc.Qt.AlignCenter)
-                        lbl.setAlignment(qtc.Qt.AlignCenter)
-                        scroll_wid.addItem(lbl)
-
-                txt = group_name.upper() + ":"
-                name_label = qtw.QLabel(txt)
-
-                grid.addWidget(name_label, idx, 0)
-                grid.addWidget(scroll_wid, idx, 1)
-
-            widget.setLayout(grid)
-
-            self.layout().replaceWidget(self.middle_widget, widget)
-            self.middle_widget.setParent(None)
-            self.middle_widget = widget
-            self.start_value.setText(str(self.sample.start_position))
-            self.end_value.setText(str(self.sample.end_position))
+    @qtc.pyqtSlot(FilterCriteria)
+    def change_filter(self, f):
+        pass
