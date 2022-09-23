@@ -8,6 +8,7 @@ from .annotation_widget import QAnnotationWidget
 from .gui import GUI
 from .playback import PlayWidget
 from .display_current_sample import QDisplaySample
+from .retrieval_widget import QRetrievalWidget
 from .data_classes.singletons import Settings
 from .utility.functions import FrameTimeMapper
 from .utility import filehandler
@@ -35,10 +36,12 @@ class MainApplication(qtw.QApplication):
         self.player = PlayWidget()
         self.media_player = QMediaWidget()
         self.display_sample = QDisplaySample()
+        self.retrieval_widget = QRetrievalWidget()
 
         self.gui.set_left_widget(self.player)
         self.gui.set_central_widget(self.media_player)
-        self.gui.set_right_widget(self.display_sample)
+        self.gui.set_right_widget(self.retrieval_widget)
+        # self.gui.set_right_widget(self.display_sample)
         self.gui.set_bottom_widget(self.annotation_widget)
 
         # CONNECTIONS
@@ -101,6 +104,10 @@ class MainApplication(qtw.QApplication):
         self.update_annotation_pos.connect(self.annotation_widget.set_position)
         self.update_media_pos.connect(self.media_player.setPosition)
 
+        #
+        self.retrieval_widget.start_loop.connect(self.media_player.startLoop)
+        self.retrieval_widget.start_loop.connect(self.annotation_widget.restrict_range)
+
     def skip_frames(self, forward_step, fast):
         if self.annotation:
             settings = Settings.instance()
@@ -134,6 +141,9 @@ class MainApplication(qtw.QApplication):
         self.display_sample.set_annotation(self.annotation)
         self.annotation_widget.set_annotation(self.annotation)
         self.annotation_widget.set_position(0)
+        self.retrieval_widget.load_annotation(
+            self.annotation
+        )  # Aftter annotation widget
         self.player.reset()
         self.update_position(0, True, True)
         self.save_annotation()

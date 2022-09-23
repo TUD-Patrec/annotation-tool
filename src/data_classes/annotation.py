@@ -141,7 +141,7 @@ class Annotation:
 
     @property
     def duration(self):
-        return self._duration
+        return int(self.frames * 1000 / self.fps)
 
     @property
     def frames(self):

@@ -1,14 +1,16 @@
 from dataclasses import dataclass, field
 import logging
+from operator import eq
 import time
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 from enum import Enum
 import numpy as np
 from scipy import spatial
-from copy import deepcopy
 
-# from .data_classes.sample import Sample
+from .data_classes.sample import Sample
+from .qt_helper_widgets.lines import QHLine
+from .qt_helper_widgets.adaptive_scroll_area import QAdaptiveScrollArea
 
 
 class RetrievalMode(Enum):
@@ -19,10 +21,10 @@ class RetrievalMode(Enum):
 
 @dataclass(frozen=True)
 class Interval:
-    start: int
-    end: int
-    predicted_classification: np.ndarray = field(hash=False)
-    similarity: float
+    start: int = field(hash=True, compare=True)
+    end: int = field(hash=True, compare=True)
+    predicted_classification: np.ndarray = field(hash=False, compare=False)
+    similarity: float = field(hash=False, compare=False)
 
 
 @dataclass(frozen=True)
@@ -30,7 +32,6 @@ class FilterCriteria:
     filter_array: np.ndarray
 
     # test whether a given interval matches the criterion
-    # TODO
     def matches(self, i):
         comp_array = i.predicted_classification
         tmp = np.logical_and(comp_array, self.filter_array)
@@ -52,6 +53,8 @@ class Query:
         self._mode: RetrievalMode = RetrievalMode.DESCENDING
         self._filter_criteria: FilterCriteria = None
 
+        self.debug_count = 0
+
         self.update_indices()
 
     def __len__(self):
@@ -59,24 +62,37 @@ class Query:
 
     def get_next(self) -> Interval:
         assert self.has_next()
-        idx = self._indices[self._idx]
-        self._idx += 1
-        return self._intervals[idx]
+        next_unmarked_idx = self.get_next_unmarked_idx()
+        self._idx = next_unmarked_idx
+
+        index_to_interval = self._indices[next_unmarked_idx]
+        interval = self._intervals[index_to_interval]
+        return interval
 
     def has_next(self):
-        assert 0 <= self._idx <= len(self._indices)
-        return self._idx < len(self._indices)
+        return self.get_next_unmarked_idx() < len(self._indices)
+
+    def get_next_unmarked_idx(self):
+        idx = self._idx + 1
+        while idx < len(self._indices):
+            index_to_interval = self._indices[idx]
+            if self._intervals[index_to_interval] not in self._marked_intervals:
+                break
+            idx += 1
+        return idx
 
     def apply_filter(self):
-        indices = []
-        for idx in range(len(self._intervals)):
-            if self._intervals[idx] in self._marked_intervals:
-                continue
-            if self._filter_criteria is None or self._filter_criteria.matches(
-                self._intervals[idx]
-            ):
-                indices.append(idx)
-
+        if self._filter_criteria:
+            indices = []
+            for idx in range(len(self._intervals)):
+                if self._intervals[idx] in self._marked_intervals:
+                    continue
+                if self._filter_criteria is None or self._filter_criteria.matches(
+                    self._intervals[idx]
+                ):
+                    indices.append(idx)
+        else:
+            indices = list(range(len(self._intervals)))
         self._indices = indices
 
     def reorder_indices(self):
@@ -124,7 +140,10 @@ class Query:
         print(f"CHANGE_MODE TOOK {end - start}ms")
 
     def mark_as_done(self, i: Interval):
+        assert i not in self._marked_intervals
         self._marked_intervals.add(i)
+        self.debug_count += 1
+        print(self.debug_count)
 
     @property
     def idx(self):
@@ -132,34 +151,167 @@ class Query:
 
 
 class QRetrievalWidget(qtw.QWidget):
-    # new_sample = qtc.pyqtSignal(Sample)
+    new_sample = qtc.pyqtSignal(Sample)
     start_loop = qtc.pyqtSignal(int, int)
 
     def __init__(self, *args, **kwargs):
         super(QRetrievalWidget, self).__init__(*args, **kwargs)
         # Controll attributes
-        self.query: Query = None
-        self.current_interval = None
-        self._overlap: float = 0
-        self._window_size: int = None
+        self._query: Query = None
+        self._annotation = None
+        self._current_interval = None
+        self._interval_size: int = None
+        self._overlap: float = None
+        self.TRIES_PER_INTERVAL = 3
         self.init_layout()
 
+    def format_progress(self, x, y):
+        percentage = int(x * 100 / y) if y != 0 else 0
+        return f"{x : }/{y}\t[{percentage}%] "
+
     def init_layout(self):
-        pass
+        self.scroll_widgets = []
+
+        self.header_widget = qtw.QLabel(
+            "CURRENT PREDICTION", alignment=qtc.Qt.AlignCenter
+        )
+
+        self.main_widget = qtw.QWidget()
+        self.main_widget.setLayout(qtw.QHBoxLayout())
+
+        self.button_group = qtw.QWidget()
+        self.button_group.setLayout(qtw.QHBoxLayout())
+
+        self.accept_button = qtw.QPushButton("ACCEPT", self)
+        self.accept_button.clicked.connect(self.accept_interval)
+        self.button_group.layout().addWidget(self.accept_button)
+
+        self.modify_button = qtw.QPushButton("MODIFY", self)
+        self.modify_button.clicked.connect(self.modify_interval_prediction)
+        self.button_group.layout().addWidget(self.modify_button)
+
+        self.decline_button = qtw.QPushButton("DECLINE", self)
+        self.decline_button.clicked.connect(self.decline_interval)
+        self.button_group.layout().addWidget(self.decline_button)
+
+        self.similarity_label = qtw.QLabel(self)
+        self.progress_label = qtw.QLabel(self.format_progress(0, 0), self)
+
+        self.footer_widget = qtw.QWidget()
+        self.footer_widget.setLayout(qtw.QGridLayout())
+        self.footer_widget.layout().addWidget(qtw.QLabel("Similarity", self), 0, 0)
+        self.footer_widget.layout().addWidget(self.similarity_label, 0, 1)
+
+        self.footer_widget.layout().addWidget(qtw.QLabel("Progress:", self), 1, 0)
+        self.footer_widget.layout().addWidget(self.progress_label, 1, 1)
+
+        vbox = qtw.QVBoxLayout()
+        vbox.addWidget(self.header_widget, alignment=qtc.Qt.AlignCenter)
+        vbox.addWidget(QHLine())
+        vbox.addWidget(self.main_widget, alignment=qtc.Qt.AlignCenter, stretch=1)
+        vbox.addWidget(QHLine())
+        vbox.addWidget(self.button_group, alignment=qtc.Qt.AlignCenter)
+        vbox.addWidget(QHLine())
+        vbox.addWidget(self.footer_widget, alignment=qtc.Qt.AlignCenter)
+        self.setLayout(vbox)
+        self.setMinimumWidth(300)
 
     def load_annotation(self, a):
-        pass
+        if not a.dataset.dependencies_exist:
+            raise RuntimeError
+
+        self._annotation = a
+        self._current_interval = None
+        self._interval_size = 100  # TODO: Import from settings
+        self._overlap = 0  # TODO: Import from settings
+        intervals = self.generate_intervals()
+        self._query = Query(intervals)
+        print("query len", len(self._query))
+        self.load_next()
 
     # initialize the intervals from the given annotation
-    def init_intervals(self):
-        pass
+    # TODO REWORK -> Currently just prove of concept
+    def generate_intervals(self):
+        start_time = time.time()
+        print("STARTING TO GENERATE INTERVALS")
 
-    def init_query(self):
-        pass
+        intervals = []
+        start = 0
+        N = self._annotation.frames
+
+        COMBINATIONS = np.array(self._annotation.dataset.dependencies)
+        array_length = len(COMBINATIONS[0])
+        cnt = 0
+        while start < N:
+            cnt += 1
+            end = min(N - 1, start + self._interval_size)
+
+            random_arr = np.random.randint(2, size=(1, array_length))
+
+            DIST = spatial.distance.cdist(COMBINATIONS, random_arr, "cosine")
+            DIST = DIST.flatten()
+
+            indices = np.argsort(DIST)
+            for idx in indices[: self.TRIES_PER_INTERVAL]:
+                prediction = COMBINATIONS[idx]
+                similarity = 1 - DIST[idx]
+
+                interval = Interval(start, end, prediction, similarity)
+                intervals.append(interval)
+
+            start = end + 1
+        print(f"{cnt = }")
+        end_time = time.time()
+        print(f"GENERATING INTERVALS TOOK {end_time - start_time}ms")
+        return intervals
 
     # Display the current interval to the user: Show him the Interval boundaries and the predicted annotation, start the loop,
     def display_interval(self):
-        pass
+        if self._query:
+            txt = self.format_progress(self._query.idx, len(self._query))
+            self.progress_label.setText(txt)
+
+        if self._current_interval is None:
+            self.similarity_label.setText("")
+            widget = qtw.QLabel(
+                "There is no interval to show yet.", alignment=qtc.Qt.AlignCenter
+            )
+            self.layout().replaceWidget(self.main_widget, widget)
+            self.main_widget.setParent(None)
+            self.main_widget = widget
+
+        else:
+            self.similarity_label.setText(f"{self._current_interval.similarity :.3f}")
+            widget = qtw.QWidget(self)
+            grid = qtw.QGridLayout()
+            grid.setColumnStretch(1, 1)
+
+            offset = 0
+            for idx, (group_name, group_elements) in enumerate(self.scheme):
+                scroll_wid = QAdaptiveScrollArea(self)
+
+                for idx, elem in enumerate(group_elements):
+                    adjusted_idx = offset + idx
+                    if (
+                        self._current_interval.predicted_classification[adjusted_idx]
+                        == 1
+                    ):
+                        lbl = qtw.QLabel(elem, alignment=qtc.Qt.AlignCenter)
+                        lbl.setAlignment(qtc.Qt.AlignCenter)
+                        scroll_wid.addItem(lbl)
+                offset += len(group_elements)
+
+                txt = group_name.upper() + ":"
+                name_label = qtw.QLabel(txt)
+
+                grid.addWidget(name_label, idx, 0)
+                grid.addWidget(scroll_wid, idx, 1)
+
+            widget.setLayout(grid)
+
+            self.layout().replaceWidget(self.main_widget, widget)
+            self.main_widget.setParent(None)
+            self.main_widget = widget
 
     # ask user for manual annotation -> used as a last option kind of thing or also whenever the user feels like it is needed
     def manually_annotate_interval(self):
@@ -171,15 +323,34 @@ class QRetrievalWidget(qtw.QWidget):
 
     # accept the prediction from the network -> mark the interval as done
     def accept_interval(self):
-        pass
+        if self._current_interval:
+            assert self._query is not None
+            self._query.mark_as_done(self._current_interval)
+            self.load_next()
+        else:
+            logging.info("IM ELSE BLOCK")
 
     # dont accept the prediction
     def decline_interval(self):
-        pass
+        self.load_next()
 
-    # Main function
-    def retieval(self):
-        pass
+    # TODO
+    def all_intervals_done(self):
+        self._current_interval = None
+        if self._query:
+            N = len(self._query)
+            self.progress_label.setText(self.format_progress(N, N))
+
+    def load_next(self):
+        if self._query:
+            if self._query.has_next():
+                self._current_interval = self._query.get_next()
+                self.display_interval()
+                l, r = self._current_interval.start, self._current_interval.end
+                self.start_loop.emit(l, r)
+            else:
+                logging.info("ALL intervals_done")
+                self.all_intervals_done()
 
     @qtc.pyqtSlot()
     def settings_changed(self):
@@ -187,19 +358,25 @@ class QRetrievalWidget(qtw.QWidget):
 
     @qtc.pyqtSlot(RetrievalMode)
     def change_mode(self, mode):
-        pass
+        if self._query:
+            self._query.change_mode(mode)
 
     @qtc.pyqtSlot(FilterCriteria)
     def change_filter(self, f):
-        pass
+        if self._query:
+            self._query.change_filter(f)
+
+    @property
+    def scheme(self):
+        return self._annotation.dataset.scheme
 
 
 if __name__ == "__main__":
     intervals = []
     start = 0
 
-    array_length = 100
-    N_intervals = 1000
+    array_length = 500
+    N_intervals = 100000
     step_size = 100
 
     expected = np.random.randint(2, size=array_length)
@@ -214,6 +391,24 @@ if __name__ == "__main__":
 
     query = Query(intervals)
 
+    while query.has_next():
+        x = query.get_next()
+        if query.idx % 4 == 0:
+            query.mark_as_done(x)
+
+    query.change_mode(RetrievalMode.DEFAULT)
+    # for _ in range(10):
+    #    print(query.idx, query._indices[query.idx], query.get_next())
+    print(f"{len(query) = }")
+    query.change_mode(RetrievalMode.DESCENDING)
+    # for _ in range(10):
+    #    print(query.idx, query._indices[query.idx], query.get_next())
+    print(f"{len(query) = }")
+    query.change_mode(RetrievalMode.RANDOM)
+    # for _ in range(10):
+    #    print(query.idx, query._indices[query.idx], query.get_next())
+    print(f"{len(query) = }")
+
     filter_array = np.zeros(array_length)
     filter_array[0] = 1
     filter_array[1] = 1
@@ -224,13 +419,3 @@ if __name__ == "__main__":
     print(f"Before filter: {len(query) = }")
     query.change_filter(filter)
     print(f"After filter: {len(query) = }")
-
-    query.change_mode(RetrievalMode.DEFAULT)
-    # for _ in range(10):
-    #    print(query.idx, query._indices[query.idx], query.get_next())
-    query.change_mode(RetrievalMode.DESCENDING)
-    for _ in range(10):
-        print(query.idx, query._indices[query.idx], query.get_next())
-    query.change_mode(RetrievalMode.RANDOM)
-    # for _ in range(10):
-    #    print(query.idx, query._indices[query.idx], query.get_next())
