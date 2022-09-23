@@ -1,9 +1,7 @@
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
-import PyQt5.QtGui as qtg
-
-
-import sys, logging
+import sys
+import logging
 import numpy as np
 
 class QAnnotationDialog(qtw.QDialog):
@@ -23,8 +21,6 @@ class QAnnotationDialog(qtw.QDialog):
         
         self.N = len(self.buttons)
         self.current_selection = np.zeros(self.N, dtype=np.uint8)
-        
-        # self.setMinimumWidth(700)
         
         if annotation:
             self._set_annotation(annotation)
@@ -105,9 +101,7 @@ class QAnnotationDialog(qtw.QDialog):
         self.bottom_widget = qtw.QWidget(self)
         hbox = qtw.QHBoxLayout(self.bottom_widget)
         self.bottom_widget.setLayout(hbox)
-               
-        btn_hight = 50
-        
+                
         self.accept_button = qtw.QPushButton(self)
         self.accept_button.clicked.connect(lambda _: self.__save_annotation__())
         self.accept_button.setText('Save')
@@ -153,6 +147,7 @@ class QAnnotationDialog(qtw.QDialog):
             wid.updateUI()
             
         self.check_selection_valid()
+        
         
     def __init_current_selection__(self):
         N = len(self.buttons)
@@ -219,23 +214,30 @@ class QAnnotationDialog(qtw.QDialog):
             self.accept_button.setEnabled(x)
     
     def __save_annotation__(self):
-        if self.dependencies is None:
-            attr_vec = self.current_selection
+        # Empty Annotation -> Reset Sample
+        if not np.any(self.current_selection):
+            self.new_annotation.emit({})
+            self.close()
+        
+        # Default Case
         else:
-            attr_vec = self.get_current_vector()
-        
-        annotation_dict = self.__vector_to_dict__(attr_vec)
-        
-        self.new_annotation.emit(annotation_dict)
-        self.close()
+            if self.dependencies is None:
+                attr_vec = self.current_selection
+            else:
+                attr_vec = self.get_current_vector()
+            
+            annotation_dict = self.__vector_to_dict__(attr_vec)
+            self.new_annotation.emit(annotation_dict)
+            self.close()
 
     def __reset_annotation__(self):
-        for idx in np.nonzero(self.current_selection)[0]:
-            btn : QPushButtonAdapted = self.buttons[idx]
-            if btn.isChecked():
-                btn.click()
-        
-        self.__update__()
+        #for idx in np.nonzero(self.current_selection)[0]:
+        #    btn : QPushButtonAdapted = self.buttons[idx]
+        #    if btn.isChecked():
+        #        btn.click()
+        #self.__update__()
+        self.new_annotation.emit({})
+        self.close()
     
     def __cancel_annotation__(self):
         self.close()
@@ -255,8 +257,6 @@ class QPushButtonAdapted(qtw.QPushButton):
         self.highlight_style = "border-color: gold"
         self.unchecked_style = ""
         self.setStyleSheet(self.unchecked_style)
-        # self.setMinimumWidth(180)
-        #self.setSizePolicy(qtw.QSizePolicy.Expanding, qtw.QSizePolicy.Fixed)
         
         self.clicked.connect(lambda _: self.btn_clicked())
         
@@ -309,8 +309,7 @@ class QAdaptiveScrollArea(qtw.QWidget):
             self.scrollArea.setWidget(self.scrollAreaWidgetContents)
             self.layout.addWidget(self.scrollArea)
             
-            self.scrollArea.setVerticalScrollBarPolicy(qtc.Qt.ScrollBarAlwaysOn)
-            # self.scrollArea.setHorizontalScrollBarPolicy(qtc.Qt.ScrollBarAlwaysOff)
+            # self.scrollArea.setVerticalScrollBarPolicy(qtc.Qt.ScrollBarAlwaysOn)
             
             for idx, btn in enumerate(filter(lambda x: x.isCheckable() or x.is_highlighted, self.buttons)):
                 row, col = idx // self.elements_per_row + 1, idx % self.elements_per_row

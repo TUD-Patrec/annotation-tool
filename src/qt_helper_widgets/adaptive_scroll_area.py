@@ -24,7 +24,7 @@ class QAdaptiveScrollArea(qtw.QWidget):
         for item in self.items:
             self.vBoxLayout.addWidget(item)
     
-    def updateUI(self):         
+    def updateUI(self):
         for item in self.items:
             item.setParent(self)
         

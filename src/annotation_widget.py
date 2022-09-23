@@ -6,11 +6,12 @@ import PyQt5.QtGui as qtg
 from copy import deepcopy
 
 from .data_classes.annotation import Annotation
-from .data_classes.singletons import ColorMapper, FrameTimeMapper
+from .data_classes.singletons import ColorMapper
+from .utility.functions import FrameTimeMapper
 from .data_classes.sample import Sample
-from .dialogs.set_annotation import QAnnotationDialog
+from .dialogs.annotation_dialog import QAnnotationDialog
 from .data_classes.singletons import Settings
-from .util import functions
+from .utility import functions
 
 
 class QAnnotationWidget(qtw.QWidget):
@@ -148,7 +149,7 @@ class QAnnotationWidget(qtw.QWidget):
         return self.samples[self.sample_idx]
     
     @qtc.pyqtSlot()
-    def cut_and_annotate(self):    
+    def cut_and_annotate(self):
         self.split_selected_sample()
         self.annotate_selected_sample()
         
@@ -321,7 +322,7 @@ class QTimeLine(qtw.QWidget):
             
             txt = FrameTimeMapper.instance().frame_repr(frame_idx)
             
-            qp.drawText(pos-50, 0, 100, 100, qtc.Qt.AlignHCenter, txt)
+            qp.drawText(int(pos)-50, 0, 100, 100, qtc.Qt.AlignHCenter, txt)
             pos += dist
 
         # Draw down line
@@ -332,7 +333,7 @@ class QTimeLine(qtw.QWidget):
         qp.setPen(qtg.QPen(self.textColor))
         pos = dist
         while pos < self.width():
-            qp.drawLine(pos, 40, int(pos), 20)
+            qp.drawLine(int(pos), 40, int(pos), 20)
             pos += dist
 
         if self.pos is not None and self.is_in:

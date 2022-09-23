@@ -6,21 +6,19 @@ from ..data_classes.singletons import Settings
 
 class SettingsDialog(qtw.QDialog):
     settings_changed = qtc.pyqtSignal()
+    window_size_changed = qtc.pyqtSignal(int, int)
     
     def __init__(self, *args, **kwargs):
         super(SettingsDialog, self).__init__(*args, **kwargs)
         settings = Settings.instance()
+        
         self.old_settings = settings.as_dict()
         
         form = qtw.QFormLayout()
         
         self.annotator_id = qtw.QLineEdit()
         form.addRow('Annotator_ID:', self.annotator_id)
-        
-        self.language = qtw.QComboBox()
-        self.language.addItem('english')
-        form.addRow('Language:', self.language)
-        
+                
         self.window_x = qtw.QLineEdit()
         form.addRow('Preferred Window_Width:', self.window_x)
         
@@ -32,12 +30,12 @@ class SettingsDialog(qtw.QDialog):
         
         self.darkmode = qtw.QCheckBox()
         form.addRow('Darkmode:', self.darkmode)
+                
+        self.refresh_rate = qtw.QLineEdit()
+        form.addRow('Backup Refresh Rate', self.refresh_rate)
         
-        self.mocap_grid = qtw.QCheckBox()
-        form.addRow('Mocap_Grid:', self.mocap_grid)
-        
-        self.frame_based = qtw.QCheckBox()
-        form.addRow('Show Frame-Numbers:', self.frame_based)
+        self.frame_based = qtw.QComboBox()
+        form.addRow('Timeline Style:', self.frame_based)
         
         self.small_skip = qtw.QSlider(qtc.Qt.Horizontal)
         self.small_skip_display = qtw.QLabel()
@@ -84,14 +82,12 @@ class SettingsDialog(qtw.QDialog):
             
     def load_layout(self):
         settings = Settings.instance()
-        x_min, y_min, x_max, y_max = settings.window_extrema()     
+        x_min, y_min, x_max, y_max = 720, 576, 5000, 5000
         
         id_validator = qtg.QIntValidator(self)
         self.annotator_id.setText(str(settings.annotator_id))
         self.annotator_id.setValidator(id_validator)
         self.annotator_id.setPlaceholderText(str(0))
-        
-        self.language.setCurrentIndex(settings.language)
         
         x_validator = qtg.QIntValidator(x_min, x_max, self)
         self.window_x.setValidator(x_validator)
@@ -107,11 +103,20 @@ class SettingsDialog(qtw.QDialog):
         for x in range(6, 17):
             self.font_size.addItem(str(x))
            
-        self.font_size.setCurrentIndex(settings.medium_font -  6)
+        self.font_size.setCurrentIndex(settings.font -  6)
         
         self.darkmode.setChecked(settings.darkmode)
-        self.mocap_grid.setChecked(settings.mocap_grid)
-        self.frame_based.setChecked(not settings.show_millisecs)
+        
+        refresh_validator = qtg.QIntValidator(1, 200, self)
+        self.refresh_rate.setValidator(refresh_validator)
+        self.refresh_rate.setText(str(settings.refresh_rate))
+        self.refresh_rate.setPlaceholderText(str(100))
+                
+        
+        show_millis = settings.show_millisecs
+        self.frame_based.addItem('Show frame numbers')
+        self.frame_based.addItem('Show timestamps')
+        self.frame_based.setCurrentIndex(int(show_millis))
         
         self.small_skip.setRange(1, 10)
         self.small_skip.setTickInterval(1)
@@ -137,20 +142,25 @@ class SettingsDialog(qtw.QDialog):
        
     def save_pressed(self):
         settings = Settings.instance()
+        
+        old_x, old_y = settings.window_x, settings.window_y
+        
         settings.annotation_id = int(self.annotator_id.text())
-        settings.language = self.language.currentIndex()
         settings.debugging_mode = self.debugging_mode.isChecked()
         settings.window_x = int(self.window_x.text())
         settings.window_y = int(self.window_y.text())
-        settings.medium_font = int(self.font_size.currentText())
+        settings.font = int(self.font_size.currentText())
         settings.darkmode = self.darkmode.isChecked()
-        settings.mocap_grid = self.mocap_grid.isChecked()
-        settings.show_millisecs = not self.frame_based.isChecked()
+        settings.refresh_rate = int(self.refresh_rate.text())
+        settings.show_millisecs = bool(self.frame_based.currentIndex())
         settings.small_skip = self.small_skip.value()
         settings.big_skip = self.big_skip.value()
         
-        
         settings.to_disk()
+        
+        if old_x != settings.window_x or old_y != settings.window_y:
+            self.window_size_changed.emit(settings.window_x, settings.window_y)
+        
         self.settings_changed.emit()
         self.close()
      

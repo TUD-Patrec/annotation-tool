@@ -4,15 +4,16 @@ import PyQt5.QtGui as qtg
 import sys, logging, logging.config
 
 from .data_classes.annotation import Annotation
-from .display import QMediaMainController
 from .annotation_widget import QAnnotationWidget
 from .gui import GUI
 from .playback import PlayWidget
 from .display_current_sample import QDisplaySample
-from .data_classes.singletons import Settings, FrameTimeMapper
-from .util import util
-from .breeze_resources import *
-    
+from .data_classes.singletons import Settings
+from .utility.functions import FrameTimeMapper
+from .utility import filehandler
+from .utility.breeze_resources import *
+
+from .media import QMediaWidget
 
 class MainApplication(qtw.QApplication):
     def __init__(self, *args, **kwargs):
@@ -27,7 +28,7 @@ class MainApplication(qtw.QApplication):
                 
         self.annotation_widget = QAnnotationWidget()
         self.player = PlayWidget()
-        self.media_player = QMediaMainController()
+        self.media_player = QMediaWidget()
         self.display_sample = QDisplaySample()
         
         self.gui.set_left_widget(self.player)
@@ -40,10 +41,11 @@ class MainApplication(qtw.QApplication):
         self.player.playing.connect(self.media_player.play)
         self.player.paused.connect(self.media_player.pause)
         self.player.skip_frames.connect(self.skip_frames)
-        self.player.replay_speed_changed.connect(self.media_player.set_replay_speed)
+        self.player.replay_speed_changed.connect(self.media_player.setReplaySpeed)
 
         # from media_player
-        self.media_player.position_changed.connect(lambda x: self.set_position(x, update_media=False))
+        self.media_player.positionChanged.connect(lambda x: self.set_position(x, update_media=False))
+        self.media_player.cleanedUp.connect(self.gui.cleaned_up)
         
         # from annotation_widget
         self.annotation_widget.samples_changed.connect(lambda x,y: self.display_sample.set_selected(y))
@@ -67,6 +69,8 @@ class MainApplication(qtw.QApplication):
         self.gui.undo_pressed.connect(self.annotation_widget.undo)
         self.gui.redo_pressed.connect(self.annotation_widget.redo)
         self.gui.settings_changed.connect(self.settings_changed)
+        self.gui.settings_changed.connect(self.media_player.settingsChanges)
+        self.gui.exit_pressed.connect(self.media_player.shutdown)
     
     def skip_frames(self, forward_step, fast):
         if self.annotation is not None:
@@ -85,7 +89,7 @@ class MainApplication(qtw.QApplication):
             if update_annotation:
                 self.annotation_widget.set_position(self.position)
             if update_media:
-                self.media_player.set_position(self.position)
+                self.media_player.setPosition(self.position)
     
     def is_active(self):
         return self.annotation is not None
@@ -98,13 +102,10 @@ class MainApplication(qtw.QApplication):
         self.position = 0
                 
         # load video
-        self.media_player.load(self.annotation)
-        
+        self.media_player.loadAnnotation(self.annotation)
         self.display_sample.set_annotation(self.annotation)
-        
         self.annotation_widget.set_annotation(self.annotation)
         self.annotation_widget.set_position(self.position)
-                
         self.player.reset()
         
         self.save_annotation()
@@ -126,27 +127,19 @@ class MainApplication(qtw.QApplication):
         app = qtw.QApplication.instance()
         
         custom_font = qtg.QFont()
-        custom_font.setPointSize(settings.medium_font);
+        custom_font.setPointSize(settings.font);
         app.setFont(custom_font)
         
         FrameTimeMapper.instance().settings_changed()
         
-        log_config_dict = util.logging_config()
+        log_config_dict = filehandler.logging_config()
         log_config_dict['handlers']['screen_handler']['level'] = 'DEBUG' if settings.debugging_mode else 'WARNING'
         logging.config.dictConfig(log_config_dict)
         
-        
         self.annotation_widget.settings_changed()
-        
-        new_size = qtc.QSize(settings.window_x, settings.window_y)
-        self.gui.resize(new_size)
-        
-        self.reload_color_scheme()
-        
-    def reload_color_scheme(self):
-        settings = Settings.instance()
+                
         toggle_stylesheet(settings.darkmode)
-
+        
 
 def toggle_stylesheet(darkmode):
     '''
@@ -174,19 +167,16 @@ def main():
     sys.excepthook = except_hook
     
     app = MainApplication(sys.argv)
+    app.setStyle("Fusion")    
         
     settings = Settings.instance()
     custom_font = qtg.QFont()
-    custom_font.setPointSize(settings.medium_font);
+    custom_font.setPointSize(settings.font);
     app.setFont(custom_font)
     
     file = qtc.QFile(":/dark/stylesheet.qss") if settings.darkmode else qtc.QFile(":/light/stylesheet.qss")
     file.open(qtc.QFile.ReadOnly | qtc.QFile.Text)
     stream = qtc.QTextStream(file)
     app.setStyleSheet(stream.readAll())
-    
-    
-    #import qdarkstyle
-    #app.setStyleSheet(qdarkstyle.load_stylesheet(qt_api='pyqt5'))
-    
-    app.exec_()
+        
+    sys.exit(app.exec_())

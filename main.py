@@ -1,41 +1,63 @@
 import os
 import logging
 import sys
-
+import ctypes
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
+from sys import platform
 
-from src.anno_tool import main
-from src.data_classes.singletons import Paths
-from src.util.util import init_folder_structure, init_logger
+from src.main_controller import main
+from src.utility import filehandler
 
 
 def get_application_path():
     if getattr(sys, 'frozen', False):
         application_path = os.path.dirname(sys.executable)
     elif __file__:
-        application_path = os.path.dirname(__file__)
+        application_path = os.path.split(os.path.realpath(__file__))[0]
+    else:
+        raise RuntimeError('Could not get the path of this script')
     return application_path
     
     
-if __name__ == '__main__':
-    application_path = get_application_path()
-    
+def enable_high_dpi_scaling():
+
     # adjust scaling to high dpi monitors
     if hasattr(qtc.Qt, 'AA_EnableHighDpiScaling'):
         qtw.QApplication.setAttribute(qtc.Qt.AA_EnableHighDpiScaling, True)
     if hasattr(qtc.Qt, 'AA_UseHighDpiPixmaps'):
         qtw.QApplication.setAttribute(qtc.Qt.AA_UseHighDpiPixmaps, True)
     
+    # Adjust scaling for windows 
+    if platform == "win32":
+        # Query DPI Awareness (Windows 10 and 8)
+        #awareness = ctypes.c_int()
+        #errorCode = ctypes.windll.shcore.GetProcessDpiAwareness(0, ctypes.byref(awareness))
+        # print( awareness.value)
         
-    # Injecting root_path, so the singleton can work properly
-    paths = Paths.instance()
+        # Set DPI Awareness  (Windows 10 and 8)
+        PROCESS_DPI_UNAWARE = 0
+        PROCESS_SYSTEM_DPI_AWARE = 1
+        PROCESS_PER_MONITOR_DPI_AWARE = 2
+        errorCode = ctypes.windll.shcore.SetProcessDpiAwareness(PROCESS_DPI_UNAWARE)
+        if errorCode == 0:
+            logging.info('Running DPI-unaware')
+    
+    
+if __name__ == '__main__':
+    application_path = get_application_path()
+      
+    # Injecting root_path
+    paths = filehandler.Paths.instance()
     paths.root = application_path
     
     # Init Folders and logger
-    init_folder_structure()
-    init_logger()
+    filehandler.init_folder_structure()
+    filehandler.init_logger()
     
     logging.info('Running relative to {}'.format(application_path))
-    
+        
+    enable_high_dpi_scaling()
+        
     main()
+    
