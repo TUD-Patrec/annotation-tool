@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from itertools import combinations
 import logging
 from operator import eq
 import time
@@ -50,7 +51,7 @@ class Query:
         self._indices = []  # for querying
         self._idx = -1
         self._marked_intervals = set()  # for marking intervals as DONE
-        self._mode: RetrievalMode = RetrievalMode.DEFAULT
+        self._mode: RetrievalMode = RetrievalMode.DESCENDING
         self._filter_criteria: FilterCriteria = None
 
         self.debug_count = 0
@@ -85,11 +86,7 @@ class Query:
         if self._filter_criteria:
             indices = []
             for idx in range(len(self._intervals)):
-                if self._intervals[idx] in self._marked_intervals:
-                    continue
-                if self._filter_criteria is None or self._filter_criteria.matches(
-                    self._intervals[idx]
-                ):
+                if self._filter_criteria.matches(self._intervals[idx]):
                     indices.append(idx)
         else:
             indices = list(range(len(self._intervals)))
@@ -217,55 +214,125 @@ class QRetrievalWidget(qtw.QWidget):
         self.setMinimumWidth(300)
 
     def load_annotation(self, a):
-        if not a.dataset.dependencies_exist:
-            raise RuntimeError
-
         self._annotation = a
         self._current_interval = None
         self._interval_size = 100  # TODO: Import from settings
-        self._overlap = 0  # TODO: Import from settings
+        self._overlap = 0.66  # TODO: Import from settings
         intervals = self.generate_intervals()
         self._query = Query(intervals)
         self.load_next()
 
     # initialize the intervals from the given annotation
-    # TODO REWORK -> Currently just prove of concept
-    # REWORK = ONLY get intervals inside samples that are currently not annotated!
-    # Maybe just loop through the sample, and grab all unannotated ones
     def generate_intervals(self):
         start_time = time.time()
         print("STARTING TO GENERATE INTERVALS")
 
+        boundaries = []
+        for sample in self._annotation.samples:
+            if sample.annotation_exists:
+                continue
+
+            # only grab samples that are not annotated yet
+            l, r = sample.start_position, sample.end_position
+            boundaries.append([l, r])
+
+        # merge adjacent intervals
+        reduced_boundaries = []
+        idx = 0
+        while idx < len(boundaries):
+            l, r = boundaries[idx]
+
+            nxt_idx = idx + 1
+            while nxt_idx < len(boundaries) and boundaries[nxt_idx][0] == r + 1:
+                _, r = boundaries[nxt_idx]
+                nxt_idx += 1
+            reduced_boundaries.append([l, r])
+            idx = nxt_idx
+
         intervals = []
-        start = 0
-        N = self._annotation.frames
+        for l, r in reduced_boundaries:
+            tmp = self.get_intervals_in_range(l, r)
+            intervals.extend(tmp)
 
-        COMBINATIONS = np.array(self._annotation.dataset.dependencies)
-        while start < N:
-            end = min(N - 1, start + self._interval_size)
-
-            predicted_attributes = self.get_prediction_for_interval(start, end)
-
-            DIST = spatial.distance.cdist(COMBINATIONS, predicted_attributes, "cosine")
-            DIST = DIST.flatten()
-
-            indices = np.argsort(DIST)
-            for idx in indices[: self.TRIES_PER_INTERVAL]:
-                proposed_classification = COMBINATIONS[idx]
-                similarity = 1 - DIST[idx]
-
-                interval = Interval(start, end, proposed_classification, similarity)
-                intervals.append(interval)
-
-            start = end + 1
         end_time = time.time()
         logging.info(f"GENERATING INTERVALS TOOK {end_time - start_time}ms")
         return intervals
 
-    def get_prediction_for_interval(self, lower, upper):
-        COMBINATIONS = np.array(self._annotation.dataset.dependencies)
-        array_length = len(COMBINATIONS[0])
-        return np.random.randint(2, size=(1, array_length))
+    def get_intervals_in_range(self, lower, upper):
+        intervals = []
+        start = lower
+
+        stepsize = self.get_stepsize()
+        logging.info(f"{stepsize = }")
+        COMBINATIONS = self.get_combinations()
+
+        get_end = lambda x: x + self._interval_size - 1
+        get_start = lambda x: max(
+            min(upper - self._interval_size + 1, x + stepsize), x + 1
+        )
+
+        if get_end(start) > upper:
+            logging.warning("sample too short -> cannot create any interval")
+
+        while get_end(start) <= upper:
+            end = get_end(start)
+            logging.info(f"{start = }, {end = }")
+
+            for i in self.get_predictions(start, end):
+                intervals.append(i)
+            start = get_start(start)
+
+        return intervals
+
+    def get_predictions(self, lower, upper):
+        network_output = self.run_network(lower, upper)  # 1D array, x \in [0,1]^N
+        success, combinations = self.get_combinations()
+        if success:
+            network_output = network_output.reshape(1, -1)
+            dist = spatial.distance.cdist(combinations, network_output, "cosine")
+            dist = dist.flatten()
+
+            indices = np.argsort(dist)
+
+            n_tries = min(len(combinations), self.TRIES_PER_INTERVAL)
+
+            for idx in indices[:n_tries]:
+                proposed_classification = combinations[idx]
+                similarity = 1 - dist[idx]
+
+                yield Interval(lower, upper, proposed_classification, similarity)
+        else:
+            # Rounding the output to nearest integers and computing the distance to that
+            network_output = network_output.flatten()  # check if actually needed
+            proposed_classification = np.round(network_output)
+            proposed_classification = proposed_classification.astype(np.int8)
+            assert not np.array_equal(network_output, proposed_classification)
+            similarity = 1 - spatial.distance.cosine(
+                network_output, proposed_classification
+            )
+            yield Interval(lower, upper, proposed_classification, similarity)
+
+    def get_combinations(self):
+        if self._annotation.dataset.dependencies_exist:
+            return True, np.array(self._annotation.dataset.dependencies)
+        else:
+            return False, None
+
+    def get_stepsize(self):
+        return max(
+            1, min(int(self._interval_size * (1 - self._overlap)), self._interval_size)
+        )
+
+    # TODO: actually use a network, currently only proof of concept
+    def run_network(self, lower, upper):
+        array_length = self.get_scheme_length()
+        return np.random.rand(array_length)
+
+    def get_scheme_length(self):
+        c = 0
+        for _, group_elements in self.scheme:
+            c += len(group_elements)
+        return c
 
     # Display the current interval to the user: Show him the Interval boundaries and the predicted annotation, start the loop,
     def display_interval(self):
