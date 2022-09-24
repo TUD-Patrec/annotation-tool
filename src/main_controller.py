@@ -38,7 +38,7 @@ class MainApplication(qtw.QApplication):
         self.annotation_widget = QAnnotationWidget()
         self.player = PlayWidget()
         self.media_player = QMediaWidget()
-        self.right_widget = None
+        self.flex_widget = None
 
         self.gui.set_left_widget(self.player)
         self.gui.set_central_widget(self.media_player)
@@ -118,6 +118,8 @@ class MainApplication(qtw.QApplication):
     def update_position(self, new_pos, update_media, update_annotation):
         assert 0 <= new_pos < self.n_frames
 
+        # logging.info(f'{self.position = }, {self.annotation_widget.position = }, {self.media_player.getPosition() = }')
+
         if self.loop_active:
             new_pos = min(self.upper, max(self.lower, new_pos))
 
@@ -127,8 +129,6 @@ class MainApplication(qtw.QApplication):
             self.update_annotation_pos.emit(self.position)
         if update_media:
             self.update_media_pos.emit(self.position)
-
-        logging.info(f'{self.position = }, {self.annotation_widget.position = }, {self.media_player.getPosition() = }')
 
     @qtc.pyqtSlot(int,int)
     def start_loop(self, lower, upper):
@@ -154,13 +154,13 @@ class MainApplication(qtw.QApplication):
 
         # load annotation in widgets
         self.media_player.loadAnnotation(self.annotation)
-        self.right_widget.load_annotation(self.annotation)
+        self.flex_widget.load_annotation(self.annotation)
         self.annotation_widget.load_annotation(self.annotation)
 
         # load initial views
         self.annotation_widget.load_initial_view()
         self.media_player.load_initial_view()
-        self.right_widget.load_initial_view()
+        self.flex_widget.load_initial_view()
 
         #
         self.n_frames = annotation.frames
@@ -170,13 +170,13 @@ class MainApplication(qtw.QApplication):
 
     @qtc.pyqtSlot()
     def load_manual_annotation(self):
-        assert type(self.right_widget) != QDisplaySample
+        assert type(self.flex_widget) != QDisplaySample
         logging.info("LOADING MANUAL ANNOTATION")
-        self.right_widget = QDisplaySample()
-        self.gui.set_right_widget(self.right_widget)
+        self.flex_widget = QDisplaySample()
+        self.gui.set_right_widget(self.flex_widget)
 
         logging.info("HERE")
-        self.annotation_widget.samples_changed.connect(self.right_widget.set_selected)
+        self.annotation_widget.samples_changed.connect(self.flex_widget.set_selected)
         self.loop_active = False
 
         if self.annotation:
@@ -184,19 +184,19 @@ class MainApplication(qtw.QApplication):
 
     @qtc.pyqtSlot()
     def load_retrieval_mode(self):
-        assert type(self.right_widget) != RetrievalMode
+        assert type(self.flex_widget) != RetrievalMode
         logging.info("LOADING RETRIEVAL MODE")
         self.annotation_widget.samples_changed.disconnect(
-            self.right_widget.set_selected
+            self.flex_widget.set_selected
         )
 
-        self.right_widget = QRetrievalWidget()
-        self.gui.set_right_widget(self.right_widget)
+        self.flex_widget = QRetrievalWidget()
+        self.gui.set_right_widget(self.flex_widget)
 
-        self.right_widget.start_loop.connect(self.start_loop)
+        self.flex_widget.start_loop.connect(self.start_loop)
         # self.right_widget.start_loop.connect(self.media_player.startLoop)
         # self.right_widget.start_loop.connect(self.annotation_widget.restrict_range)
-        self.right_widget.new_sample.connect(self.annotation_widget.new_sample)
+        self.flex_widget.new_sample.connect(self.annotation_widget.new_sample)
 
         if self.annotation:
             self.load_annotation(self.annotation)
