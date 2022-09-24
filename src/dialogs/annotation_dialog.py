@@ -380,7 +380,7 @@ if __name__ == "__main__":
 
     test_vec = np.zeros(dependencies.shape[1])
     test_vec[-1] = 1
-    # widget.set_annotation(test_vec)
+    # widget.load_annotation(test_vec)
 
     # widget.resize(400,300)
     widget.show()

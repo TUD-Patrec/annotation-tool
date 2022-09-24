@@ -26,7 +26,7 @@ class QAnnotationWidget(qtw.QWidget):
         self.position = 0
         self.n_frames = 0
 
-        self.range_restriced = False
+        self.range_restricted = False
         self.lower_bound = None
         self.upper_bound = None
 
@@ -94,7 +94,6 @@ class QAnnotationWidget(qtw.QWidget):
     def is_loaded(self):
         return len(self.samples) > 0
 
-    # TODO Maybe more fancy with functool.partial
     @qtc.pyqtSlot(int)
     def set_position(self, new_pos, from_timeline=False):
         if self.is_loaded():
@@ -110,7 +109,7 @@ class QAnnotationWidget(qtw.QWidget):
                     self.position_changed.emit(new_pos)
 
     @qtc.pyqtSlot(Annotation)
-    def set_annotation(self, annotation):
+    def load_annotation(self, annotation):
         self.clear_undo_redo()
         self.remove_restriction()
         if annotation is not None:
@@ -124,15 +123,16 @@ class QAnnotationWidget(qtw.QWidget):
             # Maybe somewhere else?
             color_mapper = ColorMapper.instance()
             color_mapper.scheme = annotation.dataset.scheme
-
-            self.position = 0
-            self.timeline.set_position(0)
-
-            self.timeline.update()
-            self.__update_label__()
-            self.check_for_selected_sample(force_update=True)
         else:
             raise RuntimeError("annotation cant be None!")
+
+    @qtc.pyqtSlot()
+    def load_initial_view(self):
+        self.position = 0
+        self.timeline.set_position(0)
+        self.timeline.update()
+        self.__update_label__()
+        self.check_for_selected_sample(force_update=True)
 
     @qtc.pyqtSlot()
     def settings_changed(self):
@@ -281,7 +281,7 @@ class QAnnotationWidget(qtw.QWidget):
         assert 0 <= lower
         assert upper < self.n_frames
 
-        self.range_restriced = True
+        self.range_restricted = True
         self.lower_bound = lower
         self.upper_bound = upper
 
@@ -289,10 +289,10 @@ class QAnnotationWidget(qtw.QWidget):
 
     @qtc.pyqtSlot()
     def remove_restriction(self):
-        self.range_restriced = False
+        self.range_restricted = False
 
     def apply_restriction(self, x):
-        if self.range_restriced:
+        if self.range_restricted:
             return max(self.lower_bound, min(self.upper_bound, x))
         else:
             return x

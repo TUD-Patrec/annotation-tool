@@ -28,6 +28,9 @@ class MainApplication(qtw.QApplication):
         self.annotation = None
         self.position = None
         self.n_frames = None
+        self.lower = None
+        self.upper = None
+        self.loop_active = False
 
         # Main Window
         self.gui = GUI()
@@ -114,6 +117,10 @@ class MainApplication(qtw.QApplication):
 
     def update_position(self, new_pos, update_media, update_annotation):
         assert 0 <= new_pos < self.n_frames
+
+        if self.loop_active:
+            new_pos = min(self.upper, max(self.lower, new_pos))
+
         self.position = new_pos
 
         if update_annotation:
@@ -121,30 +128,44 @@ class MainApplication(qtw.QApplication):
         if update_media:
             self.update_media_pos.emit(self.position)
 
+        logging.info(f'{self.position = }, {self.annotation_widget.position = }, {self.media_player.getPosition() = }')
+
+    @qtc.pyqtSlot(int,int)
+    def start_loop(self, lower, upper):
+        self.lower = lower
+        self.upper = upper
+        self.loop_active = True
+
+        self.media_player.startLoop(lower, upper)
+        self.annotation_widget.restrict_range(lower, upper)
+        self.update_position(lower, True, True)
+
     @qtc.pyqtSlot(Annotation)
     def load_annotation(self, annotation):
-        FrameTimeMapper.instance().set_annotation(
+        FrameTimeMapper.instance().load_annotation(
             annotation.frames, annotation.duration
         )
 
-        self.annotation = annotation
-        self.n_frames = annotation.frames
-
-        # load video
-        self.media_player.loadAnnotation(self.annotation)
-
-        if isinstance(self.right_widget, QDisplaySample):
-            self.right_widget.load_annotation(
-                self.annotation
-            )  # before annotation_widget
-        self.annotation_widget.set_annotation(self.annotation)
-        self.annotation_widget.set_position(0)
-        if isinstance(self.right_widget, QRetrievalWidget):
-            self.right_widget.loadAnnotation(self.annotation)  # after annotation_widget
-
+        # reset playback
         self.player.reset()
 
+        # store annotation
+        self.annotation = annotation
+
+        # load annotation in widgets
+        self.media_player.loadAnnotation(self.annotation)
+        self.right_widget.load_annotation(self.annotation)
+        self.annotation_widget.load_annotation(self.annotation)
+
+        # load initial views
+        self.annotation_widget.load_initial_view()
+        self.media_player.load_initial_view()
+        self.right_widget.load_initial_view()
+
+        #
+        self.n_frames = annotation.frames
         self.update_position(0, True, True)
+
         self.save_annotation()
 
     @qtc.pyqtSlot()
@@ -156,6 +177,7 @@ class MainApplication(qtw.QApplication):
 
         logging.info("HERE")
         self.annotation_widget.samples_changed.connect(self.right_widget.set_selected)
+        self.loop_active = False
 
         if self.annotation:
             self.load_annotation(self.annotation)
@@ -171,8 +193,9 @@ class MainApplication(qtw.QApplication):
         self.right_widget = QRetrievalWidget()
         self.gui.set_right_widget(self.right_widget)
 
-        self.right_widget.start_loop.connect(self.media_player.startLoop)
-        self.right_widget.start_loop.connect(self.annotation_widget.restrict_range)
+        self.right_widget.start_loop.connect(self.start_loop)
+        # self.right_widget.start_loop.connect(self.media_player.startLoop)
+        # self.right_widget.start_loop.connect(self.annotation_widget.restrict_range)
         self.right_widget.new_sample.connect(self.annotation_widget.new_sample)
 
         if self.annotation:

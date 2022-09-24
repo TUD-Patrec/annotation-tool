@@ -117,13 +117,16 @@ class AbstractMediaPlayer(qtw.QWidget):
     @qtc.pyqtSlot(qtw.QWidget)
     def on_timeout(self, w):
         if self is w:
+            # logging.info(f'{self._looping = }')
             if self._looping:
                 next_position = self.position + 1
+                # logging.info(f'{next_position = }')
                 if next_position > self._loop_upper + 1:
                     raise RuntimeError
                 if next_position == self._loop_upper + 1:
                     self.position = self._loop_lower
                     self.update_media_position(UpdateReason.TIMEOUT)
+                    # logging.info('RESETTING TO START OF LOOP')
                     return
             if self.position + 1 < self.N_FRAMES():
                 self.position += 1

@@ -45,9 +45,18 @@ class QMediaWidget(qtw.QWidget):
         self.endLoop()
         self.controller.load_annotation(o)
 
+    def load_initial_view(self):
+        self.setPosition(0)
+
     @qtc.pyqtSlot(int)
     def setPosition(self, p):
         self.controller.set_position(p)
+
+    def getPosition(self):
+        if self.controller.replay_widgets:
+            return self.controller.replay_widgets[0].position
+        else:
+            return -1
 
     @qtc.pyqtSlot()
     def play(self):
@@ -71,6 +80,7 @@ class QMediaWidget(qtw.QWidget):
 
     @qtc.pyqtSlot(int, int)
     def startLoop(self, x, y):
+        logging.info(f'STARTING LOOP {x=}, {y=}')
         self.controller.start_loop_slot(x, y)
 
     @qtc.pyqtSlot()

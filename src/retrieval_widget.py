@@ -145,6 +145,11 @@ class Query:
         return self._idx
 
 
+def format_progress(x, y):
+    percentage = int(x * 100 / y) if y != 0 else 0
+    return f"{x : }/{y}\t[{percentage}%] "
+
+
 class QRetrievalWidget(qtw.QWidget):
     new_sample = qtc.pyqtSignal(Sample)
     start_loop = qtc.pyqtSignal(int, int)
@@ -158,13 +163,9 @@ class QRetrievalWidget(qtw.QWidget):
         self._interval_size: int = None
         self._overlap: float = None
         self.TRIES_PER_INTERVAL = 3
-        self.init_layout()
+        self.init_UI()
 
-    def format_progress(self, x, y):
-        percentage = int(x * 100 / y) if y != 0 else 0
-        return f"{x : }/{y}\t[{percentage}%] "
-
-    def init_layout(self):
+    def init_UI(self):
         self.scroll_widgets = []
 
         self.header_widget = qtw.QLabel(
@@ -189,7 +190,7 @@ class QRetrievalWidget(qtw.QWidget):
         self.button_group.layout().addWidget(self.decline_button)
 
         self.similarity_label = qtw.QLabel(self)
-        self.progress_label = qtw.QLabel(self.format_progress(0, 0), self)
+        self.progress_label = qtw.QLabel(format_progress(0, 0), self)
 
         self.footer_widget = qtw.QWidget()
         self.footer_widget.setLayout(qtw.QGridLayout())
@@ -210,16 +211,16 @@ class QRetrievalWidget(qtw.QWidget):
         self.setLayout(vbox)
         self.setMinimumWidth(300)
 
-    def loadAnnotation(self, a):
+    def load_annotation(self, a):
         self._annotation = a
         self._current_interval = None
         self._interval_size = 100  # TODO: Import from settings
         self._overlap = 0.66  # TODO: Import from settings
         intervals = self.generate_intervals()
         self._query = Query(intervals)
-        self.load_next()
 
-    def initialize(self):
+    @qtc.pyqtSlot()
+    def load_initial_view(self):
         self.load_next()
 
     # initialize the intervals from the given annotation
@@ -338,7 +339,7 @@ class QRetrievalWidget(qtw.QWidget):
     # start the loop.
     def display_interval(self):
         if self._query:
-            txt = self.format_progress(self._query.idx, len(self._query))
+            txt = format_progress(self._query.idx, len(self._query))
             self.progress_label.setText(txt)
 
         if self._current_interval is None:
@@ -383,7 +384,7 @@ class QRetrievalWidget(qtw.QWidget):
         self._current_interval = None
         if self._query:
             N = len(self._query)
-            self.progress_label.setText(self.format_progress(N, N))
+            self.progress_label.setText(format_progress(N, N))
 
     def load_next(self):
         if self._query:
