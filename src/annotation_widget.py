@@ -99,7 +99,7 @@ class QAnnotationWidget(qtw.QWidget):
     def set_position(self, new_pos, from_timeline=False):
         if self.is_loaded():
             new_pos = self.apply_restriction(new_pos)
-            assert 0 <= new_pos < self.n_frames
+            assert 0 <= new_pos < self.n_frames, f"{new_pos = }, {self.n_frames = }"
             if new_pos != self.position:
                 self.position = new_pos
                 self.__update_label__()
@@ -112,6 +112,7 @@ class QAnnotationWidget(qtw.QWidget):
     @qtc.pyqtSlot(Annotation)
     def set_annotation(self, annotation):
         self.clear_undo_redo()
+        self.remove_restriction()
         if annotation is not None:
             self.samples = annotation.samples
             self.n_frames = annotation.frames
@@ -295,6 +296,10 @@ class QAnnotationWidget(qtw.QWidget):
             return max(self.lower_bound, min(self.upper_bound, x))
         else:
             return x
+
+    @qtc.pyqtSlot(Sample)
+    def new_sample(self, x):
+        logging.info(f"RECEIVED NEW SAMPLE {x}")
 
 
 class QTimeLine(qtw.QWidget):

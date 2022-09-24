@@ -8,7 +8,7 @@ from .annotation_widget import QAnnotationWidget
 from .gui import GUI
 from .playback import PlayWidget
 from .display_current_sample import QDisplaySample
-from .retrieval_widget import QRetrievalWidget
+from .retrieval_widget import QRetrievalWidget, RetrievalMode
 from .data_classes.singletons import Settings
 from .utility.functions import FrameTimeMapper
 from .utility import filehandler
@@ -35,13 +35,10 @@ class MainApplication(qtw.QApplication):
         self.annotation_widget = QAnnotationWidget()
         self.player = PlayWidget()
         self.media_player = QMediaWidget()
-        self.display_sample = QDisplaySample()
-        self.retrieval_widget = QRetrievalWidget()
+        self.right_widget = None
 
         self.gui.set_left_widget(self.player)
         self.gui.set_central_widget(self.media_player)
-        self.gui.set_right_widget(self.retrieval_widget)
-        # self.gui.set_right_widget(self.display_sample)
         self.gui.set_bottom_widget(self.annotation_widget)
 
         # CONNECTIONS
@@ -60,9 +57,6 @@ class MainApplication(qtw.QApplication):
         self.media_player.cleanedUp.connect(self.gui.cleaned_up)
 
         # from annotation_widget
-        self.annotation_widget.samples_changed.connect(
-            lambda x, y: self.display_sample.set_selected(y)
-        )
         self.annotation_widget.position_changed.connect(
             lambda x: self.update_position(
                 x, update_media=True, update_annotation=False
@@ -99,14 +93,14 @@ class MainApplication(qtw.QApplication):
         self.gui.settings_changed.connect(self.settings_changed)
         self.gui.settings_changed.connect(self.media_player.settingsChanges)
         self.gui.exit_pressed.connect(self.media_player.shutdown)
+        self.gui.use_manual_annotation.connect(self.load_manual_annotation)
+        self.gui.use_retrieval_mode.connect(self.load_retrieval_mode)
 
         # from main_controller
         self.update_annotation_pos.connect(self.annotation_widget.set_position)
         self.update_media_pos.connect(self.media_player.setPosition)
 
-        #
-        self.retrieval_widget.start_loop.connect(self.media_player.startLoop)
-        self.retrieval_widget.start_loop.connect(self.annotation_widget.restrict_range)
+        self.load_manual_annotation()
 
     def skip_frames(self, forward_step, fast):
         if self.annotation:
@@ -138,15 +132,51 @@ class MainApplication(qtw.QApplication):
 
         # load video
         self.media_player.loadAnnotation(self.annotation)
-        self.display_sample.set_annotation(self.annotation)
+
+        if isinstance(self.right_widget, QDisplaySample):
+            self.right_widget.loadAnnotation(
+                self.annotation
+            )  # before annotation_widget
         self.annotation_widget.set_annotation(self.annotation)
         self.annotation_widget.set_position(0)
-        self.retrieval_widget.load_annotation(
-            self.annotation
-        )  # Aftter annotation widget
+        if isinstance(self.right_widget, QRetrievalWidget):
+            self.right_widget.loadAnnotation(self.annotation)  # after annotation_widget
+
         self.player.reset()
+
         self.update_position(0, True, True)
         self.save_annotation()
+
+    @qtc.pyqtSlot()
+    def load_manual_annotation(self):
+        assert type(self.right_widget) != QDisplaySample
+        logging.info("LOADING MANUAL ANNOTATION")
+        self.right_widget = QDisplaySample()
+        self.gui.set_right_widget(self.right_widget)
+
+        logging.info("HERE")
+        self.annotation_widget.samples_changed.connect(self.right_widget.set_selected)
+
+        if self.annotation:
+            self.load_annotation(self.annotation)
+
+    @qtc.pyqtSlot()
+    def load_retrieval_mode(self):
+        assert type(self.right_widget) != RetrievalMode
+        logging.info("LOADING RETRIEVAL MODE")
+        self.annotation_widget.samples_changed.disconnect(
+            self.right_widget.set_selected
+        )
+
+        self.right_widget = QRetrievalWidget()
+        self.gui.set_right_widget(self.right_widget)
+
+        self.right_widget.start_loop.connect(self.media_player.startLoop)
+        self.right_widget.start_loop.connect(self.annotation_widget.restrict_range)
+        self.right_widget.new_sample.connect(self.annotation_widget.new_sample)
+
+        if self.annotation:
+            self.load_annotation(self.annotation)
 
     def save_annotation(self):
         if self.annotation is None:

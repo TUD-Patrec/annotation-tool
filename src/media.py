@@ -42,6 +42,7 @@ class QMediaWidget(qtw.QWidget):
 
     @qtc.pyqtSlot(object)
     def loadAnnotation(self, o):
+        self.endLoop()
         self.controller.load_annotation(o)
 
     @qtc.pyqtSlot(int)

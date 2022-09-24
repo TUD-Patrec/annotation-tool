@@ -162,8 +162,7 @@ class AbstractMediaPlayer(qtw.QWidget):
         self._looping = True
 
         assert self._loop_lower <= self._loop_upper
-        assert 0 <= self._loop_lower
-        assert self._loop_upper < self.N_FRAMES()
+        assert 0 <= self._loop_lower, f"{self._loop_upper = }, {upper = }"
 
         self.position = self._loop_lower
         self.update_media_position(UpdateReason.INIT)

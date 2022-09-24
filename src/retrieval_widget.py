@@ -1,7 +1,5 @@
 from dataclasses import dataclass, field
-from itertools import combinations
 import logging
-from operator import eq
 import time
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
@@ -11,7 +9,9 @@ from scipy import spatial
 
 from .data_classes.sample import Sample
 from .qt_helper_widgets.lines import QHLine
-from .qt_helper_widgets.adaptive_scroll_area import QAdaptiveScrollArea
+
+# from .qt_helper_widgets.adaptive_scroll_area import QAdaptiveScrollArea
+from .qt_helper_widgets.display_scheme import QShowAnnotation
 
 
 class RetrievalMode(Enum):
@@ -138,9 +138,9 @@ class Query:
 
     def mark_as_done(self, i: Interval):
         assert i not in self._marked_intervals
-        self._marked_intervals.add(i)
         self.debug_count += 1
-        print(self.debug_count)
+        # print(self.debug_count)
+        self._marked_intervals.add(i)
 
     @property
     def idx(self):
@@ -173,8 +173,7 @@ class QRetrievalWidget(qtw.QWidget):
             "CURRENT PREDICTION", alignment=qtc.Qt.AlignCenter
         )
 
-        self.main_widget = qtw.QWidget()
-        self.main_widget.setLayout(qtw.QHBoxLayout())
+        self.main_widget = QShowAnnotation(self)
 
         self.button_group = qtw.QWidget()
         self.button_group.setLayout(qtw.QHBoxLayout())
@@ -213,13 +212,16 @@ class QRetrievalWidget(qtw.QWidget):
         self.setLayout(vbox)
         self.setMinimumWidth(300)
 
-    def load_annotation(self, a):
+    def loadAnnotation(self, a):
         self._annotation = a
         self._current_interval = None
         self._interval_size = 100  # TODO: Import from settings
         self._overlap = 0.66  # TODO: Import from settings
         intervals = self.generate_intervals()
         self._query = Query(intervals)
+        self.load_next()
+
+    def initialize(self):
         self.load_next()
 
     # initialize the intervals from the given annotation
@@ -351,36 +353,9 @@ class QRetrievalWidget(qtw.QWidget):
 
         else:
             self.similarity_label.setText(f"{self._current_interval.similarity :.3f}")
-            widget = qtw.QWidget(self)
-            grid = qtw.QGridLayout()
-            grid.setColumnStretch(1, 1)
 
-            offset = 0
-            for idx, (group_name, group_elements) in enumerate(self.scheme):
-                scroll_wid = QAdaptiveScrollArea(self)
-
-                for elem_idx, elem in enumerate(group_elements):
-                    adjusted_idx = offset + elem_idx
-                    if (
-                        self._current_interval.predicted_classification[adjusted_idx]
-                        == 1
-                    ):
-                        lbl = qtw.QLabel(elem, alignment=qtc.Qt.AlignCenter)
-                        lbl.setAlignment(qtc.Qt.AlignCenter)
-                        scroll_wid.addItem(lbl)
-                offset += len(group_elements)
-
-                txt = group_name.upper() + ":"
-                name_label = qtw.QLabel(txt)
-
-                grid.addWidget(name_label, idx, 0)
-                grid.addWidget(scroll_wid, idx, 1)
-
-            widget.setLayout(grid)
-
-            self.layout().replaceWidget(self.main_widget, widget)
-            self.main_widget.setParent(None)
-            self.main_widget = widget
+            proposed_annotation = self._current_interval.predicted_classification
+            self.main_widget.show_annotation(self.scheme, proposed_annotation)
 
     # ask user for manual annotation -> used as a last option kind of thing or also whenever the user feels like it is needed
     def manually_annotate_interval(self):
@@ -442,53 +417,3 @@ class QRetrievalWidget(qtw.QWidget):
     @property
     def scheme(self):
         return self._annotation.dataset.scheme
-
-
-if __name__ == "__main__":
-    intervals = []
-    start = 0
-
-    array_length = 500
-    N_intervals = 100000
-    step_size = 100
-
-    expected = np.random.randint(2, size=array_length)
-    cos_sim = lambda x, y: 1 - spatial.distance.cosine(x, y)
-
-    for _ in range(N_intervals):
-        end = start + step_size - 1
-        x = np.random.randint(2, size=array_length)
-        interval = Interval(start, end, x, cos_sim(expected, x))
-        start = end + 1
-        intervals.append(interval)
-
-    query = Query(intervals)
-
-    while query.has_next():
-        x = query.get_next()
-        if query.idx % 4 == 0:
-            query.mark_as_done(x)
-
-    query.change_mode(RetrievalMode.DEFAULT)
-    # for _ in range(10):
-    #    print(query.idx, query._indices[query.idx], query.get_next())
-    print(f"{len(query) = }")
-    query.change_mode(RetrievalMode.DESCENDING)
-    # for _ in range(10):
-    #    print(query.idx, query._indices[query.idx], query.get_next())
-    print(f"{len(query) = }")
-    query.change_mode(RetrievalMode.RANDOM)
-    # for _ in range(10):
-    #    print(query.idx, query._indices[query.idx], query.get_next())
-    print(f"{len(query) = }")
-
-    filter_array = np.zeros(array_length)
-    filter_array[0] = 1
-    filter_array[1] = 1
-    filter_array[2] = 1
-
-    filter = FilterCriteria(filter_array)
-
-    print(f"Before filter: {len(query) = }")
-    query.change_filter(filter)
-    print(f"After filter: {len(query) = }")

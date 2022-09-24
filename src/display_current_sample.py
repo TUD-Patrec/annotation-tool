@@ -4,6 +4,7 @@ import PyQt5.QtCore as qtc
 
 from .qt_helper_widgets.adaptive_scroll_area import QAdaptiveScrollArea
 from .qt_helper_widgets.lines import QHLine
+from .qt_helper_widgets.display_scheme import QShowAnnotation
 
 
 class QDisplaySample(qtw.QWidget):
@@ -47,12 +48,12 @@ class QDisplaySample(qtw.QWidget):
         self.setMinimumWidth(300)
         self.__update__()
 
-    def set_annotation(self, annotation):
+    def loadAnnotation(self, annotation):
         self.scheme = annotation.dataset.scheme
         self.sample = None
         self.__update__()
 
-    def set_selected(self, sample):
+    def set_selected(self, _, sample):
         self.sample = sample
         self.__update__()
 
@@ -80,30 +81,12 @@ class QDisplaySample(qtw.QWidget):
 
         # Case 3: Sample and scheme loaded
         else:
-            widget = qtw.QWidget(self)
-            grid = qtw.QGridLayout()
-            grid.setColumnStretch(1, 1)
-
-            for idx, (group_name, group_elements) in enumerate(self.scheme):
-                scroll_wid = QAdaptiveScrollArea(self)
-
-                for elem in group_elements:
-                    if self.sample.annotation[group_name][elem] == 1:
-                        lbl = qtw.QLabel(elem, alignment=qtc.Qt.AlignCenter)
-                        lbl.setAlignment(qtc.Qt.AlignCenter)
-                        scroll_wid.addItem(lbl)
-
-                txt = group_name.upper() + ":"
-                name_label = qtw.QLabel(txt)
-
-                grid.addWidget(name_label, idx, 0)
-                grid.addWidget(scroll_wid, idx, 1)
-
-            widget.setLayout(grid)
-
-            self.layout().replaceWidget(self.middle_widget, widget)
-            self.middle_widget.setParent(None)
-            self.middle_widget = widget
+            if not isinstance(self.middle_widget, QShowAnnotation):
+                widget = QShowAnnotation()
+                self.layout().replaceWidget(self.middle_widget, widget)
+                self.middle_widget.setParent(None)
+                self.middle_widget = widget
+            self.middle_widget.show_annotation(self.scheme, self.sample.annotation)
             self.start_value.setText(str(self.sample.start_position))
             self.end_value.setText(str(self.sample.end_position))
 

@@ -30,6 +30,8 @@ class GUI(qtw.QMainWindow):
     redo_pressed = qtc.pyqtSignal()
     merge_adjacent_pressed = qtc.pyqtSignal()
     settings_changed = qtc.pyqtSignal()
+    use_manual_annotation = qtc.pyqtSignal()
+    use_retrieval_mode = qtc.pyqtSignal()
 
     def __init__(self, *args, **kwargs):
         super(GUI, self).__init__(*args, **kwargs)
@@ -78,6 +80,7 @@ class GUI(qtw.QMainWindow):
         self.video_menu()
         self.edit_menu()
         self.settings_menu()
+        self.annotation_mode_menu()
 
     def video_menu(self):
         menu = self.menuBar()
@@ -184,6 +187,35 @@ class GUI(qtw.QMainWindow):
 
         file_menu.addAction("Exit", self._exit, qtg.QKeySequence.Close)
 
+    def annotation_mode_menu(self):
+        menu = self.menuBar()
+
+        self._annotation_mode_idx = 0
+
+        annotation_menu = menu.addMenu("&Annotation Mode")
+
+        ag = qtw.QActionGroup(self)
+        ag.setExclusive(True)
+
+        a = ag.addAction(qtw.QAction("Manual Annotation", self, checkable=True))
+        a.setChecked(True)
+        a.toggled.connect(self.manual_anotation_toggled)
+        annotation_menu.addAction(a)
+
+        a = ag.addAction(qtw.QAction("Retrieval Mode", self, checkable=True))
+        a.toggled.connect(self.retrievel_mode_toggled)
+        annotation_menu.addAction(a)
+
+    def manual_anotation_toggled(self, active):
+        if active:
+            logging.info("manual anno emit")
+            self.use_manual_annotation.emit()
+
+    def retrievel_mode_toggled(self, active):
+        if active:
+            logging.info("retrieval emit")
+            self.use_retrieval_mode.emit()
+
     def open_settings(self):
         if self.dialog is None:
             self.dialog = SettingsDialog()
@@ -246,22 +278,26 @@ class GUI(qtw.QMainWindow):
     def set_left_widget(self, widget):
         self.hbox.replaceWidget(self.left_widget, widget)
         self.left_widget.setParent(None)
+        self.right_widget.deleteLater()
         self.left_widget = widget
 
     def set_central_widget(self, widget):
         self.hbox.replaceWidget(self.central_widget, widget)
         self.central_widget.setParent(None)
+        self.right_widget.deleteLater()
         self.central_widget = widget
         self.central_widget.adjustSize()
 
     def set_right_widget(self, widget):
         self.hbox.replaceWidget(self.right_widget, widget)
         self.right_widget.setParent(None)
+        self.right_widget.deleteLater()
         self.right_widget = widget
 
     def set_bottom_widget(self, widget):
         self.vbox.replaceWidget(self.bottom_widget, widget)
         self.bottom_widget.setParent(None)
+        self.right_widget.deleteLater()
         self.bottom_widget = widget
 
     def cleaned_up(self):
