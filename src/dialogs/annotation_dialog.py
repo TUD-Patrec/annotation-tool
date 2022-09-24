@@ -244,7 +244,7 @@ class QAnnotationDialog(qtw.QDialog):
         #    btn : QPushButtonAdapted = self.buttons[idx]
         #    if btn.isChecked():
         #        btn.click()
-        # self.__update__()
+        # self.update_layout()
         self.new_annotation.emit({})
         self.close()
 
@@ -384,6 +384,6 @@ if __name__ == "__main__":
 
     # widget.resize(400,300)
     widget.show()
-    # widget.__update__()
+    # widget.update_layout()
 
     sys.exit(app.exec_())

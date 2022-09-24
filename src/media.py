@@ -17,7 +17,7 @@ class QMediaWidget(qtw.QWidget):
            cleanedUp: Signals that all sub widgets and threads have been shutdown successfully. Should be waited for befor exiting the app.
 
     Slots:
-           loadAnnotation: Expects a Annotation-instance
+           load_annotation: Expects a Annotation-instance
            setPosition: Updates the current displayed frame
            play: Starts running the media
            pause: Pauses the media

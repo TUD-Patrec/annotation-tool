@@ -9,8 +9,6 @@ from scipy import spatial
 
 from .data_classes.sample import Sample
 from .qt_helper_widgets.lines import QHLine
-
-# from .qt_helper_widgets.adaptive_scroll_area import QAdaptiveScrollArea
 from .qt_helper_widgets.display_scheme import QShowAnnotation
 
 
@@ -336,7 +334,8 @@ class QRetrievalWidget(qtw.QWidget):
             c += len(group_elements)
         return c
 
-    # Display the current interval to the user: Show him the Interval boundaries and the predicted annotation, start the loop,
+    # Display the current interval to the user: Show him the Interval boundaries and the predicted annotation,
+    # start the loop.
     def display_interval(self):
         if self._query:
             txt = self.format_progress(self._query.idx, len(self._query))
@@ -357,7 +356,8 @@ class QRetrievalWidget(qtw.QWidget):
             proposed_annotation = self._current_interval.predicted_classification
             self.main_widget.show_annotation(self.scheme, proposed_annotation)
 
-    # ask user for manual annotation -> used as a last option kind of thing or also whenever the user feels like it is needed
+    # ask user for manual annotation -> used as a last option kind of thing or also whenever the user feels like it
+    # is needed
     def manually_annotate_interval(self):
         pass
 
@@ -374,7 +374,7 @@ class QRetrievalWidget(qtw.QWidget):
         else:
             logging.info("IM ELSE BLOCK")
 
-    # dont accept the prediction
+    # don't accept the prediction
     def decline_interval(self):
         self.load_next()
 
@@ -392,8 +392,8 @@ class QRetrievalWidget(qtw.QWidget):
                 self._current_interval = self._query.get_next()
                 self.display_interval()
                 if old_interval != self._current_interval:
-                    # only emit new loop if the interval has changed
-                    # remember that for each interval there might be multiple predictions that get testet one after another
+                    # only emit new loop if the interval has changed remember that for each interval there might be
+                    # multiple predictions that get testet one after another
                     l, r = self._current_interval.start, self._current_interval.end
                     self.start_loop.emit(l, r)
             else:

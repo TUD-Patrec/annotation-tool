@@ -134,7 +134,7 @@ class MainApplication(qtw.QApplication):
         self.media_player.loadAnnotation(self.annotation)
 
         if isinstance(self.right_widget, QDisplaySample):
-            self.right_widget.loadAnnotation(
+            self.right_widget.load_annotation(
                 self.annotation
             )  # before annotation_widget
         self.annotation_widget.set_annotation(self.annotation)
