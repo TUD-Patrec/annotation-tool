@@ -10,6 +10,7 @@ from scipy import spatial
 from .data_classes.sample import Sample
 from .qt_helper_widgets.lines import QHLine
 from .qt_helper_widgets.display_scheme import QShowAnnotation
+from .dialogs.annotation_dialog import QAnnotationDialog
 
 
 class RetrievalMode(Enum):
@@ -18,7 +19,7 @@ class RetrievalMode(Enum):
     RANDOM = 2
 
 
-@dataclass(frozen=True)
+@dataclass(unsafe_hash=True)
 class Interval:
     start: int = field(hash=True, compare=True)
     end: int = field(hash=True, compare=True)
@@ -162,6 +163,7 @@ class QRetrievalWidget(qtw.QWidget):
         self._current_interval = None
         self._interval_size: int = None
         self._overlap: float = None
+        self._open_dialog: qtw.QDialog = None
         self.TRIES_PER_INTERVAL = 3
         self.init_UI()
 
@@ -364,7 +366,32 @@ class QRetrievalWidget(qtw.QWidget):
 
     # same as manually_annotate_interval except that the annotation is preloaded with the suggested annotation
     def modify_interval_prediction(self):
-        pass
+        if self._open_dialog:
+            self.refocus_dialog()
+        else:
+            sample = self.current_sample
+
+            dialog = QAnnotationDialog(self.scheme, self.dependencies)
+            dialog.finished.connect(self.free_dialog)
+            dialog._set_annotation(sample.annotation)
+
+            dialog.new_annotation.connect(self.modify_interval)
+            self._open_dialog = dialog
+            dialog.open()
+
+    def modify_interval(self, annotation_dict):
+        interval = self._current_interval
+
+        new_prediction = np.zeros_like(self._current_interval.predicted_classification)
+        idx = 0
+        for gr_name, gr_elems in self.scheme:
+            for elem in gr_elems:
+                new_prediction[idx] = annotation_dict[gr_name] [elem]
+                idx += 1
+
+        interval.predicted_classification = new_prediction
+        logging.info('Interval modified')
+        self.display_interval()
 
     # accept the prediction from the network -> mark the interval as done
     def accept_interval(self):
@@ -415,6 +442,42 @@ class QRetrievalWidget(qtw.QWidget):
         if self._query:
             self._query.change_filter(f)
 
+    def refocus_dialog(self):
+        # this will remove minimized status
+        # and restore window with keeping maximized/normal state
+        self._open_dialog.setWindowState(
+            self._open_dialog.windowState() & ~qtc.Qt.WindowMinimized | qtc.Qt.WindowActive
+        )
+
+        # this will activate the window
+        self._open_dialog.activateWindow()
+
+    @qtc.pyqtSlot(int)
+    def free_dialog(self, x):
+        self._open_dialog.deleteLater()
+        self._open_dialog = None
+
+    @property
+    def dependencies(self):
+        return self._annotation.dataset.dependencies
+
     @property
     def scheme(self):
         return self._annotation.dataset.scheme
+
+    @property
+    def current_sample(self):
+        i = self._current_interval
+        annotation_dict = dict()
+
+        idx = 0
+        for gr_name, elems in self.scheme:
+            annotation_dict[gr_name] = dict()
+            for elem in elems:
+                annotation_dict[gr_name][elem] = i.predicted_classification[idx]
+                idx += 1
+
+        logging.info(f'{annotation_dict = }')
+
+        sample = Sample(i.start, i.end, annotation_dict)
+        return sample
