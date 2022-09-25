@@ -30,7 +30,7 @@ def format_str(s, characters_per_line, line_start=""):
             ls[idx] = "".join([line_start, line])
         else:
             ls[idx] = "".join([" " * len(line_start), line])
-    return "\n".join(ls) + "\n"
+    return "\n".join(ls)
 
 
 class QShowAnnotation(qtw.QWidget):

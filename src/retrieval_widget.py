@@ -168,11 +168,16 @@ class QRetrievalWidget(qtw.QWidget):
         self.init_UI()
 
     def init_UI(self):
-        self.scroll_widgets = []
+        self.retrieval_options = qtw.QComboBox()
+        for x in RetrievalMode:
+            name = x.name.capitalize()
+            self.retrieval_options.addItem(name)
+        self.retrieval_options.currentIndexChanged.connect(self.update_retrieval_mode)
 
-        self.header_widget = qtw.QLabel(
-            "CURRENT PREDICTION", alignment=qtc.Qt.AlignCenter
-        )
+        self.retrieval_options_widget = qtw.QWidget()
+        self.retrieval_options_widget.setLayout(qtw.QHBoxLayout())
+        self.retrieval_options_widget.layout().addWidget(qtw.QLabel('Mode:'))
+        self.retrieval_options_widget.layout().addWidget(self.retrieval_options, stretch=1)
 
         self.main_widget = QShowAnnotation(self)
 
@@ -203,7 +208,8 @@ class QRetrievalWidget(qtw.QWidget):
         self.footer_widget.layout().addWidget(self.progress_label, 1, 1)
 
         vbox = qtw.QVBoxLayout()
-        vbox.addWidget(self.header_widget, alignment=qtc.Qt.AlignCenter)
+
+        vbox.addWidget(self.retrieval_options_widget)
         vbox.addWidget(QHLine())
         vbox.addWidget(self.main_widget, alignment=qtc.Qt.AlignCenter, stretch=1)
         vbox.addWidget(QHLine())
@@ -220,6 +226,10 @@ class QRetrievalWidget(qtw.QWidget):
         self._overlap = 0.66  # TODO: Import from settings
         intervals = self.generate_intervals()
         self._query = Query(intervals)
+        # load correct mode
+        idx = self.retrieval_options.currentIndex()
+        self._query.change_mode(RetrievalMode(idx))
+
 
     @qtc.pyqtSlot()
     def load_initial_view(self):
@@ -261,6 +271,15 @@ class QRetrievalWidget(qtw.QWidget):
         logging.info(f"GENERATING INTERVALS TOOK {end_time - start_time}ms")
         return intervals
 
+    def update_retrieval_mode(self):
+        logging.info(f'NEW ANNOTATION_MODE = {self.retrieval_options.currentIndex()}')
+        idx = self.retrieval_options.currentIndex()
+        logging.info(f'{idx = }')
+        new_mode = RetrievalMode(idx)
+        if self._query:
+            self._query.change_mode(new_mode)
+            self.load_next()
+
     def get_intervals_in_range(self, lower, upper):
         intervals = []
         start = lower
@@ -279,7 +298,7 @@ class QRetrievalWidget(qtw.QWidget):
 
         while get_end(start) <= upper:
             end = get_end(start)
-            logging.info(f"{start = }, {end = }")
+            # logging.info(f"{start = }, {end = }")
 
             for i in self.get_predictions(start, end):
                 intervals.append(i)
@@ -386,7 +405,7 @@ class QRetrievalWidget(qtw.QWidget):
         idx = 0
         for gr_name, gr_elems in self.scheme:
             for elem in gr_elems:
-                new_prediction[idx] = annotation_dict[gr_name] [elem]
+                new_prediction[idx] = annotation_dict[gr_name][elem]
                 idx += 1
 
         interval.predicted_classification = new_prediction
