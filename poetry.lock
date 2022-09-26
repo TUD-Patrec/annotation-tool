@@ -244,6 +244,26 @@ python-versions = ">=3.5"
 PyQt5-sip = ">=12.7,<13"
 
 [[package]]
+name = "pyqt5"
+version = "5.15.7"
+description = "Python bindings for the Qt cross platform application toolkit"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+PyQt5-Qt5 = ">=5.15.0"
+PyQt5-sip = ">=12.11,<13"
+
+[[package]]
+name = "pyqt5-qt5"
+version = "5.15.2"
+description = "The subset of a Qt installation needed by PyQt5."
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "pyqt5-sip"
 version = "12.11.0"
 description = "The sip module support for PyQt5"
@@ -297,7 +317,7 @@ python-versions = ">=3.7"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8"
-content-hash = "356ea41ef7c4df0ce3184ab35e1e8a4075e0b230c04f7d7d4a517868235dac63"
+content-hash = "8cf4bc14d2439f238a21dcb52d5295147f6f35241d2d11fcbedf588a45e84e2b"
 
 [metadata.files]
 altgraph = []
@@ -333,6 +353,7 @@ pyinstaller = []
 pyinstaller-hooks-contrib = []
 pyopengl = []
 pyqt5 = []
+pyqt5-qt5 = []
 pyqt5-sip = []
 pyqtgraph = []
 pywin32-ctypes = []
