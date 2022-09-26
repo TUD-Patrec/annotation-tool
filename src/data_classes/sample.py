@@ -1,9 +1,6 @@
 from dataclasses import dataclass, field
-
-import PyQt5.QtGui as qtg
-
 from .singletons import ColorMapper
-
+import PyQt5.QtGui as qtg
 
 @dataclass(order=True)
 class Sample:
@@ -13,14 +10,14 @@ class Sample:
     _annotation: dict = field(init=True, default_factory=dict)
     _default_color: qtg.QColor = field(init=False, default=None)
     _color: qtg.QColor = field(init=False, default=None)
-
+    
     def __post_init__(self):
-        self._default_color = qtg.QColor("#696969")
+        self._default_color = qtg.QColor('#696969')
         self._default_color.setAlpha(127)
         self._sort_index = self._start_pos
         if not bool(self._annotation):
             self._color = None
-        else:
+        else: 
             color_mapper = ColorMapper.instance()
             self._color = color_mapper.annotation_to_color(self._annotation)
 
@@ -30,7 +27,7 @@ class Sample:
     @property
     def start_position(self):
         return self._start_pos
-
+    
     @start_position.setter
     def start_position(self, value):
         if type(value) != int:
@@ -39,11 +36,11 @@ class Sample:
             raise ValueError
         else:
             self._start_pos = value
-
+            
     @property
     def end_position(self):
         return self._end_pos
-
+    
     @end_position.setter
     def end_position(self, value):
         if type(value) != int:
@@ -52,19 +49,19 @@ class Sample:
             raise ValueError
         else:
             self._end_pos = value
-
+            
     @property
     def annotation(self):
         return self._annotation
-
+    
     @property
     def annotation_exists(self):
-        return bool(self._annotation)  # False if {} else True
-
+        return bool(self._annotation) # False if {} else True
+    
     @annotation.setter
     def annotation(self, value):
         if value is None:
-            raise ValueError("None not allowed")
+            raise ValueError('None not allowed')
         elif type(value) != dict:
             raise ValueError
         else:
@@ -72,13 +69,14 @@ class Sample:
             # empty annotation
             if not bool(value):
                 self._color = None
-            else:
+            else: 
                 color_mapper = ColorMapper.instance()
                 self._color = color_mapper.annotation_to_color(value)
-
+     
     @property
     def color(self):
         if self._color is None:
             return self._default_color
         else:
             return self._color
+  
