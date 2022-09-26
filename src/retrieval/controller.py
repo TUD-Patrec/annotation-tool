@@ -1,149 +1,19 @@
-from dataclasses import dataclass, field
 import logging
 import time
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
-from enum import Enum
 import numpy as np
 from scipy import spatial
 
-from .data_classes.sample import Sample
-from .qt_helper_widgets.lines import QHLine
-from .qt_helper_widgets.display_scheme import QShowAnnotation
-from .dialogs.annotation_dialog import QAnnotationDialog
-
-
-class RetrievalMode(Enum):
-    DEFAULT = 0
-    DESCENDING = 1
-    RANDOM = 2
-
-
-@dataclass(unsafe_hash=True)
-class Interval:
-    start: int = field(hash=True, compare=True)
-    end: int = field(hash=True, compare=True)
-    predicted_classification: np.ndarray = field(hash=False, compare=False)
-    similarity: float = field(hash=False, compare=False)
-
-
-@dataclass(frozen=True)
-class FilterCriteria:
-    filter_array: np.ndarray
-
-    # test whether a given interval matches the criterion
-    def matches(self, i):
-        comp_array = i.predicted_classification
-        tmp = np.logical_and(comp_array, self.filter_array)
-        res = np.array_equal(self.filter_array, tmp)
-        return res
-
-    def __eq__(self, other):
-        if isinstance(other, FilterCriteria):
-            return np.array_equal(self.filter_array, other.filter_array)
-        return False
-
-
-class Query:
-    def __init__(self, intervals: list) -> None:
-        self._intervals = intervals
-        self._indices = []  # for querying
-        self._idx = -1
-        self._marked_intervals = set()  # for marking intervals as DONE
-        self._mode: RetrievalMode = RetrievalMode.DESCENDING
-        self._filter_criteria: FilterCriteria = None
-
-        self.debug_count = 0
-
-        self.update_indices()
-
-    def __len__(self):
-        return len(self._indices)
-
-    def get_next(self) -> Interval:
-        assert self.has_next()
-        next_unmarked_idx = self.get_next_unmarked_idx()
-        self._idx = next_unmarked_idx
-
-        index_to_interval = self._indices[next_unmarked_idx]
-        interval = self._intervals[index_to_interval]
-        return interval
-
-    def has_next(self):
-        return self.get_next_unmarked_idx() < len(self._indices)
-
-    def get_next_unmarked_idx(self):
-        idx = self._idx + 1
-        while idx < len(self._indices):
-            index_to_interval = self._indices[idx]
-            if self._intervals[index_to_interval] not in self._marked_intervals:
-                break
-            idx += 1
-        return idx
-
-    def apply_filter(self):
-        if self._filter_criteria:
-            indices = []
-            for idx in range(len(self._intervals)):
-                if self._filter_criteria.matches(self._intervals[idx]):
-                    indices.append(idx)
-        else:
-            indices = list(range(len(self._intervals)))
-        self._indices = indices
-
-    def reorder_indices(self):
-        if self._mode == RetrievalMode.DESCENDING:
-            print("CHANGING TO DESCENDING")
-            ls = [
-                (idx, self._intervals[idx].similarity) for idx in self._indices
-            ]  # zip indices with similarities
-
-            ls = sorted(ls, key=lambda x: x[1], reverse=True)  # Sorting by similarity
-            self._indices = [x for x, _ in ls]
-
-        if self._mode == RetrievalMode.DEFAULT:
-            print("CHANGING TO DEFAULT")
-            self._indices.sort()
-        if self._mode == RetrievalMode.RANDOM:
-            print("CHANGING TO RANDOM")
-            perm = np.random.permutation(np.array(self._indices))
-            self._indices = list(perm)
-
-    def update_indices(self):
-        self.apply_filter()
-        self.reorder_indices()
-        self._idx = -1
-
-    # modify _indices to only include those that match the filter criterium
-    def change_filter(self, criteria: FilterCriteria):
-        start = time.time()
-        reason_1 = self._filter_criteria is None and criteria is not None
-        reason_2 = self._filter_criteria is not None and criteria is None
-        reason_3 = self._filter_criteria != criteria
-        if reason_1 or reason_2 or reason_3:
-            self._filter_criteria = criteria
-            self.update_indices()
-        end = time.time()
-        print(f"CHANGE_FILTER TOOK {end - start}ms")
-
-    # reorder the indices
-    def change_mode(self, mode: RetrievalMode):
-        start = time.time()
-        if mode != self._mode:
-            self._mode = mode
-            self.update_indices()
-        end = time.time()
-        print(f"CHANGE_MODE TOOK {end - start}ms")
-
-    def mark_as_done(self, i: Interval):
-        assert i not in self._marked_intervals
-        self.debug_count += 1
-        # print(self.debug_count)
-        self._marked_intervals.add(i)
-
-    @property
-    def idx(self):
-        return self._idx
+from src.data_classes.sample import Sample
+from src.qt_helper_widgets.lines import QHLine
+from src.qt_helper_widgets.display_scheme import QShowAnnotation
+from src.dialogs.annotation_dialog import QAnnotationDialog
+from src.retrieval.filter import FilterCriteria
+from src.retrieval.interval import Interval
+from src.retrieval.query import Query
+from src.retrieval.filter_dialog import QRetrievalFilter
+from src.retrieval.mode import RetrievalMode
 
 
 def format_progress(x, y):
@@ -179,6 +49,15 @@ class QRetrievalWidget(qtw.QWidget):
         self.retrieval_options_widget.layout().addWidget(qtw.QLabel('Mode:'))
         self.retrieval_options_widget.layout().addWidget(self.retrieval_options, stretch=1)
 
+        self.filter_widget = qtw.QWidget()
+        self.filter_widget.setLayout(qtw.QHBoxLayout())
+        self.filter_widget.layout().addWidget(qtw.QLabel('Filter:'))
+        self.filter_active = qtw.QLabel('Inactive')
+        self.modify_filter = qtw.QPushButton('Select Filter')
+        self.modify_filter.clicked.connect(self.modify_filter_clicked)
+        self.filter_widget.layout().addWidget(self.filter_active)
+        self.filter_widget.layout().addWidget(self.modify_filter)
+
         self.main_widget = QShowAnnotation(self)
 
         self.button_group = qtw.QWidget()
@@ -210,6 +89,8 @@ class QRetrievalWidget(qtw.QWidget):
         vbox = qtw.QVBoxLayout()
 
         vbox.addWidget(self.retrieval_options_widget)
+        vbox.addWidget(QHLine())
+        vbox.addWidget(self.filter_widget)
         vbox.addWidget(QHLine())
         vbox.addWidget(self.main_widget, alignment=qtc.Qt.AlignCenter, stretch=1)
         vbox.addWidget(QHLine())
@@ -378,6 +259,21 @@ class QRetrievalWidget(qtw.QWidget):
             proposed_annotation = self._current_interval.predicted_classification
             self.main_widget.show_annotation(self.scheme, proposed_annotation)
 
+    @qtc.pyqtSlot(bool)
+    def modify_filter_clicked(self, checked):
+        if self._open_dialog:
+            self.refocus_dialog()
+        else:
+            self._open_dialog = QRetrievalFilter(None, self.scheme)
+            self._open_dialog.filter_changed.connect(self.change_filter)
+            self._open_dialog.finished.connect(self.free_dialog)
+            self._open_dialog.open()
+
+    def change_filter(self, filter_array):
+        if self._query:
+            filter_criteria = FilterCriteria(filter_array)
+            self._query.change_filter(filter_criteria)
+
     # ask user for manual annotation -> used as a last option kind of thing or also whenever the user feels like it
     # is needed
     def manually_annotate_interval(self):
@@ -456,11 +352,6 @@ class QRetrievalWidget(qtw.QWidget):
         if self._query:
             self._query.change_mode(mode)
 
-    @qtc.pyqtSlot(FilterCriteria)
-    def change_filter(self, f):
-        if self._query:
-            self._query.change_filter(f)
-
     def refocus_dialog(self):
         # this will remove minimized status
         # and restore window with keeping maximized/normal state
@@ -500,3 +391,4 @@ class QRetrievalWidget(qtw.QWidget):
 
         sample = Sample(i.start, i.end, annotation_dict)
         return sample
+

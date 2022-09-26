@@ -1,6 +1,4 @@
 import logging, cv2
-from re import U
-from decord import VideoReader
 import time
 import numpy as np
 

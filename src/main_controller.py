@@ -8,13 +8,13 @@ from .annotation_widget import QAnnotationWidget
 from .gui import GUI
 from .playback import PlayWidget
 from .display_current_sample import QDisplaySample
-from .retrieval_widget import QRetrievalWidget, RetrievalMode
+from src.retrieval.controller import QRetrievalWidget, RetrievalMode
 from .data_classes.singletons import Settings
 from .utility.functions import FrameTimeMapper
 from .utility import filehandler
-from .utility.breeze_resources import *
 
 from .media import QMediaWidget
+from src.utility.breeze_resources import *
 
 
 class MainApplication(qtw.QApplication):
