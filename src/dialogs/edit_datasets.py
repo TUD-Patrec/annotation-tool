@@ -1,8 +1,9 @@
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 
-
 from functools import partial
+
+from ..data_classes import AnnotationScheme
 from ..data_classes.datasets import DatasetDescription
 from ..utility import filehandler
 from ..utility import functions
@@ -149,23 +150,13 @@ class QEditDatasets(qtw.QDialog):
         name = self._name.text()
         if name == "":
             name = "nameless"
-        scheme_loaded = True
-        try:
-            N = 0
-            scheme = filehandler.read_json(self._scheme.text())
-            for x, y in scheme:
-                if type(x) != str:
-                    scheme_loaded = False
-                if type(y) != list:
-                    scheme_loaded = False
-                for elem in y:
-                    if type(elem) != str:
-                        scheme_loaded = False
-                    N += 1
-        except:
-            scheme_loaded = False
 
-        if not scheme_loaded:
+        scheme = filehandler.read_json(self._scheme.text())
+
+        try:
+            scheme = AnnotationScheme(scheme)
+        except AssertionError:
+            print(scheme)
             self._scheme.setText("Could not load scheme.")
             return
 
@@ -177,11 +168,13 @@ class QEditDatasets(qtw.QDialog):
             except:
                 self._dependencies.setText("Could not load dependencies.")
                 return
-            if dependencies.shape[0] < 0 or dependencies.shape[1] != N:
+            if dependencies.shape[0] < 0 or dependencies.shape[1] != len(scheme):
                 self._dependencies.setText("Could not load dependencies.")
                 return
         else:
             dependencies = []
+
+
 
         dataset = DatasetDescription(name, scheme, dependencies)
         dataset.to_disk()

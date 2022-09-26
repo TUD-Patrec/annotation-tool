@@ -194,8 +194,6 @@ class MainApplication(qtw.QApplication):
         self.gui.set_right_widget(self.flex_widget)
 
         self.flex_widget.start_loop.connect(self.start_loop)
-        # self.right_widget.start_loop.connect(self.media_player.startLoop)
-        # self.right_widget.start_loop.connect(self.annotation_widget.restrict_range)
         self.flex_widget.new_sample.connect(self.annotation_widget.new_sample)
 
         if self.annotation:

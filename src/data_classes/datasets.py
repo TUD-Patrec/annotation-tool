@@ -1,20 +1,21 @@
-import logging
 import os
-from ..utility import filehandler
-
+import random
+import string
 from dataclasses import dataclass, field
-import random, string
+
+from . import AnnotationScheme
+from ..utility import filehandler
 
 
 @dataclass()
 class DatasetDescription:
     _name: str
-    _scheme: list
+    _scheme: AnnotationScheme
     _dependencies: list = field(default_factory=list)
     _path: str = field(init=False)
 
     def __post_init__(self):
-        assert type(self._scheme) == list
+        assert isinstance(self._scheme, AnnotationScheme)
         assert len(self._scheme) > 0
 
         paths = filehandler.Paths.instance()

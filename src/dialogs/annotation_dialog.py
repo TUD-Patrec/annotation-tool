@@ -45,26 +45,33 @@ class QAnnotationDialog(qtw.QDialog):
         idx = 0
         self.buttons = []
         self.button_to_idx_map = dict()
-        for group_idx, (group_name, group_elements) in enumerate(self.scheme):
+
+        row = -1
+        for scheme_element in self.scheme:
             group_buttons = []
-            for elem in group_elements:
-                button = QPushButtonAdapted(group_name, elem)
-                elem_txt = elem.replace("&", " && ")
-                button.setText(elem_txt)
+            if scheme_element.row != row:
+                row = scheme_element.row
 
-                button.button_clicked.connect(
-                    lambda x, y, z: self.__update_current_selection__(x, y, z)
+                new_scroll_widget = QAdaptiveScrollArea(
+                    group_buttons, no_scroll=group_idx == 0 or len(group_buttons) < 10
                 )
+                self.scroll_widgets.append(new_scroll_widget)
 
-                self.buttons.append(button)
-                self.button_to_idx_map[(group_name, elem)] = idx
+            button = QPushButtonAdapted(group_name, elem)
+            elem_txt = elem.replace("&", " && ")
+            button.setText(elem_txt)
 
-                group_buttons.append(button)
-                idx += 1
-            new_scroll_widget = QAdaptiveScrollArea(
-                group_buttons, no_scroll=group_idx == 0 or len(group_buttons) < 10
+            button.button_clicked.connect(
+                lambda x, y, z: self.__update_current_selection__(x, y, z)
             )
-            self.scroll_widgets.append(new_scroll_widget)
+
+            self.buttons.append(button)
+            self.button_to_idx_map[(group_name, elem)] = idx
+
+            group_buttons.append(button)
+
+
+
 
             lbl = qtw.QLabel()
             lbl.setAlignment(qtc.Qt.AlignCenter)

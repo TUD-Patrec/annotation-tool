@@ -10,6 +10,7 @@ from .datasets import DatasetDescription
 from .sample import Sample
 from ..utility import filehandler
 from src.data_classes.annotation import Annotation
+from ..utility.decorators import accepts
 
 
 @dataclass()
@@ -18,10 +19,8 @@ class GlobalState:
     _dataset: DatasetDescription
     _name: str
     _input_file: str
-    _try_media_player: bool = field(init=True, default=True)
     _path: str = field(init=False)
     _footprint: str = field(init=False)
-    _last_edited: datetime.datetime = field(init=False, default=datetime.datetime.now())
     _samples: list = field(init=False, default_factory=list)
 
     def __post_init__(self):
@@ -46,25 +45,21 @@ class GlobalState:
         self._path = path
         self._footprint = filehandler.footprint_of_file(self._input_file)
 
-        self._duration, self._frame_count, self._fps = filehandler.meta_data(
+        _, self._frame_count, self._fps = filehandler.meta_data(
             self._input_file
         )
 
         empty_annotation = Annotation(self.dataset.scheme)
         self._samples.append(Sample(0, self._frame_count - 1, empty_annotation))
 
-    def __len__(self):
-        return self._samples[-1].end_position + 1
 
     @property
     def name(self):
         return self._name
 
     @name.setter
+    @accepts(object, str)
     def name(self, value: str):
-        if type(value) != str:
-            raise ValueError("Must be a string.")
-        else:
             self._name = value
 
     @property
@@ -76,29 +71,27 @@ class GlobalState:
         return self._samples
 
     @samples.setter
+    @accepts(object, list)
     def samples(self, value: List[Sample]):
-        if type(value) != list:
-            raise ValueError("Must be a list.")
-        elif len(value) == 0:
+        if len(value) == 0:
             raise ValueError("List must have at least 1 element.")
         else:
             last = -1
             for sample in value:
                 if sample is None:
                     raise ValueError("Elements must not be None.")
-                if type(sample) != Sample:
+                if not isinstance(sample, Sample):
                     raise ValueError("Elements must be from type Sample.")
                 if sample.start_position != last + 1:
-                    print("Last = {} | sample = {}".format(last, sample))
+                    logging.error("Last = {} | sample = {}".format(last, sample))
                     raise ValueError("Gaps between Samples are not allowed!")
                 last = sample.end_position
 
             N = value[-1].end_position + 1
-            if N != len(self):
+            if N != self.n_frames:
                 raise ValueError("Samples have wrong length")
 
             self._samples = value
-            self.__update_last_edit__()
             logging.info("Updating samples was succesfull!")
 
     @property
@@ -106,17 +99,16 @@ class GlobalState:
         return self._annotator_id
 
     @annotator_id.setter
+    @accepts(object, int)
     def annotator_id(self, value: int):
-        if type(value) != int:
-            raise ValueError("Must be an Integer")
-        else:
-            self._annotator_id = value
+        self._annotator_id = value
 
     @property
     def input_file(self):
         return self._input_file
 
     @input_file.setter
+    @accepts(object, (str, os.PathLike))
     def input_file(self, value: os.PathLike):
         if not filehandler.is_non_zero_file(value):
             raise FileNotFoundError(value)
@@ -147,12 +139,10 @@ class GlobalState:
 
     @property
     def frames(self):
-        # only for compatibility
-        # remove later
-        if not hasattr(self, "_frame_count"):
-            self._duration, self._frame_count, self._fps = filehandler.meta_data(
-                self._input_file
-            )
+        return self.n_frames
+
+    @property
+    def n_frames(self):
         return self._frame_count
 
     def to_numpy(self):
@@ -189,5 +179,3 @@ class GlobalState:
             except:
                 raise FileNotFoundError("Could not open {}".format(path))
 
-    def __update_last_edit__(self):
-        self.last_edited = datetime.datetime.now()

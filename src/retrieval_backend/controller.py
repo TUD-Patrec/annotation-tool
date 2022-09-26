@@ -5,7 +5,7 @@ import PyQt5.QtCore as qtc
 import numpy as np
 from scipy import spatial
 
-from src.data_classes.sample import Sample
+from src.data_classes import Sample
 from src.qt_helper_widgets.lines import QHLine
 from src.qt_helper_widgets.display_scheme import QShowAnnotation
 from src.dialogs.annotation_dialog import QAnnotationDialog
@@ -111,7 +111,6 @@ class QRetrievalWidget(qtw.QWidget):
         idx = self.retrieval_options.currentIndex()
         self._query.change_mode(RetrievalMode(idx))
 
-
     @qtc.pyqtSlot()
     def load_initial_view(self):
         self.load_next()
@@ -167,7 +166,6 @@ class QRetrievalWidget(qtw.QWidget):
 
         stepsize = self.get_stepsize()
         logging.info(f"{stepsize = }")
-        COMBINATIONS = self.get_combinations()
 
         get_end = lambda x: x + self._interval_size - 1
         get_start = lambda x: max(
@@ -179,7 +177,6 @@ class QRetrievalWidget(qtw.QWidget):
 
         while get_end(start) <= upper:
             end = get_end(start)
-            # logging.info(f"{start = }, {end = }")
 
             for i in self.get_predictions(start, end):
                 intervals.append(i)
@@ -391,4 +388,3 @@ class QRetrievalWidget(qtw.QWidget):
 
         sample = Sample(i.start, i.end, annotation_dict)
         return sample
-

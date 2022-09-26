@@ -2,7 +2,7 @@ import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import os
 
-from ..data_classes.globalstate import GlobalState
+from src.data_classes.globalstate import GlobalState
 from ..data_classes.settings import Settings
 from ..utility import filehandler
 from ..utility import functions
@@ -90,7 +90,6 @@ class QNewAnnotationDialog(qtw.QDialog):
                 dataset_description,
                 self.annotation_name.text(),
                 self.line_edit.text(),
-                False,
             )
             self.load_annotation.emit(annotation)
             self.close()
