@@ -5,7 +5,6 @@ import PyQt5.QtGui as qtg
 from ..utility import filehandler
 from ..utility.decorators import accepts, returns
 from enum import Enum
-import logging
 
 
 class UpdateReason(Enum):

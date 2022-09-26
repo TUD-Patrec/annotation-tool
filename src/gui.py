@@ -3,8 +3,8 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import logging
 
-from .data_classes.singletons import Settings
-from .data_classes.annotation import Annotation
+from src.data_classes.settings import  Settings
+from .data_classes.globalstate import GlobalState
 from .dialogs.settings_dialog import SettingsDialog
 from .dialogs.edit_datasets import QEditDatasets
 from .dialogs.new_annotation_dialog import QNewAnnotationDialog
@@ -13,7 +13,7 @@ from .dialogs.export_annotation_dialog import QExportAnnotationDialog
 
 
 class GUI(qtw.QMainWindow):
-    load_annotation = qtc.pyqtSignal(Annotation)
+    load_annotation = qtc.pyqtSignal(GlobalState)
     save_pressed = qtc.pyqtSignal()
     exit_pressed = qtc.pyqtSignal()
     play_pause_pressed = qtc.pyqtSignal()
@@ -213,7 +213,7 @@ class GUI(qtw.QMainWindow):
 
     def retrievel_mode_toggled(self, active):
         if active:
-            logging.info("retrieval emit")
+            logging.info("retrieval_backend emit")
             self.use_retrieval_mode.emit()
 
     def open_settings(self):

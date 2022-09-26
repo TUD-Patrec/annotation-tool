@@ -3,10 +3,10 @@ import logging
 import os
 from .filehandler import Paths, is_non_zero_file
 from ..data_classes.datasets import DatasetDescription
-from ..data_classes.annotation import Annotation
+from ..data_classes.globalstate import GlobalState
 
 from .decorators import Singleton
-from ..data_classes.singletons import Settings
+from src.data_classes.settings import  Settings
 
 
 def scale(N, M, x):
@@ -65,7 +65,7 @@ def get_annotations():
     for file in os.listdir(Paths.instance().annotations):
         file_path = os.path.join(Paths.instance().annotations, file)
         if is_non_zero_file(file_path):
-            annotation = Annotation.from_disk(file_path)
+            annotation = GlobalState.from_disk(file_path)
             annotations.append(annotation)
     annotations.sort(key=lambda x: x.name)
     return annotations

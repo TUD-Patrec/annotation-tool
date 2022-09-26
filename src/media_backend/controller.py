@@ -1,11 +1,10 @@
 import logging
-import time
 
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 
-from ..data_classes.singletons import Settings
+from src.data_classes.settings import  Settings
 
 from .type_specific_player.video import VideoPlayer
 from .type_specific_player.mocap import MocapPlayer

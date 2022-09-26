@@ -8,7 +8,7 @@ import math
 
 from dataclasses import dataclass, field
 from .decorators import Singleton
-from ..data_classes.singletons import Settings
+from src.data_classes.settings import  Settings
 
 
 @Singleton

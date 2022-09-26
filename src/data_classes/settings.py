@@ -1,60 +1,8 @@
-from dataclasses import dataclass, field, fields
 import logging
-from ..utility.decorators import Singleton
-from ..utility import filehandler
-from distinctipy import distinctipy
-import PyQt5.QtGui as qtg
-import random
 
-
-@Singleton
-@dataclass()
-class ColorMapper:
-    _scheme: list = field(init=False)
-    _color_map: list = field(init=False)
-
-    def __init__(self) -> None:
-        random.seed(42)
-        self._color_map = distinctipy.get_colors(50, n_attempts=250)
-
-    @property
-    def scheme(self):
-        return self._scheme
-
-    @scheme.setter
-    def scheme(self, value):
-        if type(value) != list:
-            ValueError
-        else:
-            self._scheme = value
-
-    def annotation_to_color(self, annotation):
-        if annotation is None:
-            raise ValueError
-        elif not bool(annotation):
-            raise ValueError("Cant be empty")
-        else:
-            group_name = self.scheme[0][0]
-            group_elements = self.scheme[0][1]
-            first_group = [
-                annotation[group_name][label_name] for label_name in group_elements
-            ]
-
-            # bin_array -> number
-            x = ""
-            for idx, value in enumerate(first_group, 1):
-                if value:
-                    x += str(idx)
-
-            x = int(x)
-            x %= len(self._color_map)
-
-            r, g, b = self._color_map[x]
-            r, g, b = int(r * 255), int(g * 255), int(b * 255)
-            color = qtg.QColor(r, g, b)
-            color.setAlpha(127)
-
-            return color
+from dataclasses import dataclass, field, fields
+from src.utility import filehandler
+from src.utility.decorators import Singleton
 
 
 @Singleton

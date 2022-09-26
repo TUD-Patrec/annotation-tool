@@ -3,13 +3,13 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import sys, logging, logging.config
 
-from .data_classes.annotation import Annotation
+from .data_classes.globalstate import GlobalState
 from .annotation_widget import QAnnotationWidget
 from .gui import GUI
 from .playback import PlayWidget
 from .display_current_sample import QDisplaySample
-from src.retrieval.controller import QRetrievalWidget, RetrievalMode
-from .data_classes.singletons import Settings
+from src.retrieval_backend.controller import QRetrievalWidget, RetrievalMode
+from src.data_classes.settings import  Settings
 from .utility.functions import FrameTimeMapper
 from .utility import filehandler
 
@@ -140,7 +140,7 @@ class MainApplication(qtw.QApplication):
         self.annotation_widget.restrict_range(lower, upper)
         self.update_position(lower, True, True)
 
-    @qtc.pyqtSlot(Annotation)
+    @qtc.pyqtSlot(GlobalState)
     def load_annotation(self, annotation):
         FrameTimeMapper.instance().load_annotation(
             annotation.frames, annotation.duration

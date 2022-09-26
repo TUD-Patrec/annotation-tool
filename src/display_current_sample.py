@@ -1,4 +1,3 @@
-import logging
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 
@@ -77,7 +76,7 @@ class QDisplaySample(qtw.QWidget):
                 self.layout().replaceWidget(self.middle_widget, widget)
                 self.middle_widget.setParent(None)
                 self.middle_widget = widget
-            self.middle_widget.show_annotation(self.scheme, self.sample.annotation)
+            self.middle_widget.show_annotation(self.sample.annotation)
             self.start_value.setText(str(self.sample.start_position))
             self.end_value.setText(str(self.sample.end_position))
 

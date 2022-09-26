@@ -3,8 +3,8 @@ import numpy as np
 import pyqtgraph.opengl as gl
 import PyQt5.QtCore as qtc
 
-from ...data_classes.singletons import Settings
 from ..player import AbstractMediaPlayer, AbstractMediaLoader, UpdateReason
+from src.data_classes.settings import Settings
 
 
 class MocapLoader(AbstractMediaLoader):

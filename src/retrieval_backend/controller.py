@@ -9,11 +9,11 @@ from src.data_classes.sample import Sample
 from src.qt_helper_widgets.lines import QHLine
 from src.qt_helper_widgets.display_scheme import QShowAnnotation
 from src.dialogs.annotation_dialog import QAnnotationDialog
-from src.retrieval.filter import FilterCriteria
-from src.retrieval.interval import Interval
-from src.retrieval.query import Query
-from src.retrieval.filter_dialog import QRetrievalFilter
-from src.retrieval.mode import RetrievalMode
+from src.retrieval_backend.filter import FilterCriteria
+from src.retrieval_backend.interval import Interval
+from src.retrieval_backend.query import Query
+from src.retrieval_backend.filter_dialog import QRetrievalFilter
+from src.retrieval_backend.mode import RetrievalMode
 
 
 def format_progress(x, y):

@@ -1,9 +1,7 @@
 import logging
-import time
 
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
-import PyQt5.QtGui as qtg
 
 from .media_backend.controller import QMediaMainController
 

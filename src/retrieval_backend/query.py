@@ -2,9 +2,9 @@ import time
 
 import numpy as np
 
-from src.retrieval.filter import FilterCriteria
-from src.retrieval.interval import Interval
-from src.retrieval.mode import RetrievalMode
+from src.retrieval_backend.filter import FilterCriteria
+from src.retrieval_backend.interval import Interval
+from src.retrieval_backend.mode import RetrievalMode
 
 
 class Query:

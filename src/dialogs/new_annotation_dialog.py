@@ -2,15 +2,16 @@ import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import os
 
-from ..data_classes.annotation import Annotation
+from ..data_classes.globalstate import GlobalState
+from ..data_classes.settings import Settings
 from ..utility import filehandler
 from ..utility import functions
-from ..data_classes.singletons import Settings
+
 from ..qt_helper_widgets.line_edit_adapted import QLineEditAdapted
 
 
 class QNewAnnotationDialog(qtw.QDialog):
-    load_annotation = qtc.pyqtSignal(Annotation)
+    load_annotation = qtc.pyqtSignal(GlobalState)
 
     def __init__(self, *args, **kwargs):
         super(QNewAnnotationDialog, self).__init__(*args, **kwargs)
@@ -84,7 +85,7 @@ class QNewAnnotationDialog(qtw.QDialog):
             dataset_description = self.datasets[idx]
 
             annotator_id = Settings.instance().annotator_id
-            annotation = Annotation(
+            annotation = GlobalState(
                 annotator_id,
                 dataset_description,
                 self.annotation_name.text(),

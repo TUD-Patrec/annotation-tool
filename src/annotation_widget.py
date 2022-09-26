@@ -4,12 +4,13 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 from copy import deepcopy
 
-from .data_classes.annotation import Annotation
-from .data_classes.singletons import ColorMapper
+from .data_classes.globalstate import GlobalState
+from .data_classes.colormapper import ColorMapper
+from .data_classes.settings import Settings
 from .utility.functions import FrameTimeMapper
 from .data_classes.sample import Sample
 from .dialogs.annotation_dialog import QAnnotationDialog
-from .data_classes.singletons import Settings
+
 from .utility import functions
 
 
@@ -108,7 +109,7 @@ class QAnnotationWidget(qtw.QWidget):
                 if from_timeline:
                     self.position_changed.emit(new_pos)
 
-    @qtc.pyqtSlot(Annotation)
+    @qtc.pyqtSlot(GlobalState)
     def load_annotation(self, annotation):
         self.clear_undo_redo()
         self.remove_restriction()
@@ -187,8 +188,7 @@ class QAnnotationWidget(qtw.QWidget):
                 lambda x: self.update_sample_annotation(sample, x)
             )
             dialog.open()
-            if sample.annotation_exists:
-                dialog._set_annotation(sample.annotation)
+            dialog._set_annotation(sample.annotation)
             dialog.exec_()
 
     def update_sample_annotation(self, sample, new_annotation):

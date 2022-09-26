@@ -2,14 +2,14 @@ import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import os
 
-from ..data_classes.annotation import Annotation
+from ..data_classes.globalstate import GlobalState
 from ..utility import filehandler
 from ..utility import functions
 from ..qt_helper_widgets.line_edit_adapted import QLineEditAdapted
 
 
 class QLoadExistingAnnotationDialog(qtw.QDialog):
-    load_annotation = qtc.pyqtSignal(Annotation)
+    load_annotation = qtc.pyqtSignal(GlobalState)
 
     def __init__(self, *args, **kwargs):
         super(QLoadExistingAnnotationDialog, self).__init__(*args, **kwargs)

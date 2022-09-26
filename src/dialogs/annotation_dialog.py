@@ -1,12 +1,12 @@
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
-import sys
-import logging
 import numpy as np
+
+from src.data_classes.annotation import Annotation
 
 
 class QAnnotationDialog(qtw.QDialog):
-    new_annotation = qtc.pyqtSignal(dict)
+    new_annotation = qtc.pyqtSignal(Annotation)
 
     def __init__(self, scheme, dependencies, annotation=None, *args, **kwargs):
         super(QAnnotationDialog, self).__init__(*args, **kwargs)
@@ -27,41 +27,12 @@ class QAnnotationDialog(qtw.QDialog):
             self._set_annotation(annotation)
 
     def _set_annotation(self, annotation):
-        if type(annotation) not in [dict, np.ndarray]:
-            raise RuntimeError("Unknown type: {}".format(type(annotation)))
-        if type(annotation) == dict:
-            self.current_selection = self.__dict_to_vector__(annotation)
-        if type(annotation) == np.ndarray:
-            assert annotation.shape == self.current_selection.shape
-            self.current_selection = annotation
+        self.current_selection = annotation.annotation_vector
         for idx in np.nonzero(self.current_selection)[0]:
             btn: QPushButtonAdapted = self.buttons[idx]
             btn.setChecked(False)
             btn.click()
 
-    def __vector_to_dict__(self, vec):
-        annotation_dict = dict()
-
-        offset = 0
-        for group_name, group_elements in self.scheme:
-            group_dict = dict()
-            annotation_dict[group_name] = group_dict
-            for idx, group_elem in enumerate(group_elements):
-                vec_pos = offset + idx
-                value = vec[vec_pos]
-                group_dict[group_elem] = value
-            offset += len(group_elements)
-
-        return annotation_dict
-
-    def __dict_to_vector__(self, dictionary):
-        vec = []
-        idx = 0
-        for group_name, group_elements in self.scheme:
-            for elem in group_elements:
-                vec.append(dictionary[group_name][elem])
-                idx += 1
-        return np.array(vec, dtype=np.uint8)
 
     def init_top_widget(self):
         self.scroll_widgets = []
@@ -225,8 +196,7 @@ class QAnnotationDialog(qtw.QDialog):
     def __save_annotation__(self):
         # Empty Annotation -> Reset Sample
         if not np.any(self.current_selection):
-            self.new_annotation.emit({})
-            self.close()
+            self.__reset_annotation__()
 
         # Default Case
         else:
@@ -235,17 +205,11 @@ class QAnnotationDialog(qtw.QDialog):
             else:
                 attr_vec = self.get_current_vector()
 
-            annotation_dict = self.__vector_to_dict__(attr_vec)
-            self.new_annotation.emit(annotation_dict)
+            self.new_annotation.emit(Annotation(self.scheme, attr_vec))
             self.close()
 
     def __reset_annotation__(self):
-        # for idx in np.nonzero(self.current_selection)[0]:
-        #    btn : QPushButtonAdapted = self.buttons[idx]
-        #    if btn.isChecked():
-        #        btn.click()
-        # self.update_layout()
-        self.new_annotation.emit({})
+        self.new_annotation.emit(Annotation(self.scheme))
         self.close()
 
     def __cancel_annotation__(self):
@@ -357,33 +321,3 @@ class QAdaptiveScrollArea(qtw.QWidget):
                 self.gridLayout.addWidget(btn, row, col)
 
 
-if __name__ == "__main__":
-    app = qtw.QApplication(sys.argv)
-
-    groups = []
-
-    # dependencies = np.random.randint(0,2, (5000, 200))
-
-    dependencies = np.loadtxt(
-        "C:\\Users\\Raphael\\Desktop\\Dev\\__annotation_tool\\datasets\\Kitchen_Dataset\\dependencies.csv",
-        delimiter=",",
-        dtype=np.uint8,
-    )
-    import json
-
-    with open(
-        "C:\\Users\\Raphael\\Desktop\\Dev\\__annotation_tool\\datasets\\Kitchen_Dataset\\scheme.json"
-    ) as f:
-        scheme = json.load(f)
-
-    widget = QAnnotationDialog(scheme, dependencies)
-
-    test_vec = np.zeros(dependencies.shape[1])
-    test_vec[-1] = 1
-    # widget.load_annotation(test_vec)
-
-    # widget.resize(400,300)
-    widget.show()
-    # widget.update_layout()
-
-    sys.exit(app.exec_())

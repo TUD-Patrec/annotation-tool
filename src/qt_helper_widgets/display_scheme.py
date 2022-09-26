@@ -1,26 +1,8 @@
-import logging
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
-import numpy as np
 
 from .adaptive_scroll_area import QAdaptiveScrollArea
 from textwrap import wrap
-
-
-def annotation_exist(a):
-    if a is None:
-        return False
-    if isinstance(a, np.ndarray):
-        return a.shape[0] > 0
-    return bool(a)
-
-
-def dict_to_array(scheme, d):
-    ls = []
-    for name, elements in scheme:
-        for e in elements:
-            ls.append(d[name][e])
-    return np.array(ls, dtype=np.int8)
 
 
 def format_str(s, characters_per_line, line_start=""):
@@ -38,45 +20,29 @@ class QShowAnnotation(qtw.QWidget):
         super(QShowAnnotation, self).__init__(*args, **kwargs)
         self.grid = qtw.QGridLayout(self)
 
-    def show_annotation(self, scheme, annotation):
+    def show_annotation(self, annotation):
         self.reset_layout()
-        if annotation_exist(annotation) :
-            if type(annotation) is dict:
-                annotation = dict_to_array(scheme, annotation)
 
-            assert type(annotation) is np.ndarray
+        current_row = -1
 
-            offset = 0
-            for idx, (group_name, group_elements) in enumerate(scheme):
+        for attribute in annotation:
+            if attribute.row != current_row:
                 scroll_wid = QAdaptiveScrollArea(self)
+                current_row = attribute.row
 
-                c = 0
-                for elem_idx, elem in enumerate(group_elements):
-                    adjusted_idx = offset + elem_idx
-                    if annotation[adjusted_idx] == 1:
-
-                        attr_name = format_str(elem, 25, line_start=f"")
-
-                        lbl = qtw.QLabel(attr_name, alignment=qtc.Qt.AlignCenter)
-                        lbl.setFixedWidth(200)
-                        lbl.setAlignment(qtc.Qt.AlignLeft)
-                        scroll_wid.addItem(lbl)
-
-                        c += 1
-
-                group_name = format_str("".join([group_name.upper(), ":"]), 25)
+                group_name = format_str("".join([attribute.group_name.upper(), ":"]), 25)
                 name_label = qtw.QLabel(group_name)
                 name_label.setFixedWidth(200)
 
-                self.grid.addWidget(name_label, idx, 0)
-                self.grid.addWidget(scroll_wid, idx, 1)
+                self.grid.addWidget(name_label, attribute.row, 0)
+                self.grid.addWidget(scroll_wid, attribute.row, 1)
 
-                offset += len(group_elements)
-        else:
-            lbl = qtw.QLabel("No Annotation")
-            lbl.setFixedWidth(200)
-            lbl.setAlignment(qtc.Qt.AlignCenter)
-            self.grid.addWidget(lbl,0,0)
+            if attribute.value == 1:
+                attr_name = format_str(attribute.element_name, 25, line_start=f"")
+                lbl = qtw.QLabel(attr_name, alignment=qtc.Qt.AlignCenter)
+                lbl.setFixedWidth(200)
+                lbl.setAlignment(qtc.Qt.AlignLeft)
+                scroll_wid.addItem(lbl)
 
     def reset_layout(self):
         for i in reversed(range(self.grid.count())):
