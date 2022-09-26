@@ -1,13 +1,13 @@
 all: test build
 
 build:
-	docker run --rm -e "PLATFORMS=linux,windows" -v $(shell pwd):/src --entrypoint='/bin/sh' fydeinc/pyinstaller -c 'pip install --upgrade pip && pip install poetry && poetry config virtualenvs.create false && poetry export --without-hashes -o requirements.txt && /entrypoint.sh --onefile /src/main.py && rm requirements.txt'
+	docker run --rm -e "PLATFORMS=linux,windows" -v $(shell pwd):/src --entrypoint='/bin/sh' fydeinc/pyinstaller -c 'pip install --upgrade pip && pip install poetry && poetry config virtualenvs.create false && poetry export --without-hashes -o /requirements.txt && pip install -r /requirements.txt && /entrypoint.sh --onefile --noconsole --name annotation-tool /src/main.py'
 
 build-linux:
-		docker run --rm -e "PLATFORMS=linux" -v $(shell pwd):/src --entrypoint='/bin/sh' fydeinc/pyinstaller -c 'pip install --upgrade pip && pip install poetry && poetry config virtualenvs.create false && poetry export --without-hashes -o requirements.txt && /entrypoint.sh --onefile /src/main.py && rm requirements.txt'
+	docker run --rm -e "PLATFORMS=linux" -v $(shell pwd):/src --entrypoint='/bin/sh' fydeinc/pyinstaller -c 'pip install --upgrade pip && pip install poetry && poetry config virtualenvs.create false && poetry export --without-hashes -o /requirements.txt && pip install -r /requirements.txt && /entrypoint.sh --onefile --noconsole --name annotation-tool /src/main.py'
 
 build-windows:
-		docker run --rm -e "PLATFORMS=windows" -v $(shell pwd):/src --entrypoint='/bin/sh' fydeinc/pyinstaller -c 'pip install --upgrade pip && pip install poetry && poetry config virtualenvs.create false && poetry export --without-hashes -o requirements.txt && /entrypoint.sh --onefile /src/main.py && rm requirements.txt'
+	docker run --rm -e "PLATFORMS=windows" -v $(shell pwd):/src --entrypoint='/bin/sh' fydeinc/pyinstaller -c 'pip install --upgrade pip && pip install poetry && poetry config virtualenvs.create false && poetry export --without-hashes -o /requirements.txt && pip install -r /requirements.txt && /entrypoint.sh --onefile --noconsole --name annotation-tool /src/main.py'
 
 test:
 	poetry run flake8 . --count --statistics
