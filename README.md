@@ -10,8 +10,7 @@ If you do not want to install the development requirements run
 
 Building the executable requires [docker](https://www.docker.com/). After you installed docker on your system you can run one of
 
-    make build
     make build-linux
     make build-windows
 
-to build the executables for linux and/or windows.
+to build the executables for linux or windows.

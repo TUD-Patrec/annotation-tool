@@ -1,8 +1,5 @@
 all: test build
 
-build:
-	docker run --rm -e "PLATFORMS=linux,windows" -v $(shell pwd):/src --entrypoint='/bin/sh' fydeinc/pyinstaller -c 'pip install --upgrade pip && /usr/win64/bin/python -m pip install --upgrade pip && pip install poetry && /usr/win64/bin/python -m pip install poetry && poetry config virtualenvs.create false && /usr/win64/bin/python -m poetry config virtualenvs.create false && poetry install && /usr/win64/bin/python -m poetry install && /entrypoint.sh --onefile --noconsole --name annotation-tool /src/main.py'
-
 build-linux:
 	docker run --rm -e "PLATFORMS=linux" -v $(shell pwd):/src --entrypoint='/bin/sh' fydeinc/pyinstaller -c 'pip install --upgrade pip && pip install poetry && poetry config virtualenvs.create false && poetry install && /entrypoint.sh --onefile --noconsole --name annotation-tool /src/main.py'
 
