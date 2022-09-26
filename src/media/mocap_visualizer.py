@@ -7,9 +7,10 @@ Created on 26.07.2022
 """
 import logging
 import time
+
+import PyQt5.QtCore as qtc
 import numpy as np
 import pyqtgraph.opengl as gl
-import PyQt5.QtCore as qtc
 
 from ..data_classes.singletons import Settings
 from .media_player import AbstractMediaPlayer, MediaLoader
@@ -17,18 +18,18 @@ from .media_player import AbstractMediaPlayer, MediaLoader
 
 class MocapLoader(MediaLoader):
     def __init__(self, path) -> None:
-        super().__init__( path)
-        
+        super().__init__(path)
+
     def load(self):
         try:
-            array = np.loadtxt(self.path, delimiter=',', skiprows=5)
+            array = np.loadtxt(self.path, delimiter=",", skiprows=5)
             array = array[:, 2:]
             # normalizing
             normalizing_vector = array[:, 66:72]  # 66:72 are the columns for lowerback
             for _ in range(21):
                 normalizing_vector = np.hstack((normalizing_vector, array[:, 66:72]))
             array = np.subtract(array, normalizing_vector)
-    
+
             N = array.shape[0]
 
             # Calculate Skeleton
@@ -38,23 +39,26 @@ class MocapLoader(MediaLoader):
                 self.progress.emit(prog)
                 frame = array[frame_index, :]
                 frame = calculate_skeleton(frame)
-                
+
                 # NORMALIZATION
                 height = 0
-                for segment in [body_segments_reversed[i] for i in ['L toe', 'R toe', 'L foot', 'R foot']]:
-                        segment_height = frame[segment * 2, 2]
-                        height = min((height, segment_height))
-                frame[:,2] -= height
+                for segment in [
+                    body_segments_reversed[i]
+                    for i in ["L toe", "R toe", "L foot", "R foot"]
+                ]:
+                    segment_height = frame[segment * 2, 2]
+                    height = min((height, segment_height))
+                frame[:, 2] -= height
                 # END NORMALIZATION
-                
+
                 frames[frame_index, :, :] = frame
 
             self.media = frames.astype(np.float16)
             # self.media = frames
-            
+
         except Exception as e:
             raise e
-    
+
 
 class MocapPlayer(AbstractMediaPlayer):
     def __init__(self, *args, **kwargs) -> None:
@@ -63,41 +67,41 @@ class MocapPlayer(AbstractMediaPlayer):
         settings = Settings.instance()
 
         self.allow_frame_merges = True
-        
+
         self.media_backend.right_mouse_btn_clicked.connect(self.open_context_menu)
-        
+
     def load(self, path):
-        self.loading_thread = MocapLoader( path)
+        self.loading_thread = MocapLoader(path)
         self.loading_thread.progress.connect(self.pbar.setValue)
         self.loading_thread.finished.connect(self._loading_finished)
         self.loading_thread.start()
-        logging.info('Loading start')
-    
+        logging.info("Loading start")
+
     @qtc.pyqtSlot(np.ndarray)
     def _loading_finished(self, media):
-        logging.info('Loading done')   
+        logging.info("Loading done")
         self.n_frames = media.shape[0]
         self.fps = Settings.instance().refresh_rate
-        
-        logging.info(f'{media.dtype = }, {media.nbytes = }')
-        
+
+        logging.info(f"{media.dtype = }, {media.nbytes = }")
+
         self.media_backend.media = media
         self.media_backend.set_position(0)
         self.layout().replaceWidget(self.pbar, self.media_backend)
         self.pbar.setParent(None)
         del self.pbar
-        
-        self.loaded.emit(self)     
-        
+
+        self.loaded.emit(self)
+
     def update_media_position(self):
         pos = self.position + self.offset
         pos_adjusted = max(0, min(pos, self.n_frames - 1))
         self.media_backend.set_position(pos_adjusted)
-    
+
 
 class MocapBackend(gl.GLViewWidget):
     right_mouse_btn_clicked = qtc.pyqtSignal()
-    
+
     def __init__(self):
         super().__init__()
         self.media = None
@@ -105,70 +109,106 @@ class MocapBackend(gl.GLViewWidget):
 
         self.zgrid = gl.GLGridItem()
         self.addItem(self.zgrid)
-        
-        self.current_skeleton = gl.GLLinePlotItem(pos=np.array([[0, 0, 0], [0, 0, 0]]),
-                                                  color=np.array([[0, 0, 0, 0], [0, 0, 0, 0]]),
-                                                  mode='lines')
+
+        self.current_skeleton = gl.GLLinePlotItem(
+            pos=np.array([[0, 0, 0], [0, 0, 0]]),
+            color=np.array([[0, 0, 0, 0], [0, 0, 0, 0]]),
+            mode="lines",
+        )
         self.addItem(self.current_skeleton)
-   
+
     @qtc.pyqtSlot(int)
     def set_position(self, new_pos):
-        self.position = new_pos # update position
+        self.position = new_pos  # update position
         skeleton = self.media[self.position]
-        self.current_skeleton.setData(pos=skeleton, color=np.array(skeleton_colors), width=4, mode='lines')
-                        
+        self.current_skeleton.setData(
+            pos=skeleton, color=np.array(skeleton_colors), width=4, mode="lines"
+        )
+
     def mousePressEvent(self, ev):
-        lpos = ev.position() if hasattr(ev, 'position') else ev.localPos()
+        lpos = ev.position() if hasattr(ev, "position") else ev.localPos()
         self.mousePos = lpos
         if ev.button() == qtc.Qt.RightButton:
             self.right_mouse_btn_clicked.emit()
 
 
 body_segments = {
-    -1: 'none',
-    0: 'head',
-    1: 'head end',
-    2: 'L collar', 12: 'R collar',
-    6: 'L humerus', 16: 'R humerus',
-    3: 'L elbow', 13: 'R elbow',
-    9: 'L wrist', 19: 'R wrist',
-    10: 'L wrist end', 20: 'R wrist end',
-    11: 'lower back',
-    21: 'root',
-    4: 'L femur', 14: 'R femur',
-    7: 'L tibia', 17: 'R tibia',
-    5: 'L foot', 15: 'R foot',
-    8: 'L toe', 18: 'R toe'}
+    -1: "none",
+    0: "head",
+    1: "head end",
+    2: "L collar",
+    12: "R collar",
+    6: "L humerus",
+    16: "R humerus",
+    3: "L elbow",
+    13: "R elbow",
+    9: "L wrist",
+    19: "R wrist",
+    10: "L wrist end",
+    20: "R wrist end",
+    11: "lower back",
+    21: "root",
+    4: "L femur",
+    14: "R femur",
+    7: "L tibia",
+    17: "R tibia",
+    5: "L foot",
+    15: "R foot",
+    8: "L toe",
+    18: "R toe",
+}
 
 body_segments_reversed = {v: k for k, v in body_segments.items()}
 
-colors = {'r': (1, 0, 0, 1), 'g': (0, 1, 0, 1), 'b': (0, 0, 1, 1), 'y': (1, 1, 0, 1)}
+colors = {"r": (1, 0, 0, 1), "g": (0, 1, 0, 1), "b": (0, 0, 1, 1), "y": (1, 1, 0, 1)}
 
 # each bodysegmentline needs 2 colors because each has a start and end.
 # different colors on each end result in a gradient
 skeleton_colors = (
-    colors['b'], colors['b'],  # head
-    colors['b'], colors['b'],  # head end
-    colors['b'], colors['b'],  # L collar
-    colors['g'], colors['g'],  # L elbow
-    colors['r'], colors['r'],  # L femur
-    colors['r'], colors['r'],  # L foot
-    colors['g'], colors['g'],  # L humerus
-    colors['r'], colors['r'],  # L tibia
-    colors['r'], colors['r'],  # L toe
-    colors['g'], colors['g'],  # L wrist
-    colors['g'], colors['g'],  # L wrist end
-    colors['b'], colors['b'],  # lower back
-    colors['b'], colors['b'],  # R collar
-    colors['g'], colors['g'],  # R elbow
-    colors['r'], colors['r'],  # R femur
-    colors['r'], colors['r'],  # R foot
-    colors['g'], colors['g'],  # R humerus
-    colors['r'], colors['r'],  # R tibia
-    colors['r'], colors['r'],  # R toe
-    colors['g'], colors['g'],  # R wrist
-    colors['g'], colors['g'],  # R wrist end
-    colors['b'], colors['b'],  # root
+    colors["b"],
+    colors["b"],  # head
+    colors["b"],
+    colors["b"],  # head end
+    colors["b"],
+    colors["b"],  # L collar
+    colors["g"],
+    colors["g"],  # L elbow
+    colors["r"],
+    colors["r"],  # L femur
+    colors["r"],
+    colors["r"],  # L foot
+    colors["g"],
+    colors["g"],  # L humerus
+    colors["r"],
+    colors["r"],  # L tibia
+    colors["r"],
+    colors["r"],  # L toe
+    colors["g"],
+    colors["g"],  # L wrist
+    colors["g"],
+    colors["g"],  # L wrist end
+    colors["b"],
+    colors["b"],  # lower back
+    colors["b"],
+    colors["b"],  # R collar
+    colors["g"],
+    colors["g"],  # R elbow
+    colors["r"],
+    colors["r"],  # R femur
+    colors["r"],
+    colors["r"],  # R foot
+    colors["g"],
+    colors["g"],  # R humerus
+    colors["r"],
+    colors["r"],  # R tibia
+    colors["r"],
+    colors["r"],  # R toe
+    colors["g"],
+    colors["g"],  # R wrist
+    colors["g"],
+    colors["g"],  # R wrist end
+    colors["b"],
+    colors["b"],  # root
 )
 
 
@@ -244,7 +284,3 @@ def calculate_skeleton(frame: np.array) -> np.array:
 
     # convert the list into an array, convert millimeters to meters and return the result
     return np.array(t_all) / 1000
-
-
-
-        
