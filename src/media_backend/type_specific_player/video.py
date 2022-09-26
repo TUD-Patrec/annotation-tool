@@ -1,6 +1,4 @@
 import logging, cv2
-from re import U
-from decord import VideoReader
 import time
 import numpy as np
 
@@ -8,7 +6,7 @@ import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 
-from ..player import AbstractMediaPlayer, AbstractMediaLoader, UpdateReason
+from ..player import AbstractMediaPlayer, UpdateReason
 
 class VideoPlayer(AbstractMediaPlayer):
     get_update = qtc.pyqtSignal(int, int, int, UpdateReason)
