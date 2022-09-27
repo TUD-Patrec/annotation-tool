@@ -35,7 +35,7 @@ class QRetrievalFilter(qtw.QDialog):
 
             self.form.addRow(gr_name.upper() + ":", combo_box)
 
-        self.accept_button = qtw.QPushButton('Save')
+        self.accept_button = qtw.QPushButton("Save")
         self.accept_button.clicked.connect(self.accept_clicked)
         self.form.addRow(self.accept_button)
 

@@ -77,7 +77,10 @@ class Annotation:
         if isinstance(a, dict):
             ls = []
             for scheme_element in self.scheme:
-                group_name, elem = scheme_element.group_name, scheme_element.element_name
+                group_name, elem = (
+                    scheme_element.group_name,
+                    scheme_element.element_name,
+                )
                 val = a[group_name][elem]
                 assert 0 <= val <= 1
                 ls.append(val)
@@ -115,7 +118,7 @@ class Annotation:
 
     @scheme.setter
     def scheme(self, x):
-        raise AttributeError('Cannot change the scheme!')
+        raise AttributeError("Cannot change the scheme!")
 
     @property
     def is_empty(self):
@@ -125,8 +128,10 @@ class Annotation:
         return self.annotation_vector.shape[0]
 
     def __iter__(self):
-        annotation_element = namedtuple('annotation_attribute',
-                                        ['group_name', 'element_name', 'value', 'row', 'column', 'array_index'])
+        annotation_element = namedtuple(
+            "annotation_attribute",
+            ["group_name", "element_name", "value", "row", "column", "array_index"],
+        )
 
         for scheme_element in self.scheme:
             group_name = scheme_element.group_name

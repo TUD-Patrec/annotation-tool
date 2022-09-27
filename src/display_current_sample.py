@@ -79,4 +79,3 @@ class QDisplaySample(qtw.QWidget):
             self.middle_widget.show_annotation(self.sample.annotation)
             self.start_value.setText(str(self.sample.start_position))
             self.end_value.setText(str(self.sample.end_position))
-

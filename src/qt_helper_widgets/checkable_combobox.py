@@ -89,7 +89,9 @@ class CheckableComboBox(qtw.QComboBox):
 
         # Compute elided text (with "...")
         metrics = QFontMetrics(self.lineEdit().font())
-        elidedText = metrics.elidedText(text, qtc.Qt.ElideRight, self.lineEdit().width())
+        elidedText = metrics.elidedText(
+            text, qtc.Qt.ElideRight, self.lineEdit().width()
+        )
         self.lineEdit().setText(elidedText)
 
     def addItem(self, text, data=None):

@@ -3,7 +3,7 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import logging
 
-from src.data_classes.settings import  Settings
+from src.data_classes.settings import Settings
 from .data_classes.globalstate import GlobalState
 from .dialogs.settings_dialog import SettingsDialog
 from .dialogs.edit_datasets import QEditDatasets

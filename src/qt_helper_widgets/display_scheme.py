@@ -30,7 +30,9 @@ class QShowAnnotation(qtw.QWidget):
                 scroll_wid = QAdaptiveScrollArea(self)
                 current_row = attribute.row
 
-                group_name = format_str("".join([attribute.group_name.upper(), ":"]), 25)
+                group_name = format_str(
+                    "".join([attribute.group_name.upper(), ":"]), 25
+                )
                 name_label = qtw.QLabel(group_name)
                 name_label.setFixedWidth(200)
 

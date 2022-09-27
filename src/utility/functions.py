@@ -6,7 +6,7 @@ from ..data_classes.datasets import DatasetDescription
 from ..data_classes.globalstate import GlobalState
 
 from .decorators import Singleton
-from src.data_classes.settings import  Settings
+from src.data_classes.settings import Settings
 
 
 def scale(N, M, x):

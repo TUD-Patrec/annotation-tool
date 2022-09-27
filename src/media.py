@@ -78,7 +78,7 @@ class QMediaWidget(qtw.QWidget):
 
     @qtc.pyqtSlot(int, int)
     def startLoop(self, x, y):
-        logging.info(f'STARTING LOOP {x=}, {y=}')
+        logging.info(f"STARTING LOOP {x=}, {y=}")
         self.controller.start_loop_slot(x, y)
 
     @qtc.pyqtSlot()

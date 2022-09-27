@@ -24,7 +24,7 @@ class ColorMapper:
         x = 0
         for attribute in annotation:
             if attribute.row > 1:
-                x += attribute.value * (2 ** attribute.array_index)
+                x += attribute.value * (2**attribute.array_index)
 
         x %= len(self._color_map)
 
@@ -34,6 +34,3 @@ class ColorMapper:
         color.setAlpha(127)
 
         return color
-
-
-

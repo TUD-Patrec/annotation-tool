@@ -46,14 +46,16 @@ class QRetrievalWidget(qtw.QWidget):
 
         self.retrieval_options_widget = qtw.QWidget()
         self.retrieval_options_widget.setLayout(qtw.QHBoxLayout())
-        self.retrieval_options_widget.layout().addWidget(qtw.QLabel('Mode:'))
-        self.retrieval_options_widget.layout().addWidget(self.retrieval_options, stretch=1)
+        self.retrieval_options_widget.layout().addWidget(qtw.QLabel("Mode:"))
+        self.retrieval_options_widget.layout().addWidget(
+            self.retrieval_options, stretch=1
+        )
 
         self.filter_widget = qtw.QWidget()
         self.filter_widget.setLayout(qtw.QHBoxLayout())
-        self.filter_widget.layout().addWidget(qtw.QLabel('Filter:'))
-        self.filter_active = qtw.QLabel('Inactive')
-        self.modify_filter = qtw.QPushButton('Select Filter')
+        self.filter_widget.layout().addWidget(qtw.QLabel("Filter:"))
+        self.filter_active = qtw.QLabel("Inactive")
+        self.modify_filter = qtw.QPushButton("Select Filter")
         self.modify_filter.clicked.connect(self.modify_filter_clicked)
         self.filter_widget.layout().addWidget(self.filter_active)
         self.filter_widget.layout().addWidget(self.modify_filter)
@@ -152,9 +154,9 @@ class QRetrievalWidget(qtw.QWidget):
         return intervals
 
     def update_retrieval_mode(self):
-        logging.info(f'NEW ANNOTATION_MODE = {self.retrieval_options.currentIndex()}')
+        logging.info(f"NEW ANNOTATION_MODE = {self.retrieval_options.currentIndex()}")
         idx = self.retrieval_options.currentIndex()
-        logging.info(f'{idx = }')
+        logging.info(f"{idx = }")
         new_mode = RetrievalMode(idx)
         if self._query:
             self._query.change_mode(new_mode)
@@ -302,7 +304,7 @@ class QRetrievalWidget(qtw.QWidget):
                 idx += 1
 
         interval.predicted_classification = new_prediction
-        logging.info('Interval modified')
+        logging.info("Interval modified")
         self.display_interval()
 
     # accept the prediction from the network -> mark the interval as done
@@ -353,7 +355,8 @@ class QRetrievalWidget(qtw.QWidget):
         # this will remove minimized status
         # and restore window with keeping maximized/normal state
         self._open_dialog.setWindowState(
-            self._open_dialog.windowState() & ~qtc.Qt.WindowMinimized | qtc.Qt.WindowActive
+            self._open_dialog.windowState() & ~qtc.Qt.WindowMinimized
+            | qtc.Qt.WindowActive
         )
 
         # this will activate the window
@@ -384,7 +387,7 @@ class QRetrievalWidget(qtw.QWidget):
                 annotation_dict[gr_name][elem] = i.predicted_classification[idx]
                 idx += 1
 
-        logging.info(f'{annotation_dict = }')
+        logging.info(f"{annotation_dict = }")
 
         sample = Sample(i.start, i.end, annotation_dict)
         return sample

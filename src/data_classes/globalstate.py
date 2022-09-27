@@ -45,13 +45,10 @@ class GlobalState:
         self._path = path
         self._footprint = filehandler.footprint_of_file(self._input_file)
 
-        _, self._frame_count, self._fps = filehandler.meta_data(
-            self._input_file
-        )
+        _, self._frame_count, self._fps = filehandler.meta_data(self._input_file)
 
         empty_annotation = Annotation(self.dataset.scheme)
         self._samples.append(Sample(0, self._frame_count - 1, empty_annotation))
-
 
     @property
     def name(self):
@@ -60,7 +57,7 @@ class GlobalState:
     @name.setter
     @accepts(object, str)
     def name(self, value: str):
-            self._name = value
+        self._name = value
 
     @property
     def path(self):
@@ -178,4 +175,3 @@ class GlobalState:
                 return annotation
             except:
                 raise FileNotFoundError("Could not open {}".format(path))
-

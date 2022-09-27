@@ -9,4 +9,3 @@ class Interval:
     end: int = field(hash=True, compare=True)
     predicted_classification: np.ndarray = field(hash=False, compare=False)
     similarity: float = field(hash=False, compare=False)
-

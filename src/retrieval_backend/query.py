@@ -107,4 +107,3 @@ class Query:
     @property
     def idx(self):
         return self._idx
-

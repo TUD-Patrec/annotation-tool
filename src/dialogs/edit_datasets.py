@@ -174,8 +174,6 @@ class QEditDatasets(qtw.QDialog):
         else:
             dependencies = []
 
-
-
         dataset = DatasetDescription(name, scheme, dependencies)
         dataset.to_disk()
 

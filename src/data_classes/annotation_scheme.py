@@ -28,7 +28,10 @@ class AnnotationScheme:
         return self._length
 
     def __iter__(self):
-        scheme_element = namedtuple('scheme_element', ['group_name', 'element_name', 'row', 'column', 'array_index'])
+        scheme_element = namedtuple(
+            "scheme_element",
+            ["group_name", "element_name", "row", "column", "array_index"],
+        )
         idx = 0
         for row, (group_name, group_elements) in enumerate(self.scheme):
             for col, elem in enumerate(group_elements):
@@ -41,5 +44,4 @@ class AnnotationScheme:
 
     @scheme.setter
     def scheme(self):
-        raise AttributeError('Cannot update the scheme')
-
+        raise AttributeError("Cannot update the scheme")

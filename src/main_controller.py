@@ -9,7 +9,7 @@ from .gui import GUI
 from .playback import PlayWidget
 from .display_current_sample import QDisplaySample
 from src.retrieval_backend.controller import QRetrievalWidget, RetrievalMode
-from src.data_classes.settings import  Settings
+from src.data_classes.settings import Settings
 from .utility.functions import FrameTimeMapper
 from .utility import filehandler
 
@@ -130,7 +130,7 @@ class MainApplication(qtw.QApplication):
         if update_media:
             self.update_media_pos.emit(self.position)
 
-    @qtc.pyqtSlot(int,int)
+    @qtc.pyqtSlot(int, int)
     def start_loop(self, lower, upper):
         self.lower = lower
         self.upper = upper
@@ -186,9 +186,7 @@ class MainApplication(qtw.QApplication):
     def load_retrieval_mode(self):
         assert type(self.flex_widget) != RetrievalMode
         logging.info("LOADING RETRIEVAL MODE")
-        self.annotation_widget.samples_changed.disconnect(
-            self.flex_widget.set_selected
-        )
+        self.annotation_widget.samples_changed.disconnect(self.flex_widget.set_selected)
 
         self.flex_widget = QRetrievalWidget()
         self.gui.set_right_widget(self.flex_widget)

@@ -33,7 +33,6 @@ class QAnnotationDialog(qtw.QDialog):
             btn.setChecked(False)
             btn.click()
 
-
     def init_top_widget(self):
         self.scroll_widgets = []
 
@@ -69,9 +68,6 @@ class QAnnotationDialog(qtw.QDialog):
             self.button_to_idx_map[(group_name, elem)] = idx
 
             group_buttons.append(button)
-
-
-
 
             lbl = qtw.QLabel()
             lbl.setAlignment(qtc.Qt.AlignCenter)
@@ -326,5 +322,3 @@ class QAdaptiveScrollArea(qtw.QWidget):
             ):
                 row, col = idx // self.elements_per_row + 1, idx % self.elements_per_row
                 self.gridLayout.addWidget(btn, row, col)
-
-
