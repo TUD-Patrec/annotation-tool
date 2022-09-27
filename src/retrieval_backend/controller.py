@@ -14,10 +14,12 @@ from src.retrieval_backend.interval import Interval
 from src.retrieval_backend.query import Query
 from src.retrieval_backend.filter_dialog import QRetrievalFilter
 from src.retrieval_backend.mode import RetrievalMode
+from src.utility.decorators import accepts
 
 
 def format_progress(x, y):
-    percentage = int(x * 100 / y) if y != 0 else 0
+    x += 1
+    percentage = int(x * 100 / y) if y != 0 else 100
     return f"{x : }/{y}\t[{percentage}%] "
 
 
@@ -36,6 +38,8 @@ class QRetrievalWidget(qtw.QWidget):
         self._open_dialog: qtw.QDialog = None
         self.TRIES_PER_INTERVAL = 3
         self.init_UI()
+        self.enabled = False
+        self.setEnabled(False)
 
     def init_UI(self):
         self.retrieval_options = qtw.QComboBox()
@@ -112,6 +116,7 @@ class QRetrievalWidget(qtw.QWidget):
         # load correct mode
         idx = self.retrieval_options.currentIndex()
         self._query.change_mode(RetrievalMode(idx))
+        self.setEnabled(True)
 
     @qtc.pyqtSlot()
     def load_initial_view(self):
@@ -120,7 +125,6 @@ class QRetrievalWidget(qtw.QWidget):
     # initialize the intervals from the given annotation
     def generate_intervals(self):
         start_time = time.time()
-        print("STARTING TO GENERATE INTERVALS")
 
         boundaries = []
         for sample in self._annotation.samples:
@@ -155,9 +159,7 @@ class QRetrievalWidget(qtw.QWidget):
         return intervals
 
     def update_retrieval_mode(self):
-        logging.info(f"NEW ANNOTATION_MODE = {self.retrieval_options.currentIndex()}")
         idx = self.retrieval_options.currentIndex()
-        logging.info(f"{idx = }")
         new_mode = RetrievalMode(idx)
         if self._query:
             self._query.change_mode(new_mode)
@@ -235,26 +237,23 @@ class QRetrievalWidget(qtw.QWidget):
         array_length = len(self.scheme)
         return np.random.rand(array_length)
 
-    # Display the current interval to the user: Show him the Interval boundaries and the predicted annotation,
-    # start the loop.
-    def display_interval(self):
-        if self._query:
+    # Display the current interval to the user: Show him the Interval boundaries and the predicted annotation
+    def update_UI(self):
+        logging.info('Updating UI')
+        if self._query is not None:
             txt = format_progress(self._query.idx, len(self._query))
             self.progress_label.setText(txt)
-
         if self._current_interval is None:
             self.similarity_label.setText("")
             widget = qtw.QLabel(
-                "There is no interval to show yet.", alignment=qtc.Qt.AlignCenter
+                "There is no interval to show.", alignment=qtc.Qt.AlignCenter
             )
             self.layout().replaceWidget(self.main_widget, widget)
             self.main_widget.setParent(None)
             self.main_widget = widget
-
         else:
             self.similarity_label.setText(f"{self._current_interval.similarity :.3f}")
-
-            proposed_annotation = self._current_interval.predicted_classification
+            proposed_annotation = self._current_interval.annotation
             self.main_widget.show_annotation(proposed_annotation)
 
     @qtc.pyqtSlot(bool)
@@ -274,11 +273,16 @@ class QRetrievalWidget(qtw.QWidget):
     def change_filter(self, filter_criteria):
         if self._query:
             self._query.change_filter(filter_criteria)
+            logging.info(f'change filter {len(self._query) = }')
+            self.load_next()
 
     # same as manually_annotate_interval except that the annotation is preloaded with the suggested annotation
     def modify_interval_prediction(self):
         if self._open_dialog:
             self.refocus_dialog()
+        if self._current_interval is None:
+            return
+            # TODO maybe find better solution
         else:
             sample = self.current_sample
 
@@ -292,14 +296,14 @@ class QRetrievalWidget(qtw.QWidget):
 
     def modify_interval(self, new_annotation):
         interval = self._current_interval
-        interval.predicted_classification = new_annotation
-        self.display_interval()
+        interval.annotation = new_annotation
+        self.update_UI()
 
     # accept the prediction from the network -> mark the interval as done
     def accept_interval(self):
         if self._current_interval:
             assert self._query is not None
-            self._query.mark_as_done(self._current_interval)
+            self._query.mark_interval(self._current_interval)
             self.load_next()
         else:
             # TODO
@@ -309,36 +313,35 @@ class QRetrievalWidget(qtw.QWidget):
     def decline_interval(self):
         self.load_next()
 
-    # TODO
-    def all_intervals_done(self):
-        self._current_interval = None
-        if self._query:
-            N = len(self._query)
-            self.progress_label.setText(format_progress(N, N))
-
     def load_next(self):
-        if self._query:
-            if self._query.has_next():
-                old_interval = self._current_interval
-                self._current_interval = self._query.get_next()
-                self.display_interval()
-                if old_interval != self._current_interval:
-                    # only emit new loop if the interval has changed remember that for each interval there might be
-                    # multiple predictions that get testet one after another
-                    l, r = self._current_interval.start, self._current_interval.end
-                    self.start_loop.emit(l, r)
-            else:
-                logging.info("ALL intervals_done")
-                self.all_intervals_done()
+        assert self._query is not None
+        if self._query.has_next():
+            old_interval = self._current_interval
+            self._current_interval = self._query.get_next()
+            if old_interval != self._current_interval:
+                # only emit new loop if the interval has changed remember that for each interval there might be
+                # multiple predictions that get testet one after another
+                l, r = self._current_interval.start, self._current_interval.end
+                self.start_loop.emit(l, r)
+        else:
+            self._current_interval = None
+        self.update_UI()
 
-    @qtc.pyqtSlot()
-    def settings_changed(self):
-        pass
 
     @qtc.pyqtSlot(RetrievalMode)
     def change_mode(self, mode):
         if self._query:
             self._query.change_mode(mode)
+            self.load_next()
+
+    @accepts(object, bool)
+    def setEnabled(self, enabled: bool) -> None:
+        self.enabled = enabled
+        self.retrieval_options.setEnabled(enabled)
+        self.modify_button.setEnabled(enabled)
+        self.modify_filter.setEnabled(enabled)
+        self.accept_button.setEnabled(enabled)
+        self.decline_button.setEnabled(enabled)
 
     def refocus_dialog(self):
         # this will remove minimized status
@@ -367,5 +370,5 @@ class QRetrievalWidget(qtw.QWidget):
     @property
     def current_sample(self):
         i = self._current_interval
-        sample = Sample(i.start, i.end, i.predicted_classification)
+        sample = Sample(i.start, i.end, i.annotation)
         return sample

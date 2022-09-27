@@ -91,6 +91,7 @@ class QAnnotationWidget(qtw.QWidget):
         grid.addWidget(self.timeline, 0, 1, 2, 1)
 
         self.setLayout(grid)
+        self.setMinimumHeight(150)
 
     def is_loaded(self):
         return len(self.samples) > 0
@@ -387,11 +388,7 @@ class QTimeLine(qtw.QWidget):
             pos += dist
 
         if self.pos is not None and self.is_in:
-            try:
-                qp.drawLine(self.pos.x(), 0, self.pos.x(), 40)
-            except:
-                logging.error("POS = {}".format(self.pos()))
-                raise RuntimeError()
+            qp.drawLine(self.pos.x(), 0, self.pos.x(), 40)
 
         if self.pointer_position is not None:
             pos = self.pointer_position
@@ -432,14 +429,14 @@ class QTimeLine(qtw.QWidget):
             # Clear clip path
             path = qtg.QPainterPath()
             path.addRoundedRect(
-                qtc.QRectF(sample_start, 50, sample_length, 200), 10, 10
+                qtc.QRectF(sample_start, 50, sample_length, 75), 10, 10
             )
             qp.setClipPath(path)
 
             path = qtg.QPainterPath()
             qp.setPen(color)
             path.addRoundedRect(
-                qtc.QRectF(sample_start, 50, sample_length, 200), 10, 10
+                qtc.QRectF(sample_start, 50, sample_length, 75), 10, 10
             )
             qp.fillPath(path, color)
             qp.drawPath(path)

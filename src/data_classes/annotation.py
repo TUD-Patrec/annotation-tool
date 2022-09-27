@@ -17,7 +17,7 @@ def is_compatible(raw_annotation: Union[np.ndarray, dict], scheme: AnnotationSch
                 return False
             if not isinstance(val, int):
                 return False
-            if not (0 <= val <= 1):
+            if not val in [0,1]:
                 return False
         return True
     if isinstance(raw_annotation, np.ndarray):
@@ -26,7 +26,7 @@ def is_compatible(raw_annotation: Union[np.ndarray, dict], scheme: AnnotationSch
             return False
         if len(raw_annotation.shape) > 1:
             return False
-        return np.all((0 <= raw_annotation) & (raw_annotation <= 1))
+        return np.all((raw_annotation == 0) | (raw_annotation == 1))
 
     return False
 
@@ -61,7 +61,7 @@ class Annotation:
 
                 group_element = scheme_element.element_name
 
-                val = a[idx]
+                val = int(a[idx])
                 assert 0 <= val <= 1
                 d[group_name][group_element] = val
             return d
@@ -72,6 +72,7 @@ class Annotation:
 
     def _make_vector(self, a):
         if isinstance(a, np.ndarray):
+            a = a.astype(dtype=np.int8)
             return a
         if isinstance(a, dict):
             ls = []

@@ -10,3 +10,7 @@ class QLineEditAdapted(qtw.QLineEdit):
 
     def mousePressEvent(self, event):
         self.mousePressed.emit()
+
+    def keyPressEvent(self, event):
+        if event.key() in [qtc.Qt.Key_Enter, qtc.Qt.Key_Space]:
+            self.mousePressed.emit()

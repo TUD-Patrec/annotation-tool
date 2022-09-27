@@ -1,10 +1,12 @@
+import copy
 import time
-
+import logging
 import numpy as np
 
 from src.retrieval_backend.filter import FilterCriteria
 from src.retrieval_backend.interval import Interval
 from src.retrieval_backend.mode import RetrievalMode
+from src.utility.decorators import accepts
 
 
 class Query:
@@ -12,11 +14,10 @@ class Query:
         self._intervals = intervals
         self._indices = []  # for querying
         self._idx = -1
-        self._marked_intervals = set()  # for marking intervals as DONE
+        self._marked_intervals = set()
+        self._accepted_intervals = set()
         self._mode: RetrievalMode = RetrievalMode.DESCENDING
         self._filter_criteria: FilterCriteria = FilterCriteria()
-
-        self.debug_count = 0
 
         self.update_indices()
 
@@ -44,19 +45,23 @@ class Query:
             idx += 1
         return idx
 
+    def reset_marked_intervals(self):
+        self._marked_intervals = copy.deepcopy(self._accepted_intervals)
+
+    def reset_accepted_intervals(self):
+        self._accepted_intervals = set()
+        self._marked_intervals = set()
+        self.update_indices()
+
     def apply_filter(self):
-        if self._filter_criteria:
-            indices = []
-            for idx in range(len(self._intervals)):
-                if self._filter_criteria.matches(self._intervals[idx]):
-                    indices.append(idx)
-        else:
-            indices = list(range(len(self._intervals)))
+        indices = []
+        for idx, interval in enumerate(self._intervals):
+            if self._filter_criteria.matches(interval):
+                indices.append(idx)
         self._indices = indices
 
     def reorder_indices(self):
         if self._mode == RetrievalMode.DESCENDING:
-            print("CHANGING TO DESCENDING")
             ls = [
                 (idx, self._intervals[idx].similarity) for idx in self._indices
             ]  # zip indices with similarities
@@ -65,10 +70,8 @@ class Query:
             self._indices = [x for x, _ in ls]
 
         if self._mode == RetrievalMode.DEFAULT:
-            print("CHANGING TO DEFAULT")
             self._indices.sort()
         if self._mode == RetrievalMode.RANDOM:
-            print("CHANGING TO RANDOM")
             perm = np.random.permutation(np.array(self._indices))
             self._indices = list(perm)
 
@@ -78,15 +81,17 @@ class Query:
         self._idx = -1
 
     # modify _indices to only include those that match the filter criterium
+    @accepts(object, FilterCriteria)
     def change_filter(self, criteria: FilterCriteria):
         start = time.time()
         if self._filter_criteria != criteria:
             self._filter_criteria = criteria
             self.update_indices()
         end = time.time()
-        print(f"CHANGE_FILTER TOOK {end - start}ms")
+        logging.info(f"CHANGE_FILTER TOOK {end - start}ms")
 
     # reorder the indices
+    @accepts(object, RetrievalMode)
     def change_mode(self, mode: RetrievalMode):
         start = time.time()
         if mode != self._mode:
@@ -95,10 +100,15 @@ class Query:
         end = time.time()
         print(f"CHANGE_MODE TOOK {end - start}ms")
 
-    def mark_as_done(self, i: Interval):
+    @accepts(object, Interval)
+    def mark_interval(self, i: Interval):
         assert i not in self._marked_intervals
-        self.debug_count += 1
-        # print(self.debug_count)
+        self._marked_intervals.add(i)
+
+    @accepts(object, Interval)
+    def accept_interval(self, i: Interval):
+        assert i not in self._accepted_intervals
+        self._accepted_intervals.add(i)
         self._marked_intervals.add(i)
 
     @property

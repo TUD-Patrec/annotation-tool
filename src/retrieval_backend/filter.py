@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass, field
 import numpy as np
 
@@ -8,11 +9,13 @@ class FilterCriteria:
 
     # test whether a given interval matches the criterion
     def matches(self, i):
-        if self.filter_array is None:
+        if self.is_empty():
             return True
-        comp_array = i.predicted_classification
+        comp_array = i.annotation.annotation_vector
+
         tmp = np.logical_and(comp_array, self.filter_array)
         res = np.array_equal(self.filter_array, tmp)
+
         return res
 
     def __eq__(self, other):

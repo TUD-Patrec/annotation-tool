@@ -56,7 +56,6 @@ class QRetrievalFilter(qtw.QDialog):
         new_filter = FilterCriteria(filter_array)
 
         if new_filter != self.old_filter:
-            logging.info(f"new filter = {new_filter}")
             self.filter_changed.emit(new_filter)
 
         self.close()
