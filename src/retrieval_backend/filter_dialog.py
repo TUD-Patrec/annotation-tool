@@ -1,39 +1,42 @@
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import numpy as np
+import logging
 
 from src.qt_helper_widgets.checkable_combobox import CheckableComboBox
+from src.retrieval_backend.filter import FilterCriteria
 
 
 class QRetrievalFilter(qtw.QDialog):
-    filter_changed = qtc.pyqtSignal(np.ndarray)
+    filter_changed = qtc.pyqtSignal(FilterCriteria)
 
-    def __init__(self, filter_vector, scheme, *args, **kwargs):
+    def __init__(self, old_filter, scheme, *args, **kwargs):
         super(QRetrievalFilter, self).__init__(*args, **kwargs)
-        self.filter_vector = filter_vector
+        self.old_filter = old_filter
         self.scheme = scheme
-
         self.init_UI()
 
     def init_UI(self):
         self.form = qtw.QFormLayout(self)
-
         self.combo_boxes = []
 
-        idx = 0
-        for gr_name, gr_elems in self.scheme:
-            combo_box = CheckableComboBox()
+        last_element = None
+        for idx, scheme_element in enumerate(self.scheme):
+            if last_element is None or last_element.row != scheme_element.row:
+                combo_box = CheckableComboBox()
+                self.combo_boxes.append(combo_box)
+                self.form.addRow(scheme_element.group_name.upper() + ":", combo_box)
 
-            for elem in gr_elems:
-                combo_box.addItem(elem)
-                if self.filter_vector:
-                    if self.filter_vector[idx] == 1:
-                        pass
-                idx += 1
+            combo_box.addItem(scheme_element.element_name)
 
-            self.combo_boxes.append(combo_box)
+            if not self.old_filter.is_empty():
+                is_checked = self.old_filter.filter_array[idx] == 1
+                if is_checked:
+                    combo_box.model().item(scheme_element.column).setCheckState(
+                        qtc.Qt.Checked
+                    )
 
-            self.form.addRow(gr_name.upper() + ":", combo_box)
+            last_element = scheme_element
 
         self.accept_button = qtw.QPushButton("Save")
         self.accept_button.clicked.connect(self.accept_clicked)
@@ -42,23 +45,18 @@ class QRetrievalFilter(qtw.QDialog):
         self.setMinimumWidth(500)
 
     def accept_clicked(self):
-        new_filter = self.empty_vec_for_scheme()
-        offset = 0
-        for idx, combo_box in enumerate(self.combo_boxes):
-            current_data = combo_box.currentData()
-            for inner_idx, elem in enumerate(self.scheme[idx][1]):
-                if elem in current_data:
-                    adjusted_index = offset + inner_idx
-                    new_filter[adjusted_index] = 1
-            offset += len(self.scheme[idx][1])
-        if self.filter_vector is None or np.array_equal(new_filter, self.filter_vector):
-            self.filter_changed.emit(new_filter)
-        self.close()
+        filter_array = np.zeros(len(self.scheme))
 
-    def empty_vec_for_scheme(self):
-        if self.filter_vector:
-            return np.zeros_like(self.filter_vector)
-        length = 0
-        for _, elems in self.scheme:
-            length += len(elems)
-        return np.zeros(length)
+        for idx, scheme_element in enumerate(self.scheme):
+            combo_box = self.combo_boxes[scheme_element.row]
+            current_data = combo_box.currentData()
+            if scheme_element.element_name in current_data:
+                filter_array[idx] = 1
+
+        new_filter = FilterCriteria(filter_array)
+
+        if new_filter != self.old_filter:
+            logging.info(f"new filter = {new_filter}")
+            self.filter_changed.emit(new_filter)
+
+        self.close()

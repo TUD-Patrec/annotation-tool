@@ -22,9 +22,9 @@ class ColorMapper:
         assert isinstance(annotation, Annotation)
 
         x = 0
-        for attribute in annotation:
+        for idx, attribute in enumerate(annotation):
             if attribute.row > 1:
-                x += attribute.value * (2**attribute.array_index)
+                x += attribute.value * (2**idx)
 
         x %= len(self._color_map)
 

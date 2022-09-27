@@ -14,7 +14,7 @@ class Query:
         self._idx = -1
         self._marked_intervals = set()  # for marking intervals as DONE
         self._mode: RetrievalMode = RetrievalMode.DESCENDING
-        self._filter_criteria: FilterCriteria = None
+        self._filter_criteria: FilterCriteria = FilterCriteria()
 
         self.debug_count = 0
 
@@ -80,10 +80,7 @@ class Query:
     # modify _indices to only include those that match the filter criterium
     def change_filter(self, criteria: FilterCriteria):
         start = time.time()
-        reason_1 = self._filter_criteria is None and criteria is not None
-        reason_2 = self._filter_criteria is not None and criteria is None
-        reason_3 = self._filter_criteria != criteria
-        if reason_1 or reason_2 or reason_3:
+        if self._filter_criteria != criteria:
             self._filter_criteria = criteria
             self.update_indices()
         end = time.time()

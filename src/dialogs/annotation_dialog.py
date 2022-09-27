@@ -27,7 +27,7 @@ class QAnnotationDialog(qtw.QDialog):
             self._set_annotation(annotation)
 
     def _set_annotation(self, annotation):
-        self.current_selection = annotation.annotation_vector
+        self.current_selection = np.copy(annotation.annotation_vector)
         for idx in np.nonzero(self.current_selection)[0]:
             btn: QPushButtonAdapted = self.buttons[idx]
             btn.setChecked(False)
@@ -45,19 +45,29 @@ class QAnnotationDialog(qtw.QDialog):
         self.buttons = []
         self.button_to_idx_map = dict()
 
-        row = -1
-        for scheme_element in self.scheme:
-            group_buttons = []
-            if scheme_element.row != row:
-                row = scheme_element.row
-
+        group_buttons = []
+        last_elem = None
+        for idx, scheme_element in enumerate(self.scheme):
+            if last_elem is not None and scheme_element.row != last_elem.row:
+                no_scroll = last_elem.row == 0 or len(group_buttons) < 10
                 new_scroll_widget = QAdaptiveScrollArea(
-                    group_buttons, no_scroll=group_idx == 0 or len(group_buttons) < 10
+                    group_buttons, no_scroll=no_scroll
                 )
                 self.scroll_widgets.append(new_scroll_widget)
 
-            button = QPushButtonAdapted(group_name, elem)
-            elem_txt = elem.replace("&", " && ")
+                lbl = qtw.QLabel()
+                lbl.setAlignment(qtc.Qt.AlignCenter)
+                lbl.setText(last_elem.element_name.upper() + ":")
+
+                self.top_widget.layout.addWidget(lbl, last_elem.row, 0)
+                self.top_widget.layout.addWidget(new_scroll_widget, last_elem.row, 1)
+
+                group_buttons = []
+
+            button = QPushButtonAdapted(
+                scheme_element.group_name, scheme_element.element_name
+            )
+            elem_txt = scheme_element.element_name.replace("&", " && ")
             button.setText(elem_txt)
 
             button.button_clicked.connect(
@@ -65,16 +75,13 @@ class QAnnotationDialog(qtw.QDialog):
             )
 
             self.buttons.append(button)
-            self.button_to_idx_map[(group_name, elem)] = idx
+            self.button_to_idx_map[
+                (scheme_element.group_name, scheme_element.element_name)
+            ] = idx
 
             group_buttons.append(button)
 
-            lbl = qtw.QLabel()
-            lbl.setAlignment(qtc.Qt.AlignCenter)
-            lbl.setText(group_name.upper() + ":")
-
-            self.top_widget.layout.addWidget(lbl, group_idx, 0)
-            self.top_widget.layout.addWidget(new_scroll_widget, group_idx, 1)
+            last_elem = scheme_element
 
     def init_bottom_widget(self):
         self.bottom_widget = qtw.QWidget(self)
@@ -104,27 +111,21 @@ class QAnnotationDialog(qtw.QDialog):
         offset = 0
         vec = self.__get_determined_attributes__()
 
-        for _, group_elements in self.scheme:
-            for idx, _ in enumerate(group_elements):
-                effective_idx = offset + idx
-                btn = self.buttons[effective_idx]
+        for idx, scheme_element in enumerate(self.scheme):
+            btn = self.buttons[idx]
 
-                if (
-                    vec[effective_idx] == -1
-                    or self.current_selection[effective_idx] == 1
-                ):
-                    # the value of the attribute at that position is not yet determined
-                    btn.setCheckable(True)
-                    if self.current_selection[effective_idx] != 1:
-                        btn.unhighlight()
+            if vec[idx] == -1 or self.current_selection[idx] == 1:
+                # the value of the attribute at that position is not yet determined
+                btn.setCheckable(True)
+                if self.current_selection[idx] != 1:
+                    btn.unhighlight()
+            else:
+                if vec[idx] == 1:
+                    btn.setCheckable(False)
+                    btn.highlight()
                 else:
-                    if vec[effective_idx] == 1:
-                        btn.setCheckable(False)
-                        btn.highlight()
-                    else:
-                        btn.setCheckable(False)
-                        btn.unhighlight()
-            offset += len(group_elements)
+                    btn.setCheckable(False)
+                    btn.unhighlight()
         for wid in self.scroll_widgets:
             wid.updateUI()
 

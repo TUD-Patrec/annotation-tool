@@ -1,5 +1,7 @@
 from collections import namedtuple
 
+import src.data_classes.annotation as annotation
+
 
 def scheme_is_valid(scheme):
     valid = True
@@ -30,13 +32,14 @@ class AnnotationScheme:
     def __iter__(self):
         scheme_element = namedtuple(
             "scheme_element",
-            ["group_name", "element_name", "row", "column", "array_index"],
+            ["group_name", "element_name", "row", "column"],
         )
-        idx = 0
         for row, (group_name, group_elements) in enumerate(self.scheme):
             for col, elem in enumerate(group_elements):
-                yield scheme_element(group_name, elem, row, col, idx)
-                idx += 1
+                yield scheme_element(group_name, elem, row, col)
+
+    def get_empty_annotation(self):
+        return annotation.Annotation(self)
 
     @property
     def scheme(self):

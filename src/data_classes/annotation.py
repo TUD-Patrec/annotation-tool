@@ -26,7 +26,7 @@ def is_compatible(raw_annotation: Union[np.ndarray, dict], scheme: AnnotationSch
             return False
         if len(raw_annotation.shape) > 1:
             return False
-        return np.all(0 <= raw_annotation <= 1)
+        return np.all((0 <= raw_annotation) & (raw_annotation <= 1))
 
     return False
 
@@ -53,7 +53,7 @@ class Annotation:
         if isinstance(a, np.ndarray):
             d = {}
             row = -1
-            for scheme_element in self.scheme:
+            for idx, scheme_element in enumerate(self.scheme):
                 group_name = scheme_element.group_name
                 if row != scheme_element.row:
                     row = scheme_element.row
@@ -61,7 +61,6 @@ class Annotation:
 
                 group_element = scheme_element.element_name
 
-                idx = scheme_element.array_index
                 val = a[idx]
                 assert 0 <= val <= 1
                 d[group_name][group_element] = val
@@ -130,14 +129,13 @@ class Annotation:
     def __iter__(self):
         annotation_element = namedtuple(
             "annotation_attribute",
-            ["group_name", "element_name", "value", "row", "column", "array_index"],
+            ["group_name", "element_name", "value", "row", "column"],
         )
 
         for scheme_element in self.scheme:
             group_name = scheme_element.group_name
             element_name = scheme_element.element_name
             row, col = scheme_element.row, scheme_element.column
-            idx = scheme_element.array_index
             value = self.annotation_dict[group_name][element_name]
 
-            yield annotation_element(group_name, element_name, value, row, col, idx)
+            yield annotation_element(group_name, element_name, value, row, col)

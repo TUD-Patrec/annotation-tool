@@ -5,7 +5,7 @@ import PyQt5.QtCore as qtc
 import numpy as np
 from scipy import spatial
 
-from src.data_classes import Sample
+from src.data_classes import Sample, Annotation
 from src.qt_helper_widgets.lines import QHLine
 from src.qt_helper_widgets.display_scheme import QShowAnnotation
 from src.dialogs.annotation_dialog import QAnnotationDialog
@@ -124,7 +124,8 @@ class QRetrievalWidget(qtw.QWidget):
 
         boundaries = []
         for sample in self._annotation.samples:
-            if sample.annotation_exists:
+            # sample already annotated
+            if not sample.annotation.is_empty:
                 continue
 
             # only grab samples that are not annotated yet
@@ -202,7 +203,9 @@ class QRetrievalWidget(qtw.QWidget):
                 proposed_classification = combinations[idx]
                 similarity = 1 - dist[idx]
 
-                yield Interval(lower, upper, proposed_classification, similarity)
+                anno = Annotation(self.scheme, proposed_classification)
+
+                yield Interval(lower, upper, anno, similarity)
         else:
             # Rounding the output to nearest integers and computing the distance to that
             network_output = network_output.flatten()  # check if actually needed
@@ -212,7 +215,9 @@ class QRetrievalWidget(qtw.QWidget):
             similarity = 1 - spatial.distance.cosine(
                 network_output, proposed_classification
             )
-            yield Interval(lower, upper, proposed_classification, similarity)
+
+            anno = Annotation(self.scheme, proposed_classification)
+            yield Interval(lower, upper, anno, similarity)
 
     def get_combinations(self):
         if self._annotation.dataset.dependencies_exist:
@@ -227,14 +232,8 @@ class QRetrievalWidget(qtw.QWidget):
 
     # TODO: actually use a network, currently only proof of concept
     def run_network(self, lower, upper):
-        array_length = self.get_scheme_length()
+        array_length = len(self.scheme)
         return np.random.rand(array_length)
-
-    def get_scheme_length(self):
-        c = 0
-        for _, group_elements in self.scheme:
-            c += len(group_elements)
-        return c
 
     # Display the current interval to the user: Show him the Interval boundaries and the predicted annotation,
     # start the loop.
@@ -256,27 +255,25 @@ class QRetrievalWidget(qtw.QWidget):
             self.similarity_label.setText(f"{self._current_interval.similarity :.3f}")
 
             proposed_annotation = self._current_interval.predicted_classification
-            self.main_widget.show_annotation(self.scheme, proposed_annotation)
+            self.main_widget.show_annotation(proposed_annotation)
 
     @qtc.pyqtSlot(bool)
-    def modify_filter_clicked(self, checked):
+    def modify_filter_clicked(self, _):
         if self._open_dialog:
             self.refocus_dialog()
         else:
-            self._open_dialog = QRetrievalFilter(None, self.scheme)
+            filter_criterion = (
+                self._query._filter_criteria if self._query else FilterCriteria()
+            )
+
+            self._open_dialog = QRetrievalFilter(filter_criterion, self.scheme)
             self._open_dialog.filter_changed.connect(self.change_filter)
             self._open_dialog.finished.connect(self.free_dialog)
             self._open_dialog.open()
 
-    def change_filter(self, filter_array):
+    def change_filter(self, filter_criteria):
         if self._query:
-            filter_criteria = FilterCriteria(filter_array)
             self._query.change_filter(filter_criteria)
-
-    # ask user for manual annotation -> used as a last option kind of thing or also whenever the user feels like it
-    # is needed
-    def manually_annotate_interval(self):
-        pass
 
     # same as manually_annotate_interval except that the annotation is preloaded with the suggested annotation
     def modify_interval_prediction(self):
@@ -293,18 +290,9 @@ class QRetrievalWidget(qtw.QWidget):
             self._open_dialog = dialog
             dialog.open()
 
-    def modify_interval(self, annotation_dict):
+    def modify_interval(self, new_annotation):
         interval = self._current_interval
-
-        new_prediction = np.zeros_like(self._current_interval.predicted_classification)
-        idx = 0
-        for gr_name, gr_elems in self.scheme:
-            for elem in gr_elems:
-                new_prediction[idx] = annotation_dict[gr_name][elem]
-                idx += 1
-
-        interval.predicted_classification = new_prediction
-        logging.info("Interval modified")
+        interval.predicted_classification = new_annotation
         self.display_interval()
 
     # accept the prediction from the network -> mark the interval as done
@@ -314,6 +302,7 @@ class QRetrievalWidget(qtw.QWidget):
             self._query.mark_as_done(self._current_interval)
             self.load_next()
         else:
+            # TODO
             logging.info("IM ELSE BLOCK")
 
     # don't accept the prediction
@@ -378,16 +367,5 @@ class QRetrievalWidget(qtw.QWidget):
     @property
     def current_sample(self):
         i = self._current_interval
-        annotation_dict = dict()
-
-        idx = 0
-        for gr_name, elems in self.scheme:
-            annotation_dict[gr_name] = dict()
-            for elem in elems:
-                annotation_dict[gr_name][elem] = i.predicted_classification[idx]
-                idx += 1
-
-        logging.info(f"{annotation_dict = }")
-
-        sample = Sample(i.start, i.end, annotation_dict)
+        sample = Sample(i.start, i.end, i.predicted_classification)
         return sample
