@@ -1,3 +1,5 @@
+import logging
+
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 
@@ -8,10 +10,6 @@ from .qt_helper_widgets.display_scheme import QShowAnnotation
 class QDisplaySample(qtw.QWidget):
     def __init__(self, *args, **kwargs):
         super(QDisplaySample, self).__init__(*args, **kwargs)
-        self.scheme = None
-        self.sample = None
-        self.scroll_widgets = []
-
         self.init_UI()
 
     def init_UI(self):
@@ -22,8 +20,7 @@ class QDisplaySample(qtw.QWidget):
         self.end_label = qtw.QLabel("End Frame:", alignment=qtc.Qt.AlignCenter)
         self.end_value = qtw.QLabel("B", alignment=qtc.Qt.AlignCenter)
 
-        self.middle_widget = qtw.QWidget()
-        self.middle_widget.setLayout(qtw.QHBoxLayout())
+        self.middle_widget = QShowAnnotation()
 
         self.bottom_left_widget = qtw.QWidget()
         self.bottom_left_widget.setLayout(qtw.QFormLayout())
@@ -48,34 +45,12 @@ class QDisplaySample(qtw.QWidget):
         self.setLayout(vbox)
         self.setMinimumWidth(300)
 
-    def load_annotation(self, annotation):
-        self.scheme = annotation.dataset.scheme
-        self.sample = None
-
-    @qtc.pyqtSlot()
-    def load_initial_view(self):
-        self.update_layout()
-
     def set_selected(self, _, sample):
-        self.sample = sample
-        self.update_layout()
-
-    def update_layout(self):
-        if self.sample is None:
-            widget = qtw.QLabel(
-                "There is no sample to show yet.", alignment=qtc.Qt.AlignCenter
-            )
-            self.layout().replaceWidget(self.middle_widget, widget)
-            self.middle_widget.setParent(None)
-            self.middle_widget = widget
+        if sample is None:
+            self.middle_widget.show_annotation(None)
             self.start_value.setText(str(0))
             self.end_value.setText(str(0))
         else:
-            if not isinstance(self.middle_widget, QShowAnnotation):
-                widget = QShowAnnotation()
-                self.layout().replaceWidget(self.middle_widget, widget)
-                self.middle_widget.setParent(None)
-                self.middle_widget = widget
-            self.middle_widget.show_annotation(self.sample.annotation)
-            self.start_value.setText(str(self.sample.start_position))
-            self.end_value.setText(str(self.sample.end_position))
+            self.middle_widget.show_annotation(sample.annotation)
+            self.start_value.setText(str(sample.start_position))
+            self.end_value.setText(str(sample.end_position))

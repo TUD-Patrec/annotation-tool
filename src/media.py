@@ -26,35 +26,28 @@ class QMediaWidget(qtw.QWidget):
            endLoop: Stops looping
     """
 
-    positionChanged = qtc.pyqtSignal(int)
+    position_changed = qtc.pyqtSignal(int)
     cleanedUp = qtc.pyqtSignal()
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.controller = QMediaMainController()
         self.controller.cleaned_up.connect(self.cleanedUp)
-        self.controller.position_changed.connect(self.positionChanged)
+        self.controller.position_changed.connect(self.position_changed)
         self._layout = qtw.QHBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.addWidget(self.controller)
 
     @qtc.pyqtSlot(object)
-    def loadAnnotation(self, o):
-        self.endLoop()
+    def load_state(self, o):
         self.controller.load_annotation(o)
 
     def load_initial_view(self):
-        self.setPosition(0)
+        self.set_position(0)
 
     @qtc.pyqtSlot(int)
-    def setPosition(self, p):
+    def set_position(self, p):
         self.controller.set_position(p)
-
-    def getPosition(self):
-        if self.controller.replay_widgets:
-            return self.controller.replay_widgets[0].position
-        else:
-            return -1
 
     @qtc.pyqtSlot()
     def play(self):
@@ -65,22 +58,13 @@ class QMediaWidget(qtw.QWidget):
         self.controller.pause()
 
     @qtc.pyqtSlot(float)
-    def setReplaySpeed(self, x):
+    def set_replay_speed(self, x):
         self.controller.set_replay_speed(x)
 
     @qtc.pyqtSlot()
-    def settingsChanges(self):
+    def settings_changed(self):
         self.controller.settings_changed()
 
     @qtc.pyqtSlot()
     def shutdown(self):
         self.controller.shutdown()
-
-    @qtc.pyqtSlot(int, int)
-    def startLoop(self, x, y):
-        logging.info(f"STARTING LOOP {x=}, {y=}")
-        self.controller.start_loop_slot(x, y)
-
-    @qtc.pyqtSlot()
-    def endLoop(self):
-        self.controller.end_loop_slot()

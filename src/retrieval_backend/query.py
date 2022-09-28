@@ -17,7 +17,7 @@ class Query:
         self._marked_intervals = set()
         self._accepted_intervals = set()
         self._mode: RetrievalMode = RetrievalMode.DESCENDING
-        self._filter_criteria: FilterCriteria = FilterCriteria()
+        self._filter_criterion: FilterCriteria = FilterCriteria()
 
         self.update_indices()
 
@@ -56,7 +56,7 @@ class Query:
     def apply_filter(self):
         indices = []
         for idx, interval in enumerate(self._intervals):
-            if self._filter_criteria.matches(interval):
+            if self._filter_criterion.matches(interval):
                 indices.append(idx)
         self._indices = indices
 
@@ -84,8 +84,8 @@ class Query:
     @accepts(object, FilterCriteria)
     def change_filter(self, criteria: FilterCriteria):
         start = time.time()
-        if self._filter_criteria != criteria:
-            self._filter_criteria = criteria
+        if self._filter_criterion != criteria:
+            self._filter_criterion = criteria
             self.update_indices()
         end = time.time()
         logging.info(f"CHANGE_FILTER TOOK {end - start}ms")
@@ -114,3 +114,7 @@ class Query:
     @property
     def idx(self):
         return self._idx
+
+    @property
+    def filter_criterion(self):
+        return self._filter_criterion

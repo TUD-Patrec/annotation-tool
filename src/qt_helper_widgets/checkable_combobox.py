@@ -30,7 +30,7 @@ class CheckableComboBox(qtw.QComboBox):
 
         # Hide and show popup when clicking the line edit
         self.lineEdit().installEventFilter(self)
-        self.closeOnLineEditClick = True
+        self.closeOnLineEditClick = False
 
         # Prevent popup from closing when clicking on an item
         self.view().viewport().installEventFilter(self)

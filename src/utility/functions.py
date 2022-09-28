@@ -82,7 +82,7 @@ class FrameTimeMapper:
     def settings_changed(self):
         self.use_time = Settings.instance().show_millisecs
 
-    def load_annotation(self, n_frames, millisecs):
+    def load_state(self, n_frames, millisecs):
         self.n_frames = n_frames
         self.millisecs = millisecs
         logging.info("{}, {}".format(n_frames, millisecs))

@@ -23,8 +23,9 @@ class ColorMapper:
 
         x = 0
         for idx, attribute in enumerate(annotation):
-            if attribute.row > 1:
-                x += attribute.value * (2**idx)
+            if attribute.row >= 1:
+                break
+            x += attribute.value * (2**idx)
 
         x %= len(self._color_map)
 

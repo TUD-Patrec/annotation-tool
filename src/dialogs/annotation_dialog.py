@@ -33,6 +33,18 @@ class QAnnotationDialog(qtw.QDialog):
             btn.setChecked(False)
             btn.click()
 
+    def tmp(self, last_elem, group_buttons):
+        no_scroll = last_elem.row == 0 or len(group_buttons) < 10
+        new_scroll_widget = QAdaptiveScrollArea(group_buttons, no_scroll=no_scroll)
+        self.scroll_widgets.append(new_scroll_widget)
+
+        lbl = qtw.QLabel()
+        lbl.setAlignment(qtc.Qt.AlignCenter)
+        lbl.setText(last_elem.group_name.upper() + ":")
+
+        self.top_widget.layout.addWidget(lbl, last_elem.row, 0)
+        self.top_widget.layout.addWidget(new_scroll_widget, last_elem.row, 1)
+
     def init_top_widget(self):
         self.scroll_widgets = []
 
@@ -49,19 +61,7 @@ class QAnnotationDialog(qtw.QDialog):
         last_elem = None
         for idx, scheme_element in enumerate(self.scheme):
             if last_elem is not None and scheme_element.row != last_elem.row:
-                no_scroll = last_elem.row == 0 or len(group_buttons) < 10
-                new_scroll_widget = QAdaptiveScrollArea(
-                    group_buttons, no_scroll=no_scroll
-                )
-                self.scroll_widgets.append(new_scroll_widget)
-
-                lbl = qtw.QLabel()
-                lbl.setAlignment(qtc.Qt.AlignCenter)
-                lbl.setText(last_elem.element_name.upper() + ":")
-
-                self.top_widget.layout.addWidget(lbl, last_elem.row, 0)
-                self.top_widget.layout.addWidget(new_scroll_widget, last_elem.row, 1)
-
+                self.tmp(last_elem, group_buttons)
                 group_buttons = []
 
             button = QPushButtonAdapted(
@@ -82,6 +82,8 @@ class QAnnotationDialog(qtw.QDialog):
             group_buttons.append(button)
 
             last_elem = scheme_element
+        if idx > 0:
+            self.tmp(last_elem, group_buttons)
 
     def init_bottom_widget(self):
         self.bottom_widget = qtw.QWidget(self)

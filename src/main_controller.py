@@ -4,17 +4,20 @@ import PyQt5.QtGui as qtg
 import sys, logging, logging.config
 
 from .data_classes.globalstate import GlobalState
-from .annotation_widget import QAnnotationWidget
+from src.annotation.annotation_widget import QAnnotationWidget
 from .gui import GUI
-from .playback import PlayWidget
+from .mediator import Mediator
+from .playback import QPlaybackWidget
 from .display_current_sample import QDisplaySample
 from src.retrieval_backend.controller import QRetrievalWidget, RetrievalMode
 from src.data_classes.settings import Settings
+from src.annotation.timeline import QTimeLine
 from .utility.functions import FrameTimeMapper
 from .utility import filehandler
 
-from .media import QMediaWidget
 from src.utility.breeze_resources import *
+
+from .media import QMediaWidget
 
 
 class MainApplication(qtw.QApplication):
@@ -25,148 +28,98 @@ class MainApplication(qtw.QApplication):
         super().__init__(*args, **kwargs)
 
         # Controll-Attributes
-        self.annotation = None
-        self.position = None
-        self.n_frames = None
-        self.lower = None
-        self.upper = None
-        self.loop_active = False
+        self.global_state = None
+        self.mediator = Mediator()
 
-        # Main Window
+        # Widgets
         self.gui = GUI()
-
         self.annotation_widget = QAnnotationWidget()
-        self.player = PlayWidget()
+        self.playback = QPlaybackWidget()
         self.media_player = QMediaWidget()
+        self.timeline = QTimeLine()
         self.flex_widget = None
 
-        self.gui.set_left_widget(self.player)
+        self.gui.set_left_widget(self.playback)
         self.gui.set_central_widget(self.media_player)
-        self.gui.set_bottom_widget(self.annotation_widget)
+        bottom_widget = qtw.QWidget()
+        bottom_widget.setLayout(qtw.QHBoxLayout())
+        bottom_widget.layout().addWidget(self.annotation_widget)
+        bottom_widget.layout().addWidget(self.timeline, stretch=1)
+        self.gui.set_bottom_widget(bottom_widget)
 
         # CONNECTIONS
-        # from player
-        self.player.playing.connect(self.media_player.play)
-        self.player.paused.connect(self.media_player.pause)
-        self.player.skip_frames.connect(self.skip_frames)
-        self.player.replay_speed_changed.connect(self.media_player.setReplaySpeed)
+        # from QPlaybackWidget
+        self.playback.playing.connect(self.media_player.play)
+        self.playback.paused.connect(self.media_player.pause)
+        self.playback.replay_speed_changed.connect(self.media_player.set_replay_speed)
 
         # from media_player
-        self.media_player.positionChanged.connect(
-            lambda x: self.update_position(
-                x, update_media=False, update_annotation=True
-            )
-        )
         self.media_player.cleanedUp.connect(self.gui.cleaned_up)
 
-        # from annotation_widget
-        self.annotation_widget.position_changed.connect(
-            lambda x: self.update_position(
-                x, update_media=True, update_annotation=False
-            )
-        )
-        self.annotation_widget.interrupt_replay.connect(self.media_player.pause)
-        self.annotation_widget.interrupt_replay.connect(self.player.pause)
-        self.annotation_widget.update_label.connect(self.player.update_label)
+        # from QAnnotationWidget
+        self.annotation_widget.samples_changed.connect(self.timeline.set_samples)
 
         # from GUI
         self.gui.save_pressed.connect(self.save_annotation)
-        self.gui.load_annotation.connect(self.load_annotation)
-        self.gui.skip_frames.connect(self.skip_frames)
-        self.gui.annotate_pressed.connect(
-            lambda: self.annotation_widget.annotate_btn.trigger()
-        )
-        self.gui.merge_left_pressed.connect(
-            lambda: self.annotation_widget.merge_left_btn.trigger()
-        )
+        self.gui.load_annotation.connect(self.load_state)
+        self.gui.annotate_pressed.connect(self.annotation_widget.annotate_btn.click)
+        self.gui.merge_left_pressed.connect(self.annotation_widget.merge_left_btn.click)
         self.gui.merge_right_pressed.connect(
-            lambda: self.annotation_widget.merge_right_btn.trigger()
+            self.annotation_widget.merge_right_btn.click
         )
-        self.gui.cut_pressed.connect(lambda: self.annotation_widget.cut_btn.trigger())
+        self.gui.cut_pressed.connect(self.annotation_widget.cut_btn.click)
         self.gui.cut_and_annotate_pressed.connect(
-            lambda: self.annotation_widget.cut_and_annotate_btn.trigger()
+            self.annotation_widget.cut_and_annotate_btn.click
         )
-        self.gui.play_pause_pressed.connect(
-            lambda: self.player.play_stop_button.trigger()
-        )
-        self.gui.decrease_speed_pressed.connect(self.player.decrease_speed)
-        self.gui.increase_speed_pressed.connect(self.player.increase_speed)
+        self.gui.play_pause_pressed.connect(self.playback.play_stop_button.trigger)
+        self.gui.skip_frames.connect(lambda x, y: self.playback.skip_frames.emit(x, y))
+        self.gui.decrease_speed_pressed.connect(self.playback.decrease_speed)
+        self.gui.increase_speed_pressed.connect(self.playback.increase_speed)
         self.gui.undo_pressed.connect(self.annotation_widget.undo)
         self.gui.redo_pressed.connect(self.annotation_widget.redo)
         self.gui.settings_changed.connect(self.settings_changed)
-        self.gui.settings_changed.connect(self.media_player.settingsChanges)
+        self.gui.settings_changed.connect(self.media_player.settings_changed)
         self.gui.exit_pressed.connect(self.media_player.shutdown)
         self.gui.use_manual_annotation.connect(self.load_manual_annotation)
         self.gui.use_retrieval_mode.connect(self.load_retrieval_mode)
 
-        # from main_controller
-        self.update_annotation_pos.connect(self.annotation_widget.set_position)
-        self.update_media_pos.connect(self.media_player.setPosition)
-
         self.load_manual_annotation()
 
-    def skip_frames(self, forward_step, fast):
-        if self.annotation:
-            settings = Settings.instance()
-            n = settings.big_skip if fast else settings.small_skip
-            if not forward_step:
-                n *= -1
-
-            new_pos = max(0, min(self.n_frames - 1, self.position + n))
-            self.update_position(new_pos, True, True)
-
-    def update_position(self, new_pos, update_media, update_annotation):
-        assert 0 <= new_pos < self.n_frames
-
-        # logging.info(f'{self.position = }, {self.annotation_widget.position = }, {self.media_player.getPosition() = }')
-
-        if self.loop_active:
-            new_pos = min(self.upper, max(self.lower, new_pos))
-
-        self.position = new_pos
-
-        if update_annotation:
-            self.update_annotation_pos.emit(self.position)
-        if update_media:
-            self.update_media_pos.emit(self.position)
-
-    @qtc.pyqtSlot(int, int)
-    def start_loop(self, lower, upper):
-        self.lower = lower
-        self.upper = upper
-        self.loop_active = True
-
-        self.media_player.startLoop(lower, upper)
-        self.annotation_widget.restrict_range(lower, upper)
-        self.update_position(lower, True, True)
+        # Init mediator
+        self.mediator.add_receiver(self.timeline)
+        self.mediator.add_receiver(self.annotation_widget)
+        self.mediator.add_receiver(self.media_player)
+        self.mediator.add_receiver(self.playback)
+        self.mediator.add_emitter(self.timeline)
+        self.mediator.add_emitter(self.media_player)
+        self.mediator.add_emitter(self.playback)
 
     @qtc.pyqtSlot(GlobalState)
-    def load_annotation(self, annotation):
-        FrameTimeMapper.instance().load_annotation(
-            annotation.frames, annotation.duration
-        )
+    def load_state(self, state):
+        FrameTimeMapper.instance().load_state(state.frames, state.duration)
 
         # reset playback
-        self.player.reset()
+        self.playback.reset()
 
         # store annotation
-        self.annotation = annotation
+        self.global_state = state
+
+        # update mediator
+        self.mediator.n_frames = state.n_frames
+
+        # update playback
+        self.playback.n_frames = state.n_frames
 
         # load annotation in widgets
-        self.media_player.loadAnnotation(self.annotation)
-        self.flex_widget.load_annotation(self.annotation)
-        self.annotation_widget.load_annotation(self.annotation)
+        self.timeline.set_range(state.n_frames)
+        self.annotation_widget.load_state(state)
+        self.media_player.load_state(state)
 
-        # load initial views
-        self.annotation_widget.load_initial_view()
-        self.media_player.load_initial_view()
-        self.flex_widget.load_initial_view()
-
-        #
-        self.n_frames = annotation.frames
-        self.update_position(0, True, True)
+        if isinstance(self.flex_widget, QRetrievalWidget):
+            self.flex_widget.load_state(state)
 
         self.save_annotation()
+        self.mediator.set_position(0)
 
     @qtc.pyqtSlot()
     def load_manual_annotation(self):
@@ -175,12 +128,12 @@ class MainApplication(qtw.QApplication):
         self.flex_widget = QDisplaySample()
         self.gui.set_right_widget(self.flex_widget)
 
-        logging.info("HERE")
         self.annotation_widget.samples_changed.connect(self.flex_widget.set_selected)
-        self.loop_active = False
 
-        if self.annotation:
-            self.load_annotation(self.annotation)
+        self.mediator.stop_loop()
+
+        if self.global_state is not None:
+            self.load_state(self.global_state)
 
     @qtc.pyqtSlot()
     def load_retrieval_mode(self):
@@ -191,24 +144,25 @@ class MainApplication(qtw.QApplication):
         self.flex_widget = QRetrievalWidget()
         self.gui.set_right_widget(self.flex_widget)
 
-        self.flex_widget.start_loop.connect(self.start_loop)
+        self.flex_widget.start_loop.connect(self.mediator.start_loop)
         self.flex_widget.new_sample.connect(self.annotation_widget.new_sample)
 
-        if self.annotation:
-            self.load_annotation(self.annotation)
+        if self.global_state is not None:
+            # self.load_state(self.global_state)
+            self.flex_widget.load_state(self.global_state)
 
     def save_annotation(self):
-        if self.annotation is None:
+        if self.global_state is None:
             logging.info("Nothing to save - annotation-object is None")
         else:
             logging.info("Saving current state")
             samples = self.annotation_widget.samples
-            self.annotation.samples = samples
-            for idx, x in enumerate(self.annotation.samples):
+            self.global_state.samples = samples
+            for idx, x in enumerate(self.global_state.samples):
                 logging.info(
                     "{}-Sample: ({}, {})".format(idx, x.start_position, x.end_position)
                 )
-            self.annotation.to_disk()
+            self.global_state.to_disk()
 
     @qtc.pyqtSlot()
     def settings_changed(self):

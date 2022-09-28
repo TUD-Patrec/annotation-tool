@@ -17,7 +17,7 @@ def is_compatible(raw_annotation: Union[np.ndarray, dict], scheme: AnnotationSch
                 return False
             if not isinstance(val, int):
                 return False
-            if not val in [0,1]:
+            if not val in [0, 1]:
                 return False
         return True
     if isinstance(raw_annotation, np.ndarray):
@@ -120,7 +120,6 @@ class Annotation:
     def scheme(self, x):
         raise AttributeError("Cannot change the scheme!")
 
-    @property
     def is_empty(self):
         return np.sum(self.annotation_vector) == 0
 

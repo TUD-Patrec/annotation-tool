@@ -70,7 +70,7 @@ class Sample:
     @property
     @returns(qtg.QColor)
     def color(self):
-        if self.annotation.is_empty:
+        if self.annotation.is_empty():
             return self._default_color
         else:
             return self._color

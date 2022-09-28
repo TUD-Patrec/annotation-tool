@@ -106,8 +106,8 @@ class QRetrievalWidget(qtw.QWidget):
         self.setLayout(vbox)
         self.setMinimumWidth(300)
 
-    def load_annotation(self, a):
-        self._annotation = a
+    def load_state(self, state):
+        self._annotation = state
         self._current_interval = None
         self._interval_size = 100  # TODO: Import from settings
         self._overlap = 0.66  # TODO: Import from settings
@@ -117,6 +117,8 @@ class QRetrievalWidget(qtw.QWidget):
         idx = self.retrieval_options.currentIndex()
         self._query.change_mode(RetrievalMode(idx))
         self.setEnabled(True)
+        logging.info(f"State loaded! {len(self._query) = }")
+        self.load_next()
 
     @qtc.pyqtSlot()
     def load_initial_view(self):
@@ -129,7 +131,7 @@ class QRetrievalWidget(qtw.QWidget):
         boundaries = []
         for sample in self._annotation.samples:
             # sample already annotated
-            if not sample.annotation.is_empty:
+            if not sample.annotation.is_empty():
                 continue
 
             # only grab samples that are not annotated yet
@@ -161,7 +163,7 @@ class QRetrievalWidget(qtw.QWidget):
     def update_retrieval_mode(self):
         idx = self.retrieval_options.currentIndex()
         new_mode = RetrievalMode(idx)
-        if self._query:
+        if self._query is not None:
             self._query.change_mode(new_mode)
             self.load_next()
 
@@ -239,18 +241,20 @@ class QRetrievalWidget(qtw.QWidget):
 
     # Display the current interval to the user: Show him the Interval boundaries and the predicted annotation
     def update_UI(self):
-        logging.info('Updating UI')
-        if self._query is not None:
+        if self._query is None:
+            self.progress_label.setText("_/_")
+        else:
             txt = format_progress(self._query.idx, len(self._query))
             self.progress_label.setText(txt)
-        if self._current_interval is None:
-            self.similarity_label.setText("")
-            widget = qtw.QLabel(
-                "There is no interval to show.", alignment=qtc.Qt.AlignCenter
+
+            filter_active_txt = (
+                "Inactive" if self._query.filter_criterion.is_empty() else "Active"
             )
-            self.layout().replaceWidget(self.main_widget, widget)
-            self.main_widget.setParent(None)
-            self.main_widget = widget
+            self.filter_active.setText(filter_active_txt)
+
+        if self._current_interval is None:
+            self.similarity_label.setText("_")
+            self.main_widget.show_annotation(None)
         else:
             self.similarity_label.setText(f"{self._current_interval.similarity :.3f}")
             proposed_annotation = self._current_interval.annotation
@@ -262,7 +266,9 @@ class QRetrievalWidget(qtw.QWidget):
             self.refocus_dialog()
         else:
             filter_criterion = (
-                self._query._filter_criteria if self._query else FilterCriteria()
+                self._query.filter_criterion
+                if self._query is not None
+                else FilterCriteria()
             )
 
             self._open_dialog = QRetrievalFilter(filter_criterion, self.scheme)
@@ -271,9 +277,10 @@ class QRetrievalWidget(qtw.QWidget):
             self._open_dialog.open()
 
     def change_filter(self, filter_criteria):
-        if self._query:
+        if self._query is not None:
             self._query.change_filter(filter_criteria)
-            logging.info(f'change filter {len(self._query) = }')
+            logging.info(f"change filter {len(self._query) = }")
+            self.update_UI()
             self.load_next()
 
     # same as manually_annotate_interval except that the annotation is preloaded with the suggested annotation
@@ -288,11 +295,12 @@ class QRetrievalWidget(qtw.QWidget):
 
             dialog = QAnnotationDialog(self.scheme, self.dependencies)
             dialog.finished.connect(self.free_dialog)
-            dialog._set_annotation(sample.annotation)
 
             dialog.new_annotation.connect(self.modify_interval)
             self._open_dialog = dialog
             dialog.open()
+
+            dialog._set_annotation(sample.annotation)
 
     def modify_interval(self, new_annotation):
         interval = self._current_interval
@@ -327,10 +335,9 @@ class QRetrievalWidget(qtw.QWidget):
             self._current_interval = None
         self.update_UI()
 
-
     @qtc.pyqtSlot(RetrievalMode)
     def change_mode(self, mode):
-        if self._query:
+        if self._query is not None:
             self._query.change_mode(mode)
             self.load_next()
 

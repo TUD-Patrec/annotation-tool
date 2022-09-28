@@ -6,14 +6,16 @@ from .utility.functions import FrameTimeMapper
 from .qt_helper_widgets.lines import QHLine
 
 
-class PlayWidget(qtw.QWidget):
+class QPlaybackWidget(qtw.QWidget):
     playing = qtc.pyqtSignal()
     paused = qtc.pyqtSignal()
     skip_frames = qtc.pyqtSignal(bool, bool)
     replay_speed_changed = qtc.pyqtSignal(float)
 
     def __init__(self, *args, **kwargs):
-        super(PlayWidget, self).__init__(*args, **kwargs)
+        self.n_frames = 0
+
+        super(QPlaybackWidget, self).__init__(*args, **kwargs)
         back_button = qtw.QAction("back", self)
         back_button.setStatusTip("back")
         back_button.setIcon(self.style().standardIcon(qtw.QStyle.SP_MediaSkipBackward))
@@ -80,7 +82,10 @@ class PlayWidget(qtw.QWidget):
         vbox.addWidget(self.lbl)
         self.setLayout(vbox)
 
-    @qtc.pyqtSlot(int, int)
+    @qtc.pyqtSlot(int)
+    def set_position(self, x):
+        self.update_label(x, self.n_frames)
+
     def update_label(self, pos, limit):
         frame_time_mapper = FrameTimeMapper.instance()
         position = frame_time_mapper.frame_repr(pos)

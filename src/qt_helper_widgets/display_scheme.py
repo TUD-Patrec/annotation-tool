@@ -24,6 +24,11 @@ class QShowAnnotation(qtw.QWidget):
     def show_annotation(self, annotation):
         self.reset_layout()
 
+        if annotation is None or annotation.is_empty():
+            label = qtw.QLabel("No annotation to show.", alignment=qtc.Qt.AlignCenter)
+            self.form.addWidget(label)
+            return
+
         current_row = -1
 
         for attribute in annotation:
@@ -34,7 +39,6 @@ class QShowAnnotation(qtw.QWidget):
                 list_widget.setItemAlignment(qtc.Qt.AlignCenter)
 
                 group_name = attribute.group_name.capitalize() + ":"
-                name_label = qtw.QLabel(group_name)
 
                 self.form.addRow(group_name, list_widget)
 
