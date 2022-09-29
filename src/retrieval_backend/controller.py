@@ -6,6 +6,7 @@ import numpy as np
 from scipy import spatial
 
 from src.data_classes import Sample, Annotation
+from src.qt_helper_widgets.histogram import Histogram_Widget
 from src.qt_helper_widgets.lines import QHLine
 from src.qt_helper_widgets.display_scheme import QShowAnnotation
 from src.dialogs.annotation_dialog import QAnnotationDialog
@@ -66,6 +67,9 @@ class QRetrievalWidget(qtw.QWidget):
 
         self.main_widget = QShowAnnotation(self)
 
+        self.histogram = Histogram_Widget()
+
+
         self.button_group = qtw.QWidget()
         self.button_group.setLayout(qtw.QHBoxLayout())
 
@@ -99,6 +103,8 @@ class QRetrievalWidget(qtw.QWidget):
         vbox.addWidget(self.filter_widget)
         vbox.addWidget(QHLine())
         vbox.addWidget(self.main_widget, alignment=qtc.Qt.AlignCenter, stretch=1)
+        vbox.addWidget(QHLine())
+        vbox.addWidget(self.histogram)
         vbox.addWidget(QHLine())
         vbox.addWidget(self.button_group, alignment=qtc.Qt.AlignCenter)
         vbox.addWidget(QHLine())

@@ -40,10 +40,6 @@ class AbstractMediaPlayer(qtw.QWidget):
         self._position = 0
         self._offset = 0
 
-        self._looping = False
-        self._loop_lower = None
-        self._loop_upper = None
-
         # reference informations
         self._reference_fps = None
         self._reference_N = None
@@ -113,23 +109,15 @@ class AbstractMediaPlayer(qtw.QWidget):
     def load(self, input_file):
         raise NotImplementedError
 
+    # TODO self.position + 1 needs to happen after the position update -> else while waiting for update the position
+    # can get updated multiple times -> offsync
     @qtc.pyqtSlot(qtw.QWidget)
     def on_timeout(self, w):
         if self is w:
-            # logging.info(f'{self._looping = }')
-            if self._looping:
-                next_position = self.position + 1
-                # logging.info(f'{next_position = }')
-                if next_position > self._loop_upper + 1:
-                    raise RuntimeError
-                if next_position == self._loop_upper + 1:
-                    self.position = self._loop_lower
-                    self.update_media_position(UpdateReason.TIMEOUT)
-                    # logging.info('RESETTING TO START OF LOOP')
-                    return
             if self.position + 1 < self.N_FRAMES():
                 self.position += 1
-                self.update_media_position(UpdateReason.TIMEOUT)
+                self.confirm_update(UpdateReason.TIMEOUT)       # TODO fix
+                self.update_media_position(UpdateReason.SETPOS) # TODO fix
             else:
                 self.confirm_update(UpdateReason.TIMEOUT)
 
@@ -137,9 +125,6 @@ class AbstractMediaPlayer(qtw.QWidget):
     def set_position(self, w, new_pos):
         if self is w:
             new_pos = self.translate_frame_position(new_pos)
-
-            if self._looping:
-                new_pos = max(self._loop_lower, min(new_pos, self._loop_upper))
 
             if new_pos != self.position:
                 self.position = new_pos
@@ -157,21 +142,6 @@ class AbstractMediaPlayer(qtw.QWidget):
         self.ACK_setpos.emit(self)
 
     qtc.pyqtSlot(int, int)
-
-    def start_loop(self, lower, upper):
-        self._loop_lower = self.translate_frame_position(lower)
-        self._loop_upper = self.translate_frame_position(upper)
-        self._looping = True
-
-        assert self._loop_lower <= self._loop_upper
-        assert 0 <= self._loop_lower, f"{self._loop_upper = }, {upper = }"
-
-        self.position = self._loop_lower
-        self.update_media_position(UpdateReason.INIT)
-
-    @qtc.pyqtSlot()
-    def end_loop(self):
-        self._looping = False
 
     def N_FRAMES(self):
         if self._is_main_replay_widget:
@@ -202,7 +172,7 @@ class AbstractMediaPlayer(qtw.QWidget):
     def emit_position(self):
         if self._is_main_replay_widget:
             assert (
-                self.offset == 0
+                    self.offset == 0
             )  # offset must not be changed for the main replay widget
             assert 0 <= self.position < self.n_frames
             self.position_changed.emit(self.position)

@@ -21,8 +21,6 @@ class QMediaMainController(qtw.QWidget):
     subscribe = qtc.pyqtSignal(qtw.QWidget)
     unsubscribe = qtc.pyqtSignal(qtw.QWidget)
     reset = qtc.pyqtSignal()
-    start_loop = qtc.pyqtSignal(int, int)
-    end_loop = qtc.pyqtSignal()
 
     cleaned_up = qtc.pyqtSignal()
 
@@ -89,14 +87,6 @@ class QMediaMainController(qtw.QWidget):
     @qtc.pyqtSlot(AbstractMediaPlayer)
     def widget_loaded(self, widget: AbstractMediaPlayer):
         widget.new_input_wanted.connect(self.add_replay_widget)
-        self.start_loop.connect(widget.start_loop)
-        self.end_loop.connect(widget.end_loop)
-
-        if self.replay_widgets and self.replay_widgets[0].is_looping:
-            start = self.replay_widgets[0].lower_bound
-            end = self.replay_widgets[0].upper_bound
-            widget.start_loop(start, end)
-
         self.replay_widgets.append(widget)
         logging.info("WIDGET LOADED")
         self.subscribe.emit(widget)
@@ -123,7 +113,6 @@ class QMediaMainController(qtw.QWidget):
         self.setPaused.emit(True)
 
     def closeEvent(self, a0: qtg.QCloseEvent) -> None:
-        logging.info("closeEvent called")
         self.shutdown()
         return super().closeEvent(a0)
 
@@ -134,14 +123,6 @@ class QMediaMainController(qtw.QWidget):
     @qtc.pyqtSlot(float)
     def set_replay_speed(self, x):
         self.replay_speed_changed.emit(x)
-
-    @qtc.pyqtSlot(int, int)
-    def start_loop_slot(self, x, y):
-        self.start_loop.emit(x, y)
-
-    @qtc.pyqtSlot()
-    def end_loop_slot(self):
-        self.end_loop.emit()
 
     def init_timer(self):
         self.timer_thread = qtc.QThread()
