@@ -45,10 +45,7 @@ def enable_high_dpi_scaling():
         if errorCode == 0:
             logging.info('Process runs DPI unaware')
     
-    
-    
-    
-if __name__ == '__main__':
+def start():
     application_path = get_application_path()
       
     # Injecting root_path
@@ -64,4 +61,8 @@ if __name__ == '__main__':
     enable_high_dpi_scaling()
         
     main()
+
+
+if __name__ == '__main__':
+    start()
     
