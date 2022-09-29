@@ -9,7 +9,11 @@ build-windows:
 test:
 	poetry run flake8 . --count --statistics
 	poetry run black --check .
-	poetry run isort --check --settings-path pyproject.toml --recursive .
+	poetry run isort --check --settings-path pyproject.toml .
+
+format:
+	poetry run black .
+	poetry run isort --settings-path pyproject.toml .
 
 clean:
 	rm -rf build dist __pycache__ __local__storage__
