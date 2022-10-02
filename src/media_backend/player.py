@@ -116,8 +116,8 @@ class AbstractMediaPlayer(qtw.QWidget):
         if self is w:
             if self.position + 1 < self.N_FRAMES():
                 self.position += 1
-                self.confirm_update(UpdateReason.TIMEOUT)       # TODO fix
-                self.update_media_position(UpdateReason.SETPOS) # TODO fix
+                self.confirm_update(UpdateReason.TIMEOUT)  # TODO fix
+                self.update_media_position(UpdateReason.SETPOS)  # TODO fix
             else:
                 self.confirm_update(UpdateReason.TIMEOUT)
 
@@ -172,7 +172,7 @@ class AbstractMediaPlayer(qtw.QWidget):
     def emit_position(self):
         if self._is_main_replay_widget:
             assert (
-                    self.offset == 0
+                self.offset == 0
             )  # offset must not be changed for the main replay widget
             assert 0 <= self.position < self.n_frames
             self.position_changed.emit(self.position)
