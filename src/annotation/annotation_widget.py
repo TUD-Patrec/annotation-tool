@@ -194,8 +194,87 @@ class QAnnotationWidget(qtw.QWidget):
         self.redo_stack = []
 
     @qtc.pyqtSlot(Sample)
-    def new_sample(self, x):
-        logging.info(f"RECEIVED NEW SAMPLE {x}")
+    def new_sample(self, new_sample):
+        logging.info(f"RECEIVED NEW SAMPLE {new_sample}")
+        assert len(self.samples) > 0
+
+        left = -1  # index to the rightmost sample with: new_sample.lower >= left.lower
+        right = -1  # index to the leftmost sample with: new_sample.upper <= right.lower
+
+        for idx, s in enumerate(self.samples):
+            if s.start_position <= new_sample.start_position <= s.end_position:
+                left = idx
+            if s.start_position <= new_sample.end_position <= s.end_position:
+                right = idx
+            if s.start_position > new_sample.end_position:
+                break
+
+        # Case 1: upper != lower
+        # if left != right:
+        if 1:
+            logging.info("CASE 1")
+            logging.info(f"{left = }, {right = }")
+            tmp = [self.samples[idx] for idx in range(left, right + 1)]
+            logging.info(f"{len(tmp) = }")
+
+            N_old = len(self.samples)
+            for s in tmp:
+                self.samples.remove(s)
+            assert N_old == len(self.samples) + len(tmp)
+
+            left_sample = Sample(
+                tmp[0].start_position,
+                new_sample.start_position - 1,
+                deepcopy(tmp[0].annotation),
+            )
+            if left_sample.end_position > left_sample.start_position:
+                self.samples.append(left_sample)
+
+            if new_sample.start_position < new_sample.end_position:
+                self.samples.append(new_sample)
+
+            right_sample = Sample(
+                new_sample.end_position + 1,
+                tmp[-1].end_position,
+                deepcopy(tmp[-1].annotation),
+            )
+            if right_sample.end_position > right_sample.start_position:
+                self.samples.append(right_sample)
+
+        # Case 2: upper == lower -> x is completely within one sample
+        else:
+            logging.info("CASE 2")
+            # Split needed -> 3 new samples -> check if all have len > 0
+            outer_sample = self.samples[left]
+            logging.info(f"{outer_sample = }, {left = }, {right = }")
+
+            N_before = len(self.samples)
+            self.samples.remove(outer_sample)
+            logging.info(f"check_remove: {N_before = } {len(self.samples) = }")
+
+            new_left_sample = Sample(
+                outer_sample.start_position,
+                new_sample.start_position - 1,
+                deepcopy(outer_sample.annotation),
+            )
+            if new_left_sample.start_position < new_left_sample.end_position:
+                self.samples.append(new_left_sample)
+                logging.info(f"{new_left_sample = }")
+
+            self.samples.append(new_sample)
+            logging.info(f"{new_sample = }")
+
+            new_right_sample = Sample(
+                new_sample.end_position + 1,
+                outer_sample.end_position,
+                deepcopy(outer_sample.annotation),
+            )
+            if new_right_sample.start_position < new_right_sample.end_position:
+                self.samples.append(new_right_sample)
+                logging.info(f"{new_right_sample = }")
+
+        self.samples.sort()
+        self.check_for_selected_sample(force_update=True)
 
     @property
     def samples(self):

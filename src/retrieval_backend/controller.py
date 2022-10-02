@@ -1,4 +1,5 @@
 import logging
+import math
 import time
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
@@ -7,6 +8,7 @@ from scipy import spatial
 
 from src.data_classes import Sample, Annotation
 from src.qt_helper_widgets.histogram import Histogram_Widget
+
 from src.qt_helper_widgets.lines import QHLine
 from src.qt_helper_widgets.display_scheme import QShowAnnotation
 from src.dialogs.annotation_dialog import QAnnotationDialog
@@ -14,8 +16,8 @@ from src.retrieval_backend.filter import FilterCriteria
 from src.retrieval_backend.interval import Interval
 from src.retrieval_backend.query import Query
 from src.retrieval_backend.filter_dialog import QRetrievalFilter
-from src.retrieval_backend.mode import RetrievalMode
 from src.utility.decorators import accepts
+from src.dialogs.dialog_manager import open_dialog
 
 
 def format_progress(x, y):
@@ -30,32 +32,26 @@ class QRetrievalWidget(qtw.QWidget):
 
     def __init__(self, *args, **kwargs):
         super(QRetrievalWidget, self).__init__(*args, **kwargs)
-        # Controll attributes
+
+        # Settings controll attributes to default values
         self._query: Query = None
-        self._annotation = None
+        self._global_state = None
         self._current_interval = None
-        self._interval_size: int = None
-        self._overlap: float = None
-        self._open_dialog: qtw.QDialog = None
-        self.TRIES_PER_INTERVAL = 3
-        self.init_UI()
         self.enabled = False
+
+        # samples
+        self._samples = set()
+
+        # Constants
+        self.TRIES_PER_INTERVAL = 3
+        self._interval_size: int = 100
+        self._overlap: float = 0
+
+        self.init_UI()
+
         self.setEnabled(False)
 
     def init_UI(self):
-        self.retrieval_options = qtw.QComboBox()
-        for x in RetrievalMode:
-            name = x.name.capitalize()
-            self.retrieval_options.addItem(name)
-        self.retrieval_options.currentIndexChanged.connect(self.update_retrieval_mode)
-
-        self.retrieval_options_widget = qtw.QWidget()
-        self.retrieval_options_widget.setLayout(qtw.QHBoxLayout())
-        self.retrieval_options_widget.layout().addWidget(qtw.QLabel("Mode:"))
-        self.retrieval_options_widget.layout().addWidget(
-            self.retrieval_options, stretch=1
-        )
-
         self.filter_widget = qtw.QWidget()
         self.filter_widget.setLayout(qtw.QHBoxLayout())
         self.filter_widget.layout().addWidget(qtw.QLabel("Filter:"))
@@ -68,7 +64,6 @@ class QRetrievalWidget(qtw.QWidget):
         self.main_widget = QShowAnnotation(self)
 
         self.histogram = Histogram_Widget()
-
 
         self.button_group = qtw.QWidget()
         self.button_group.setLayout(qtw.QHBoxLayout())
@@ -98,8 +93,6 @@ class QRetrievalWidget(qtw.QWidget):
 
         vbox = qtw.QVBoxLayout()
 
-        vbox.addWidget(self.retrieval_options_widget)
-        vbox.addWidget(QHLine())
         vbox.addWidget(self.filter_widget)
         vbox.addWidget(QHLine())
         vbox.addWidget(self.main_widget, alignment=qtc.Qt.AlignCenter, stretch=1)
@@ -112,16 +105,50 @@ class QRetrievalWidget(qtw.QWidget):
         self.setLayout(vbox)
         self.setMinimumWidth(300)
 
+    # Display the current interval to the user: Show him the Interval boundaries and the predicted annotation
+    def update_UI(self):
+        if self._query is None:
+            self.progress_label.setText("_/_")
+            self.histogram.reset()
+            return
+
+        filter_active_txt = (
+            "Inactive" if self._query.filter_criterion.is_empty() else "Active"
+        )
+        self.filter_active.setText(filter_active_txt)
+
+        # Case 1: Query is empty
+        if len(self._query) == 0:
+            self.progress_label.setText("Empty query")
+            self.main_widget.show_annotation(None)
+            sim = 0
+
+        # Case 2: We're finished -> End of query reached
+        elif self._current_interval is None:
+            txt = format_progress(len(self._query) - 1, len(self._query))
+            self.progress_label.setText(txt)
+            sim = 0
+
+        # Case 3: Default - we're somewhere in the middle of the query
+        else:
+            txt = format_progress(self._query.idx, len(self._query))
+            self.progress_label.setText(txt)
+
+            proposed_annotation = self._current_interval.annotation
+            self.main_widget.show_annotation(proposed_annotation)
+
+            sim = self._current_interval.similarity
+
+        data = self._query.similarity_distribution()
+        self.similarity_label.setText(f"{sim :.3f}")
+
+        self.histogram.plot_data(data, sim)
+
     def load_state(self, state):
-        self._annotation = state
+        self._global_state = state
         self._current_interval = None
-        self._interval_size = 100  # TODO: Import from settings
-        self._overlap = 0.66  # TODO: Import from settings
         intervals = self.generate_intervals()
         self._query = Query(intervals)
-        # load correct mode
-        idx = self.retrieval_options.currentIndex()
-        self._query.change_mode(RetrievalMode(idx))
         self.setEnabled(True)
         logging.info(f"State loaded! {len(self._query) = }")
         self.load_next()
@@ -135,7 +162,7 @@ class QRetrievalWidget(qtw.QWidget):
         start_time = time.time()
 
         boundaries = []
-        for sample in self._annotation.samples:
+        for sample in self._global_state.samples:
             # sample already annotated
             if not sample.annotation.is_empty():
                 continue
@@ -163,21 +190,14 @@ class QRetrievalWidget(qtw.QWidget):
             intervals.extend(tmp)
 
         end_time = time.time()
-        logging.info(f"GENERATING INTERVALS TOOK {end_time - start_time}ms")
+        logging.debug(f"GENERATING INTERVALS TOOK {end_time - start_time}ms")
         return intervals
-
-    def update_retrieval_mode(self):
-        idx = self.retrieval_options.currentIndex()
-        new_mode = RetrievalMode(idx)
-        if self._query is not None:
-            self._query.change_mode(new_mode)
-            self.load_next()
 
     def get_intervals_in_range(self, lower, upper):
         intervals = []
         start = lower
 
-        stepsize = self.get_stepsize()
+        stepsize = self.stepsize()
         logging.info(f"{stepsize = }")
 
         get_end = lambda x: x + self._interval_size - 1
@@ -230,83 +250,44 @@ class QRetrievalWidget(qtw.QWidget):
             yield Interval(lower, upper, anno, similarity)
 
     def get_combinations(self):
-        if self._annotation.dataset.dependencies_exist:
-            return True, np.array(self._annotation.dataset.dependencies)
+        if self._global_state.dataset.dependencies_exist:
+            return True, np.array(self._global_state.dataset.dependencies)
         else:
             return False, None
-
-    def get_stepsize(self):
-        return max(
-            1, min(int(self._interval_size * (1 - self._overlap)), self._interval_size)
-        )
 
     # TODO: actually use a network, currently only proof of concept
     def run_network(self, lower, upper):
         array_length = len(self.scheme)
         return np.random.rand(array_length)
 
-    # Display the current interval to the user: Show him the Interval boundaries and the predicted annotation
-    def update_UI(self):
-        if self._query is None:
-            self.progress_label.setText("_/_")
-        else:
-            txt = format_progress(self._query.idx, len(self._query))
-            self.progress_label.setText(txt)
-
-            filter_active_txt = (
-                "Inactive" if self._query.filter_criterion.is_empty() else "Active"
-            )
-            self.filter_active.setText(filter_active_txt)
-
-        if self._current_interval is None:
-            self.similarity_label.setText("_")
-            self.main_widget.show_annotation(None)
-        else:
-            self.similarity_label.setText(f"{self._current_interval.similarity :.3f}")
-            proposed_annotation = self._current_interval.annotation
-            self.main_widget.show_annotation(proposed_annotation)
-
     @qtc.pyqtSlot(bool)
     def modify_filter_clicked(self, _):
-        if self._open_dialog:
-            self.refocus_dialog()
-        else:
-            filter_criterion = (
-                self._query.filter_criterion
-                if self._query is not None
-                else FilterCriteria()
-            )
+        filter_criterion = (
+            self._query.filter_criterion
+            if self._query is not None
+            else FilterCriteria()
+        )
 
-            self._open_dialog = QRetrievalFilter(filter_criterion, self.scheme)
-            self._open_dialog.filter_changed.connect(self.change_filter)
-            self._open_dialog.finished.connect(self.free_dialog)
-            self._open_dialog.open()
+        dialog = QRetrievalFilter(filter_criterion, self.scheme)
+        dialog.filter_changed.connect(self.change_filter)
+        open_dialog(dialog)
 
     def change_filter(self, filter_criteria):
         if self._query is not None:
             self._query.change_filter(filter_criteria)
-            logging.info(f"change filter {len(self._query) = }")
-            self.update_UI()
             self.load_next()
 
     # same as manually_annotate_interval except that the annotation is preloaded with the suggested annotation
     def modify_interval_prediction(self):
-        if self._open_dialog:
-            self.refocus_dialog()
-        if self._current_interval is None:
-            return
-            # TODO maybe find better solution
-        else:
+        if self._current_interval:
             sample = self.current_sample
 
             dialog = QAnnotationDialog(self.scheme, self.dependencies)
-            dialog.finished.connect(self.free_dialog)
-
             dialog.new_annotation.connect(self.modify_interval)
-            self._open_dialog = dialog
-            dialog.open()
-
+            open_dialog(dialog)
             dialog._set_annotation(sample.annotation)
+        else:
+            self.update_UI()
 
     def modify_interval(self, new_annotation):
         interval = self._current_interval
@@ -317,71 +298,148 @@ class QRetrievalWidget(qtw.QWidget):
     def accept_interval(self):
         if self._current_interval:
             assert self._query is not None
-            self._query.mark_interval(self._current_interval)
+            self._query.accept_interval(self._current_interval)
+            self.check_for_new_sample(self._current_interval)
             self.load_next()
         else:
-            # TODO
-            logging.info("IM ELSE BLOCK")
+            self.update_UI()
 
     # don't accept the prediction
     def decline_interval(self):
-        self.load_next()
+        if self._current_interval:
+            assert self._query is not None
+            self._query.mark_interval(self._current_interval)
+            self.load_next()
+        else:
+            self.update_UI()
 
     def load_next(self):
         assert self._query is not None
-        if self._query.has_next():
+        try:
             old_interval = self._current_interval
-            self._current_interval = self._query.get_next()
+            self._current_interval = next(self._query)
             if old_interval != self._current_interval:
                 # only emit new loop if the interval has changed remember that for each interval there might be
-                # multiple predictions that get testet one after another
+                # multiple predictions that get tested one after another
                 l, r = self._current_interval.start, self._current_interval.end
                 self.start_loop.emit(l, r)
-        else:
+        except StopIteration:
+            logging.debug("StopIteration reached")
             self._current_interval = None
         self.update_UI()
 
-    @qtc.pyqtSlot(RetrievalMode)
-    def change_mode(self, mode):
-        if self._query is not None:
-            self._query.change_mode(mode)
-            self.load_next()
+    def check_for_new_sample(self, interval):
+        assert self._query is not None
+
+        start = time.perf_counter()
+        # Load sorted intervals
+        intervals = sorted(self._query._accepted_intervals)
+
+        # get start and end frame-positions
+        windows = []
+        for idx, interval in enumerate(intervals):
+            if idx == len(intervals) - 1:
+                windows.append([interval.start, interval.end])
+            else:
+                next_interval = intervals[idx + 1]
+                windows.append([interval.start, min(interval.end, next_interval.start)])
+
+        logging.debug(f"{windows = }")
+
+        # filter for windows that have at least one common frame with the interval
+        # TODO FILTER NOT WORKING CORRECTLY -> sometimes it filters the previous current_interval
+        # windows = list(filter(lambda x: interval.start <= x[0] <= interval.end or interval.start <= x[1] >= interval.end, windows))
+        # windows = list(filter(lambda x: x[0] <= interval.end and x[1] >= interval.start, windows))
+        logging.debug(f"windows after filter: {list(windows)}")
+
+        annotated_windows = []
+        step_size = self.stepsize()
+        logging.info(f"{step_size = }")
+        for w in windows:
+            # intervals_in_window = filter(lambda x: x.start <= w[1] and x.end >= w[0], intervals)
+            intervals_in_window = filter(
+                lambda x: x.start <= w[0] <= x.end or x.start <= w[1] <= x.end,
+                intervals,
+            )
+
+            tmp = []
+            for i in intervals_in_window:
+                tmp.append(i.annotation)
+
+            # add to annotated_windows
+            annotated_windows.append([w, tmp])
+
+        # run over annotated windows and check if majority-vote can be applied
+        logging.debug(f"{annotated_windows = }")
+
+        for w, annotation_list in annotated_windows:
+            max_elems = self._interval_size // self.stepsize()
+            anno = self.majority_vote(annotation_list, max_elems)
+            if anno:
+                logging.debug(f"ANNO FOUND = {w[0] = }, {w[1] = }")
+                sample = Sample(w[0], w[1], anno)
+                # if sample not in self._samples:
+                #    self._samples.add(sample)
+                self.new_sample.emit(sample)
+
+        end = time.perf_counter()
+
+        logging.debug(f"finding minimal interval-descriptions took {end - start}ms")
+        print()
+
+    def majority_vote(self, annotations, max_elems):
+        # TODO max_elems maybe ?
+        if len(annotations) > 0:
+            max_count = 0
+            selected_annotation = None
+            for a in annotations:
+                count = 0
+                for a2 in annotations:
+                    if np.array_equal(a, a2):
+                        count += 1
+                assert count > 0
+                if count > max_count:
+                    max_count = count
+                    selected_annotation = a
+            return selected_annotation
+        else:
+            return None
 
     @accepts(object, bool)
     def setEnabled(self, enabled: bool) -> None:
         self.enabled = enabled
-        self.retrieval_options.setEnabled(enabled)
         self.modify_button.setEnabled(enabled)
         self.modify_filter.setEnabled(enabled)
         self.accept_button.setEnabled(enabled)
         self.decline_button.setEnabled(enabled)
 
-    def refocus_dialog(self):
-        # this will remove minimized status
-        # and restore window with keeping maximized/normal state
-        self._open_dialog.setWindowState(
-            self._open_dialog.windowState() & ~qtc.Qt.WindowMinimized
-            | qtc.Qt.WindowActive
-        )
-
-        # this will activate the window
-        self._open_dialog.activateWindow()
-
-    @qtc.pyqtSlot(int)
-    def free_dialog(self, x):
-        self._open_dialog.deleteLater()
-        self._open_dialog = None
-
     @property
     def dependencies(self):
-        return self._annotation.dataset.dependencies
+        return self._global_state.dataset.dependencies
 
     @property
     def scheme(self):
-        return self._annotation.dataset.scheme
+        return self._global_state.dataset.scheme
 
     @property
     def current_sample(self):
         i = self._current_interval
         sample = Sample(i.start, i.end, i.annotation)
         return sample
+
+    def stepsize(self):
+        if hasattr(self, "_stepsize"):
+            return self._stepsize
+        else:
+            step_size = max(
+                1,
+                min(
+                    int(self._interval_size * (1 - self._overlap)), self._interval_size
+                ),
+            )
+            while not self._interval_size % step_size == 0:
+                step_size -= 1
+
+            assert step_size / (1 - self._overlap) == self._interval_size
+            self._stepsize = step_size
+            return step_size

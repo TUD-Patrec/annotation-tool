@@ -1,8 +1,13 @@
+import logging
+import matplotlib
+
+matplotlib.use("Qt5Agg")
+
 import matplotlib.pyplot as plt
 import numpy as np
 import PyQt5.QtWidgets as qtw
 
-from matplotlib.backends.backend_qt import FigureCanvasQT as FigureCanvas
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 
 class Histogram_Widget(qtw.QWidget):
@@ -23,6 +28,13 @@ class Histogram_Widget(qtw.QWidget):
         layout.addWidget(self.canvas)
         self.setLayout(layout)
 
+        self.setFixedHeight(200)
+
+    def reset(self):
+        self.position = 0
+        self.data = None
+        self.figure.clear()
+
     def update_position(self, new_pos):
         self.position = new_pos
         self.plot()
@@ -37,11 +49,22 @@ class Histogram_Widget(qtw.QWidget):
         self.plot()
 
     def plot_possible(self):
-        return isinstance(self.data, np.ndarray) and isinstance(self.position, int)
+        return isinstance(self.data, np.ndarray) and isinstance(
+            self.position, (float, int)
+        )
 
     def plot(self):
         self.figure.clear()
         if self.plot_possible():
-            plt.axvline(x=self.position, color='r', label='')
-            plt.hist(self.data, bins=20)
+            data = self.data
+            position = self.position
+
+            plt.axvline(x=position, color="r", label="")
+            # plt.hist(data, bins=25)
+            plt.hist(data, range=(0, np.max(data)), bins=25)
             self.canvas.draw()
+
+    def norm_to_percentage(self, x):
+        lower, upper = np.min(self.data), np.max(self.data)
+        res = 100 * (x - lower) / (upper - lower)
+        return np.array(res, dtype=np.int64) if isinstance(x, np.ndarray) else int(res)

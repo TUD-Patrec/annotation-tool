@@ -5,14 +5,14 @@ from src.data_classes.annotation import Annotation
 from src.utility.decorators import accepts, returns
 
 
-@dataclass(order=True)
+@dataclass(order=True, unsafe_hash=True)
 class Sample:
-    _sort_index: int = field(init=False, repr=False)
-    _start_pos: int = field(init=True)
-    _end_pos: int = field(init=True)
-    _annotation: Annotation = field(init=True)
-    _default_color: qtg.QColor = field(init=False)
-    _color: qtg.QColor = field(init=False, default=None)
+    _sort_index: int = field(init=False, repr=False, hash=False)
+    _start_pos: int = field(init=True, hash=True)
+    _end_pos: int = field(init=True, hash=True)
+    _annotation: Annotation = field(init=True, hash=False)
+    _default_color: qtg.QColor = field(init=False, hash=False)
+    _color: qtg.QColor = field(init=False, default=None, hash=False)
 
     def __post_init__(self):
         assert isinstance(self._annotation, Annotation)

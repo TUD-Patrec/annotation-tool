@@ -9,7 +9,7 @@ from .gui import GUI
 from .mediator import Mediator
 from .playback import QPlaybackWidget
 from .display_current_sample import QDisplaySample
-from src.retrieval_backend.controller import QRetrievalWidget, RetrievalMode
+from src.retrieval_backend.controller import QRetrievalWidget
 from src.data_classes.settings import Settings
 from src.annotation.timeline import QTimeLine
 from .utility.functions import FrameTimeMapper
@@ -137,7 +137,7 @@ class MainApplication(qtw.QApplication):
 
     @qtc.pyqtSlot()
     def load_retrieval_mode(self):
-        assert type(self.flex_widget) != RetrievalMode
+        assert type(self.flex_widget) != QRetrievalWidget
         logging.info("LOADING RETRIEVAL MODE")
         self.annotation_widget.samples_changed.disconnect(self.flex_widget.set_selected)
 

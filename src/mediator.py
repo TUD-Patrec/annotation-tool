@@ -61,12 +61,14 @@ class Mediator(qtc.QObject):
 
     @qtc.pyqtSlot(int)
     def set_position(self, x):
-        assert (0 <= x < self.n_frames) or (x == 0 == self.n_frames)
-        if self.looping:
-            x = min(self.upper, max(self.lower, x))
-        self.position = x
-        for rec in self.receivers:
-            rec.set_position(x)
+        check1 = (0 <= x < self.n_frames) or (x == 0 == self.n_frames)
+        check2 = x != self.position
+        if check1 and check2:
+            if self.looping:
+                x = min(self.upper, max(self.lower, x))
+            self.position = x
+            for rec in self.receivers:
+                rec.set_position(x)
 
     @qtc.pyqtSlot(int)
     def on_timeout(self, x):
@@ -104,7 +106,6 @@ class Mediator(qtc.QObject):
         assert 0 <= lower
         assert lower < upper
         assert upper < self.n_frames
-        logging.info("Starting loop")
         self.lower = lower
         self.upper = upper
         self.set_position(lower)
