@@ -1,5 +1,4 @@
 import logging
-import math
 import time
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
@@ -76,9 +75,9 @@ class QRetrievalWidget(qtw.QWidget):
         self.modify_button.clicked.connect(self.modify_interval_prediction)
         self.button_group.layout().addWidget(self.modify_button)
 
-        self.decline_button = qtw.QPushButton("DECLINE", self)
-        self.decline_button.clicked.connect(self.decline_interval)
-        self.button_group.layout().addWidget(self.decline_button)
+        self.reject_button = qtw.QPushButton("REJECT", self)
+        self.reject_button.clicked.connect(self.reject_interval)
+        self.button_group.layout().addWidget(self.reject_button)
 
         self.similarity_label = qtw.QLabel(self)
         self.progress_label = qtw.QLabel(format_progress(0, 0), self)
@@ -142,7 +141,10 @@ class QRetrievalWidget(qtw.QWidget):
         data = self._query.similarity_distribution()
         self.similarity_label.setText(f"{sim :.3f}")
 
-        self.histogram.plot_data(data, sim)
+        if data.shape[0] > 0:
+            self.histogram.plot_data(data, sim)
+        else:
+            self.histogram.reset()
 
     def load_state(self, state):
         self._global_state = state
@@ -194,26 +196,52 @@ class QRetrievalWidget(qtw.QWidget):
         return intervals
 
     def get_intervals_in_range(self, lower, upper):
+        if upper <= lower:
+            return []
+
         intervals = []
+        last_intervals = []
         start = lower
-
         stepsize = self.stepsize()
-        logging.info(f"{stepsize = }")
 
-        get_end = lambda x: x + self._interval_size - 1
-        get_start = lambda x: max(
-            min(upper - self._interval_size + 1, x + stepsize), x + 1
-        )
+        while start <= upper:
+            end = min(start + self._interval_size - 1, upper)
 
-        if get_end(start) > upper:
-            logging.warning("sample too short -> cannot create any interval")
+            if end == upper:
+                # 1) if intervals has elements -> extend the last interval to end at the new end-position
+                if last_intervals:
+                    logging.debug('Extending last interval')
+                    for i in last_intervals:
+                        i.end = end
 
-        while get_end(start) <= upper:
-            end = get_end(start)
+                # 2) if intervals is empty -> extend the interval left and right to the needed size for the network
+                else:
+                    logging.debug('Extending interval left and right')
+                    start_adjusted = max(0, start - self._interval_size)
+                    end_adjusted = start_adjusted + self._interval_size - 1
 
-            for i in self.get_predictions(start, end):
-                intervals.append(i)
-            start = get_start(start)
+                    # find best sourrounding interval
+                    while end_adjusted < self._global_state.frames - 1 and start_adjusted < start - self._interval_size // 2:
+                        start_adjusted += 1
+                        end_adjusted += 1
+
+                    # make sure that the adjusted interval is within the video/Mocap
+                    if end_adjusted < self._global_state.frames:
+                        preds = self.get_predictions(start_adjusted, end_adjusted)
+                        for i in preds:
+                            intervals.append(i)
+                            i.start = start
+                            i.end = end
+                    else:
+                        logging.warning(
+                            f"Was not able to create interval that is small enough to fit inside the video/mocap -> n_frames is smaller than interval_size!")
+            else:
+                last_intervals = []
+                for i in self.get_predictions(start, end):
+                    last_intervals.append(i)
+                    intervals.append(i)
+
+            start = start + stepsize
 
         return intervals
 
@@ -305,7 +333,7 @@ class QRetrievalWidget(qtw.QWidget):
             self.update_UI()
 
     # don't accept the prediction
-    def decline_interval(self):
+    def reject_interval(self):
         if self._current_interval:
             assert self._query is not None
             self._query.mark_interval(self._current_interval)
@@ -331,37 +359,31 @@ class QRetrievalWidget(qtw.QWidget):
     def check_for_new_sample(self, interval):
         assert self._query is not None
 
-        start = time.perf_counter()
         # Load sorted intervals
         intervals = sorted(self._query._accepted_intervals)
 
         # get start and end frame-positions
         windows = []
-        for idx, interval in enumerate(intervals):
+        for idx, intvl in enumerate(intervals):
             if idx == len(intervals) - 1:
-                windows.append([interval.start, interval.end])
+                windows.append([intvl.start, intvl.end])
             else:
                 next_interval = intervals[idx + 1]
-                windows.append([interval.start, min(interval.end, next_interval.start)])
-
-        logging.debug(f"{windows = }")
+                windows.append([intvl.start, min(intvl.end, next_interval.start)])
 
         # filter for windows that have at least one common frame with the interval
-        # TODO FILTER NOT WORKING CORRECTLY -> sometimes it filters the previous current_interval
-        # windows = list(filter(lambda x: interval.start <= x[0] <= interval.end or interval.start <= x[1] >= interval.end, windows))
-        # windows = list(filter(lambda x: x[0] <= interval.end and x[1] >= interval.start, windows))
-        logging.debug(f"windows after filter: {list(windows)}")
+        windows = list(filter(lambda x: x[0] <= interval.end and x[1] >= interval.start, windows))
 
         annotated_windows = []
-        step_size = self.stepsize()
-        logging.info(f"{step_size = }")
         for w in windows:
-            # intervals_in_window = filter(lambda x: x.start <= w[1] and x.end >= w[0], intervals)
+            # filter all intervals that have at least one common frame with one of the windows
             intervals_in_window = filter(
                 lambda x: x.start <= w[0] <= x.end or x.start <= w[1] <= x.end,
                 intervals,
             )
 
+            # for each window: store all annotation that were submitted for it
+            # this allows for majority-voting
             tmp = []
             for i in intervals_in_window:
                 tmp.append(i.annotation)
@@ -369,33 +391,21 @@ class QRetrievalWidget(qtw.QWidget):
             # add to annotated_windows
             annotated_windows.append([w, tmp])
 
-        # run over annotated windows and check if majority-vote can be applied
-        logging.debug(f"{annotated_windows = }")
-
+        # run over annotated windows and do majority-vote
         for w, annotation_list in annotated_windows:
-            max_elems = self._interval_size // self.stepsize()
-            anno = self.majority_vote(annotation_list, max_elems)
+            anno = self.majority_vote(annotation_list)
             if anno:
-                logging.debug(f"ANNO FOUND = {w[0] = }, {w[1] = }")
                 sample = Sample(w[0], w[1], anno)
-                # if sample not in self._samples:
-                #    self._samples.add(sample)
                 self.new_sample.emit(sample)
 
-        end = time.perf_counter()
-
-        logging.debug(f"finding minimal interval-descriptions took {end - start}ms")
-        print()
-
-    def majority_vote(self, annotations, max_elems):
-        # TODO max_elems maybe ?
+    def majority_vote(self, annotations):
         if len(annotations) > 0:
             max_count = 0
             selected_annotation = None
             for a in annotations:
                 count = 0
                 for a2 in annotations:
-                    if np.array_equal(a, a2):
+                    if a == a2:
                         count += 1
                 assert count > 0
                 if count > max_count:
@@ -411,7 +421,7 @@ class QRetrievalWidget(qtw.QWidget):
         self.modify_button.setEnabled(enabled)
         self.modify_filter.setEnabled(enabled)
         self.accept_button.setEnabled(enabled)
-        self.decline_button.setEnabled(enabled)
+        self.reject_button.setEnabled(enabled)
 
     @property
     def dependencies(self):

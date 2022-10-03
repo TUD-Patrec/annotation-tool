@@ -1,10 +1,11 @@
+from copy import deepcopy
 from dataclasses import dataclass, field
-from src.data_classes import Annotation
+from src.data_classes import Annotation, Sample
 
 
 @dataclass(unsafe_hash=True, order=True)
 class Interval:
-    _sort_index: int = field(init=False, repr=False)
+    _sort_index: int = field(init=False, repr=False, compare=False)
     start: int = field(hash=True, compare=True)
     end: int = field(hash=True, compare=True)
     annotation: Annotation = field(hash=False, compare=False)
@@ -12,3 +13,8 @@ class Interval:
 
     def __post_init__(self):
         self._sort_index = self.start
+
+
+    def as_sample(self):
+        anno = deepcopy(self.annotation)
+        sample = Sample(self.start, self.end, anno)

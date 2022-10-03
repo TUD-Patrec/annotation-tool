@@ -2,7 +2,7 @@ import logging
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 
-from copy import deepcopy
+from copy import deepcopy, copy
 from src.data_classes.globalstate import GlobalState
 from src.data_classes.sample import Sample
 from src.dialogs.annotation_dialog import QAnnotationDialog
@@ -195,12 +195,12 @@ class QAnnotationWidget(qtw.QWidget):
 
     @qtc.pyqtSlot(Sample)
     def new_sample(self, new_sample):
-        logging.info(f"RECEIVED NEW SAMPLE {new_sample}")
         assert len(self.samples) > 0
 
-        left = -1  # index to the rightmost sample with: new_sample.lower >= left.lower
-        right = -1  # index to the leftmost sample with: new_sample.upper <= right.lower
+        left = None  # index to the rightmost sample with: new_sample.lower >= left.lower
+        right = None  # index to the leftmost sample with: new_sample.upper <= right.lower
 
+        # grab those indices
         for idx, s in enumerate(self.samples):
             if s.start_position <= new_sample.start_position <= s.end_position:
                 left = idx
@@ -209,71 +209,62 @@ class QAnnotationWidget(qtw.QWidget):
             if s.start_position > new_sample.end_position:
                 break
 
-        # Case 1: upper != lower
-        # if left != right:
-        if 1:
-            logging.info("CASE 1")
-            logging.info(f"{left = }, {right = }")
-            tmp = [self.samples[idx] for idx in range(left, right + 1)]
-            logging.info(f"{len(tmp) = }")
+        # must not be the case
+        assert left is not None and right is not None
 
-            N_old = len(self.samples)
-            for s in tmp:
-                self.samples.remove(s)
-            assert N_old == len(self.samples) + len(tmp)
+        # grab all samples that share some common frame-positions with the new sample
+        tmp = [self.samples[idx] for idx in range(left, right + 1)]
 
-            left_sample = Sample(
-                tmp[0].start_position,
-                new_sample.start_position - 1,
-                deepcopy(tmp[0].annotation),
-            )
-            if left_sample.end_position > left_sample.start_position:
-                self.samples.append(left_sample)
+        # remove all of them from the sample-list
+        for s in tmp:
+            self.samples.remove(s)
 
-            if new_sample.start_position < new_sample.end_position:
-                self.samples.append(new_sample)
+        # create new left_sample
+        left_sample = Sample(
+            tmp[0].start_position,
+            new_sample.start_position - 1,
+            deepcopy(tmp[0].annotation),
+        )
 
-            right_sample = Sample(
-                new_sample.end_position + 1,
-                tmp[-1].end_position,
-                deepcopy(tmp[-1].annotation),
-            )
-            if right_sample.end_position > right_sample.start_position:
-                self.samples.append(right_sample)
+        # only add it if it is valid
+        if left_sample.end_position > left_sample.start_position:
+            self.samples.append(left_sample)
 
-        # Case 2: upper == lower -> x is completely within one sample
-        else:
-            logging.info("CASE 2")
-            # Split needed -> 3 new samples -> check if all have len > 0
-            outer_sample = self.samples[left]
-            logging.info(f"{outer_sample = }, {left = }, {right = }")
+        # create new right sample
+        right_sample = Sample(
+            new_sample.end_position + 1,
+            tmp[-1].end_position,
+            deepcopy(tmp[-1].annotation),
+        )
 
-            N_before = len(self.samples)
-            self.samples.remove(outer_sample)
-            logging.info(f"check_remove: {N_before = } {len(self.samples) = }")
+        # only add it if it is valid
+        if right_sample.end_position > right_sample.start_position:
+            self.samples.append(right_sample)
 
-            new_left_sample = Sample(
-                outer_sample.start_position,
-                new_sample.start_position - 1,
-                deepcopy(outer_sample.annotation),
-            )
-            if new_left_sample.start_position < new_left_sample.end_position:
-                self.samples.append(new_left_sample)
-                logging.info(f"{new_left_sample = }")
-
+        # add new sample if it is valid
+        if new_sample.start_position < new_sample.end_position:
             self.samples.append(new_sample)
-            logging.info(f"{new_sample = }")
 
-            new_right_sample = Sample(
-                new_sample.end_position + 1,
-                outer_sample.end_position,
-                deepcopy(outer_sample.annotation),
-            )
-            if new_right_sample.start_position < new_right_sample.end_position:
-                self.samples.append(new_right_sample)
-                logging.info(f"{new_right_sample = }")
-
+        # reorder samples -> the <= 3 newly added samples were appended to the end
         self.samples.sort()
+
+        # merge neighbors with same annotation -> left_neighbor must not be the same as left_sample previously,
+        # same for right neighbor
+        idx = self.samples.index(new_sample)
+        # only if the new sample is not the first list element
+        if idx > 0:
+            left_neighbor = self.samples[idx - 1]
+            if left_neighbor.annotation == new_sample.annotation:
+                self.samples.remove(left_neighbor)
+                new_sample.start_position = left_neighbor.start_position
+        # only if the new sample is not the last list element
+        if idx < len(self.samples) - 1:
+            right_neighbor = self.samples[idx + 1]
+            if right_neighbor.annotation == new_sample.annotation:
+                self.samples.remove(right_neighbor)
+                new_sample.end_position = right_neighbor.end_position
+
+        # update samples and notify timeline etc.
         self.check_for_selected_sample(force_update=True)
 
     @property

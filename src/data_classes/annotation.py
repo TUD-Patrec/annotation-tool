@@ -1,8 +1,10 @@
 from collections import namedtuple
+from copy import deepcopy
 
 import numpy as np
-from typing import Union
+import logging
 
+from typing import Union
 from src.data_classes.annotation_scheme import AnnotationScheme
 from src.utility.decorators import accepts, returns
 
@@ -125,6 +127,23 @@ class Annotation:
 
     def __len__(self):
         return self.annotation_vector.shape[0]
+
+    def __eq__(self, other):
+        if isinstance(other, Annotation):
+            scheme_equal = self.scheme == other.scheme
+            vec_equal = np.array_equal(self.annotation_vector, other.annotation_vector)
+            return scheme_equal and vec_equal
+        else:
+            return False
+    def __copy__(self):
+        new_anno = Annotation(self.scheme, self.annotation_vector)
+        assert self == new_anno and new_anno is not self
+        return new_anno
+
+    def __deepcopy__(self, memodict={}):
+        new_anno = Annotation(deepcopy(self.scheme, memodict), deepcopy(self.annotation_vector, memodict))
+        assert self == new_anno
+        return new_anno
 
     def __iter__(self):
         annotation_element = namedtuple(

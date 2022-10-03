@@ -1,3 +1,4 @@
+import logging
 from collections import namedtuple
 
 import src.data_classes.annotation as annotation
@@ -48,3 +49,14 @@ class AnnotationScheme:
     @scheme.setter
     def scheme(self):
         raise AttributeError("Cannot update the scheme")
+
+    def __eq__(self, other):
+        if isinstance(other, AnnotationScheme):
+            if len(self) != len(other):
+                return False
+            for x, y in zip(self, other):
+                if x != y:
+                    return False
+            return True
+        else:
+            return False

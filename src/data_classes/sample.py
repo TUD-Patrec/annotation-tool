@@ -7,12 +7,12 @@ from src.utility.decorators import accepts, returns
 
 @dataclass(order=True, unsafe_hash=True)
 class Sample:
-    _sort_index: int = field(init=False, repr=False, hash=False)
-    _start_pos: int = field(init=True, hash=True)
-    _end_pos: int = field(init=True, hash=True)
-    _annotation: Annotation = field(init=True, hash=False)
-    _default_color: qtg.QColor = field(init=False, hash=False)
-    _color: qtg.QColor = field(init=False, default=None, hash=False)
+    _sort_index: int = field(init=False, repr=False, hash=False, compare=False)
+    _start_pos: int = field(init=True, hash=True, compare=True)
+    _end_pos: int = field(init=True, hash=True, compare=True)
+    _annotation: Annotation = field(init=True, hash=False, compare=True)
+    _default_color: qtg.QColor = field(init=False, hash=False, compare=False)
+    _color: qtg.QColor = field(init=False, default=None, hash=False, compare=False)
 
     def __post_init__(self):
         assert isinstance(self._annotation, Annotation)
