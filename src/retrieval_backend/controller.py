@@ -5,7 +5,7 @@ import PyQt5.QtCore as qtc
 import numpy as np
 from scipy import spatial
 
-from src.data_classes import Sample, Annotation
+from src.data_classes import Sample, Annotation, AnnotationScheme
 from src.qt_helper_widgets.histogram import Histogram_Widget
 
 from src.qt_helper_widgets.lines import QHLine
@@ -34,12 +34,14 @@ class QRetrievalWidget(qtw.QWidget):
 
         # Settings controll attributes to default values
         self._query: Query = None
-        self._global_state = None
         self._current_interval = None
-        self.enabled = False
+        self.is_enabled = False
 
-        # samples
-        self._samples = set()
+        #
+        self.scheme = None
+        self.dependencies = None
+        self.n_frames = 0
+        self.samples = []
 
         # Constants
         self.TRIES_PER_INTERVAL = 3
@@ -146,9 +148,18 @@ class QRetrievalWidget(qtw.QWidget):
         else:
             self.histogram.reset()
 
-    def load_state(self, state):
-        self._global_state = state
+    def load(self, samples, scheme, dependencies, n_frames):
+        assert isinstance(samples, list)
+        assert isinstance(scheme, AnnotationScheme)
+        assert isinstance(dependencies, np.ndarray) or dependencies is None
+        assert isinstance(n_frames, int) and n_frames >= 0
         self._current_interval = None
+
+        self.samples = samples
+        self.scheme = scheme
+        self.dependencies = dependencies
+        self.n_frames = n_frames
+
         intervals = self.generate_intervals()
         self._query = Query(intervals)
         self.setEnabled(True)
@@ -164,7 +175,7 @@ class QRetrievalWidget(qtw.QWidget):
         start_time = time.time()
 
         boundaries = []
-        for sample in self._global_state.samples:
+        for sample in self.samples:
             # sample already annotated
             if not sample.annotation.is_empty():
                 continue
@@ -221,12 +232,12 @@ class QRetrievalWidget(qtw.QWidget):
                     end_adjusted = start_adjusted + self._interval_size - 1
 
                     # find best sourrounding interval
-                    while end_adjusted < self._global_state.frames - 1 and start_adjusted < start - self._interval_size // 2:
+                    while end_adjusted < self.n_frames - 1 and start_adjusted < start - self._interval_size // 2:
                         start_adjusted += 1
                         end_adjusted += 1
 
                     # make sure that the adjusted interval is within the video/Mocap
-                    if end_adjusted < self._global_state.frames:
+                    if end_adjusted < self.n_frames:
                         preds = self.get_predictions(start_adjusted, end_adjusted)
                         for i in preds:
                             intervals.append(i)
@@ -278,8 +289,8 @@ class QRetrievalWidget(qtw.QWidget):
             yield Interval(lower, upper, anno, similarity)
 
     def get_combinations(self):
-        if self._global_state.dataset.dependencies_exist:
-            return True, np.array(self._global_state.dataset.dependencies)
+        if self.dependencies is not None:
+            return True, np.array(self.dependencies)
         else:
             return False, None
 
@@ -336,7 +347,7 @@ class QRetrievalWidget(qtw.QWidget):
     def reject_interval(self):
         if self._current_interval:
             assert self._query is not None
-            self._query.mark_interval(self._current_interval)
+            self._query.reject_interval(self._current_interval)
             self.load_next()
         else:
             self.update_UI()
@@ -417,19 +428,11 @@ class QRetrievalWidget(qtw.QWidget):
 
     @accepts(object, bool)
     def setEnabled(self, enabled: bool) -> None:
-        self.enabled = enabled
+        self.is_enabled = enabled
         self.modify_button.setEnabled(enabled)
         self.modify_filter.setEnabled(enabled)
         self.accept_button.setEnabled(enabled)
         self.reject_button.setEnabled(enabled)
-
-    @property
-    def dependencies(self):
-        return self._global_state.dataset.dependencies
-
-    @property
-    def scheme(self):
-        return self._global_state.dataset.scheme
 
     @property
     def current_sample(self):

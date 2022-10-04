@@ -10,7 +10,7 @@ class Sample:
     _sort_index: int = field(init=False, repr=False, hash=False, compare=False)
     _start_pos: int = field(init=True, hash=True, compare=True)
     _end_pos: int = field(init=True, hash=True, compare=True)
-    _annotation: Annotation = field(init=True, hash=False, compare=True)
+    _annotation: Annotation = field(init=True, hash=False, compare=False)
     _default_color: qtg.QColor = field(init=False, hash=False, compare=False)
     _color: qtg.QColor = field(init=False, default=None, hash=False, compare=False)
 

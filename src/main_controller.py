@@ -29,6 +29,7 @@ class MainApplication(qtw.QApplication):
 
         # Controll-Attributes
         self.global_state = None
+        self.n_frames = 0
         self.mediator = Mediator()
 
         # Widgets
@@ -96,7 +97,11 @@ class MainApplication(qtw.QApplication):
 
     @qtc.pyqtSlot(GlobalState)
     def load_state(self, state):
-        FrameTimeMapper.instance().load_state(state.frames, state.duration)
+        duration, n_frames, fps = filehandler.meta_data(state.input_file)
+        FrameTimeMapper.instance().update(n_frames, duration)
+
+        # save for later reuse
+        self.n_frames = n_frames
 
         # reset playback
         self.playback.reset()
@@ -105,51 +110,58 @@ class MainApplication(qtw.QApplication):
         self.global_state = state
 
         # update mediator
-        self.mediator.n_frames = state.n_frames
+        self.mediator.n_frames = n_frames
 
         # update playback
-        self.playback.n_frames = state.n_frames
+        self.playback.n_frames = n_frames
 
         # load annotation in widgets
-        self.timeline.set_range(state.n_frames)
-        self.annotation_widget.load_state(state)
-        self.media_player.load_state(state)
+        self.timeline.set_range(n_frames)
+        self.annotation_widget.load(state.samples, state.dataset.scheme, state.dataset.dependencies, n_frames)
+        self.media_player.load(state.input_file)
 
         if isinstance(self.flex_widget, QRetrievalWidget):
-            self.flex_widget.load_state(state)
+            self.flex_widget.load(state.samples, state.dataset.scheme, state.dataset.dependencies, n_frames)
 
         self.save_annotation()
         self.mediator.set_position(0)
 
     @qtc.pyqtSlot()
     def load_manual_annotation(self):
-        assert type(self.flex_widget) != QDisplaySample
-        logging.info("LOADING MANUAL ANNOTATION")
-        self.flex_widget = QDisplaySample()
-        self.gui.set_right_widget(self.flex_widget)
+        if not isinstance(self.flex_widget, QDisplaySample):
+            logging.info("LOADING MANUAL ANNOTATION")
+            self.save_annotation()
 
-        self.annotation_widget.samples_changed.connect(self.flex_widget.set_selected)
+            self.flex_widget = QDisplaySample()
+            self.gui.set_right_widget(self.flex_widget)
 
-        self.mediator.stop_loop()
+            self.mediator.stop_loop()
 
-        if self.global_state is not None:
-            self.load_state(self.global_state)
+            assert len(self.annotation_widget.undo_stack) == 0
+            assert len(self.annotation_widget.redo_stack) == 0
+
+            self.annotation_widget.samples_changed.connect(self.flex_widget.set_selected)
+            self.annotation_widget.setEnabled(True)
 
     @qtc.pyqtSlot()
     def load_retrieval_mode(self):
-        assert type(self.flex_widget) != QRetrievalWidget
-        logging.info("LOADING RETRIEVAL MODE")
-        self.annotation_widget.samples_changed.disconnect(self.flex_widget.set_selected)
+        if not isinstance(self.flex_widget, QRetrievalWidget):
+            logging.info("LOADING RETRIEVAL MODE")
+            self.annotation_widget.samples_changed.disconnect(self.flex_widget.set_selected)
+            self.annotation_widget.setEnabled(False)
+            self.annotation_widget.clear_undo_redo()
 
-        self.flex_widget = QRetrievalWidget()
-        self.gui.set_right_widget(self.flex_widget)
+            self.save_annotation()
 
-        self.flex_widget.start_loop.connect(self.mediator.start_loop)
-        self.flex_widget.new_sample.connect(self.annotation_widget.new_sample)
+            self.flex_widget = QRetrievalWidget()
+            self.gui.set_right_widget(self.flex_widget)
 
-        if self.global_state is not None:
-            # self.load_state(self.global_state)
-            self.flex_widget.load_state(self.global_state)
+            self.flex_widget.start_loop.connect(self.mediator.start_loop)
+            self.flex_widget.new_sample.connect(self.annotation_widget.new_sample)
+
+            if self.global_state is not None:
+                state = self.global_state
+                self.flex_widget.load(state.samples, state.dataset.scheme, state.dataset.dependencies, self.n_frames)
 
     def save_annotation(self):
         if self.global_state is None:
@@ -157,9 +169,14 @@ class MainApplication(qtw.QApplication):
         else:
             logging.info("Saving current state")
             samples = self.annotation_widget.samples
+
+            if len(samples) > 0:
+                assert samples[-1].end_position + 1 == self.n_frames
+            else:
+                assert self.n_frames == 0
             self.global_state.samples = samples
             for idx, x in enumerate(self.global_state.samples):
-                logging.info(
+                logging.debug(
                     "{}-Sample: ({}, {})".format(idx, x.start_position, x.end_position)
                 )
             self.global_state.to_disk()
@@ -180,8 +197,6 @@ class MainApplication(qtw.QApplication):
             "DEBUG" if settings.debugging_mode else "WARNING"
         )
         logging.config.dictConfig(log_config_dict)
-
-        self.annotation_widget.settings_changed()
 
         toggle_stylesheet(settings.darkmode)
 

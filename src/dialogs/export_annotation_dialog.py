@@ -125,8 +125,8 @@ class QExportAnnotationDialog(qtw.QDialog):
         if self.export_scheme.isChecked():
             logging.info("Exporting dataset-scheme.")
             out_path = os.path.join(exportation_directory, "scheme.json")
-            dataset_scheme = annotation.dataset.scheme
-            filehandler.write_json(data=dataset_scheme, path=out_path)
+            annotation_scheme = annotation.dataset.scheme
+            filehandler.write_json(data=annotation_scheme.scheme, path=out_path)
             del out_path
 
         # Export dataset-dependencies
@@ -147,7 +147,6 @@ class QExportAnnotationDialog(qtw.QDialog):
             meta_dict["annotator_id"] = annotation.annotator_id
             meta_dict["input_file"] = annotation.input_file
             meta_dict["footprint"] = annotation.footprint
-            meta_dict["last_edited"] = str(annotation.last_edited)
 
             out_path = os.path.join(exportation_directory, "meta_informations.json")
             filehandler.write_json(path=out_path, data=meta_dict)

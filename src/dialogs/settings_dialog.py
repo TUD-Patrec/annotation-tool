@@ -107,10 +107,10 @@ class SettingsDialog(qtw.QDialog):
 
         self.darkmode.setChecked(settings.darkmode)
 
-        refresh_validator = qtg.QIntValidator(1, 200, self)
+        refresh_validator = qtg.QIntValidator(1, 500, self)
         self.refresh_rate.setValidator(refresh_validator)
         self.refresh_rate.setText(str(settings.refresh_rate))
-        self.refresh_rate.setPlaceholderText(str(100))
+        self.refresh_rate.setPlaceholderText(str(200))
 
         show_millis = settings.show_millisecs
         self.frame_based.addItem("Show frame numbers")

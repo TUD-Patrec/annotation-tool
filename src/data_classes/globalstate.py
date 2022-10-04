@@ -9,7 +9,7 @@ from typing import List
 from .datasets import DatasetDescription
 from .sample import Sample
 from ..utility import filehandler
-from src.data_classes.annotation import Annotation
+from src.data_classes.annotation import empty_annotation
 from ..utility.decorators import accepts
 
 
@@ -45,10 +45,10 @@ class GlobalState:
         self._path = path
         self._footprint = filehandler.footprint_of_file(self._input_file)
 
-        _, self._frame_count, self._fps = filehandler.meta_data(self._input_file)
+        _, n_frames, _ = filehandler.meta_data(self._input_file)
 
-        empty_annotation = Annotation(self.dataset.scheme)
-        self._samples.append(Sample(0, self._frame_count - 1, empty_annotation))
+        anno = empty_annotation(self.dataset.scheme)
+        self._samples.append(Sample(0, n_frames - 1, anno))
 
     @property
     def name(self):
@@ -84,10 +84,6 @@ class GlobalState:
                     raise ValueError("Gaps between Samples are not allowed!")
                 last = sample.end_position
 
-            N = value[-1].end_position + 1
-            if N != self.n_frames:
-                raise ValueError("Samples have wrong length")
-
             self._samples = value
             logging.info("Updating samples was succesfull!")
 
@@ -122,41 +118,12 @@ class GlobalState:
     def footprint(self):
         return self._footprint
 
-    @property
-    def frame_based_annotation(self):
-        return not self._try_media_player
-
-    @property
-    def fps(self):
-        return self._fps
-
-    @property
-    def duration(self):
-        return int(self.frames * 1000 / self.fps)
-
-    @property
-    def frames(self):
-        return self.n_frames
-
-    @property
-    def n_frames(self):
-        return self._frame_count
-
     def to_numpy(self):
         x = []
         for sample in self.samples:
             lower = sample.start_position
             upper = sample.end_position
-
-            vec = []
-            for group_name, group_elements in self.dataset.scheme:
-                for elem in group_elements:
-                    if bool(sample.annotation):
-                        val = sample.annotation[group_name][elem]
-                    else:
-                        val = 0
-                    vec.append(val)
-            annotation_vector = np.array(vec, dtype=np.uint8)
+            annotation_vector = sample.annotation.annotation_vector
 
             for _ in range(lower, upper + 1):
                 x.append(annotation_vector)

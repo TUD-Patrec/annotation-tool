@@ -1,12 +1,9 @@
-import logging
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 
-from copy import deepcopy, copy
-from src.data_classes.globalstate import GlobalState
+from copy import deepcopy
 from src.data_classes.sample import Sample
 from src.dialogs.annotation_dialog import QAnnotationDialog
-from src.annotation.timeline import QTimeLine
 
 
 class QAnnotationWidget(qtw.QWidget):
@@ -14,12 +11,17 @@ class QAnnotationWidget(qtw.QWidget):
 
     def __init__(self, *args, **kwargs):
         super(QAnnotationWidget, self).__init__(*args, **kwargs)
-        self.global_state = None
+        self.samples = []
+        self.scheme = None
+        self.dependencies = None
         self.position = 0
+        self.n_frames = 0
         self.selected_sample = None
 
         self.undo_stack = list()
         self.redo_stack = list()
+
+        self.enabled = False
 
         self.init_UI()
 
@@ -68,6 +70,15 @@ class QAnnotationWidget(qtw.QWidget):
 
         self.setLayout(vbox)
 
+    @qtc.pyqtSlot(bool)
+    def setEnabled(self, a0: bool) -> None:
+        self.enabled = bool(a0)
+        self.annotate_btn.setEnabled(self.enabled)
+        self.cut_btn.setEnabled(self.enabled)
+        self.cut_and_annotate_btn.setEnabled(self.enabled)
+        self.merge_left_btn.setEnabled(self.enabled)
+        self.merge_right_btn.setEnabled(self.enabled)
+
     @qtc.pyqtSlot(int)
     def set_position(self, new_pos):
         assert 0 <= new_pos, f"{new_pos = }"
@@ -78,12 +89,14 @@ class QAnnotationWidget(qtw.QWidget):
             self.position = new_pos
             self.check_for_selected_sample()
 
-    @qtc.pyqtSlot(GlobalState)
-    def load_state(self, state):
-        assert isinstance(state, GlobalState)
-        self.clear_undo_redo()
-        self.global_state = state
+    @qtc.pyqtSlot(list, int)
+    def load(self, samples, scheme, dependencies, n_frames):
+        self.samples = samples
+        self.scheme = scheme
+        self.dependencies = dependencies
+        self.n_frames = n_frames
         self.position = 0
+        self.clear_undo_redo()
         self.check_for_selected_sample(force_update=True)
 
     # TODO maybe use binary search to increase speed, currently O(n)
@@ -101,20 +114,22 @@ class QAnnotationWidget(qtw.QWidget):
 
     @qtc.pyqtSlot()
     def cut_and_annotate(self):
-        self.split_selected_sample()
-        self.annotate_selected_sample()
+        if self.is_enabled():
+            self.split_selected_sample()
+            self.annotate_selected_sample()
 
     @qtc.pyqtSlot()
     def annotate_selected_sample(self):
-        sample = self.selected_sample
+        if self.is_enabled():
+            sample = self.selected_sample
 
-        dialog = QAnnotationDialog(self.scheme, self.dependencies)
+            dialog = QAnnotationDialog(self.scheme, self.dependencies)
 
-        dialog.new_annotation.connect(
-            lambda x: self.update_sample_annotation(sample, x)
-        )
-        dialog.open()
-        dialog._set_annotation(sample.annotation)
+            dialog.new_annotation.connect(
+                lambda x: self.update_sample_annotation(sample, x)
+            )
+            dialog.open()
+            dialog._set_annotation(sample.annotation)
 
     def update_sample_annotation(self, sample, new_annotation):
         self.add_to_undo_stack()
@@ -123,46 +138,48 @@ class QAnnotationWidget(qtw.QWidget):
 
     @qtc.pyqtSlot()
     def split_selected_sample(self):
-        sample = self.selected_sample
+        if self.is_enabled():
+            sample = self.selected_sample
 
-        # Split can only happen if you are at least at second frame of that sample
-        if sample.start_position < self.position:
-            start_1, end_1 = sample.start_position, self.position
-            start_2, end_2 = self.position + 1, sample.end_position
+            # Split can only happen if you are at least at second frame of that sample
+            if sample.start_position < self.position:
+                start_1, end_1 = sample.start_position, self.position
+                start_2, end_2 = self.position + 1, sample.end_position
 
-            s1 = Sample(start_1, end_1, sample.annotation)
-            s2 = Sample(start_2, end_2, sample.annotation)
+                s1 = Sample(start_1, end_1, sample.annotation)
+                s2 = Sample(start_2, end_2, sample.annotation)
 
-            self.add_to_undo_stack()
+                self.add_to_undo_stack()
 
-            idx = self.samples.index(sample)
-            self.samples.remove(sample)
-            self.samples.insert(idx, s1)
-            self.samples.insert(idx + 1, s2)
+                idx = self.samples.index(sample)
+                self.samples.remove(sample)
+                self.samples.insert(idx, s1)
+                self.samples.insert(idx + 1, s2)
 
-            self.check_for_selected_sample()
+                self.check_for_selected_sample()
 
     @qtc.pyqtSlot(bool)
     def merge_samples(self, merge_left: bool = None):
-        sample = self.selected_sample
+        if self.is_enabled():
+            sample = self.selected_sample
 
-        sample_idx = self.samples.index(sample)
+            sample_idx = self.samples.index(sample)
 
-        other_idx = sample_idx - 1 if merge_left else sample_idx + 1
-        if 0 <= other_idx < len(self.samples):
-            other_sample = self.samples[other_idx]
-            start = min(sample.start_position, other_sample.start_position)
-            end = max(sample.end_position, other_sample.end_position)
+            other_idx = sample_idx - 1 if merge_left else sample_idx + 1
+            if 0 <= other_idx < len(self.samples):
+                other_sample = self.samples[other_idx]
+                start = min(sample.start_position, other_sample.start_position)
+                end = max(sample.end_position, other_sample.end_position)
 
-            merged_sample = Sample(start, end, sample.annotation)
+                merged_sample = Sample(start, end, sample.annotation)
 
-            self.add_to_undo_stack()
+                self.add_to_undo_stack()
 
-            self.samples.remove(sample)
-            self.samples.remove(other_sample)
-            self.samples.insert(min(sample_idx, other_idx), merged_sample)
+                self.samples.remove(sample)
+                self.samples.remove(other_sample)
+                self.samples.insert(min(sample_idx, other_idx), merged_sample)
 
-            self.check_for_selected_sample()
+                self.check_for_selected_sample()
 
     def add_to_undo_stack(self):
         current_samples = deepcopy(self.samples)
@@ -192,6 +209,9 @@ class QAnnotationWidget(qtw.QWidget):
     def clear_undo_redo(self):
         self.undo_stack = []
         self.redo_stack = []
+
+    def is_enabled(self):
+        return self.enabled and bool(self.samples)
 
     @qtc.pyqtSlot(Sample)
     def new_sample(self, new_sample):
@@ -227,7 +247,7 @@ class QAnnotationWidget(qtw.QWidget):
         )
 
         # only add it if it is valid
-        if left_sample.end_position > left_sample.start_position:
+        if left_sample.start_position <= left_sample.end_position:
             self.samples.append(left_sample)
 
         # create new right sample
@@ -238,11 +258,11 @@ class QAnnotationWidget(qtw.QWidget):
         )
 
         # only add it if it is valid
-        if right_sample.end_position > right_sample.start_position:
+        if right_sample.start_position <= right_sample.end_position:
             self.samples.append(right_sample)
 
         # add new sample if it is valid
-        if new_sample.start_position < new_sample.end_position:
+        if new_sample.start_position <= new_sample.end_position:
             self.samples.append(new_sample)
 
         # reorder samples -> the <= 3 newly added samples were appended to the end
@@ -267,25 +287,3 @@ class QAnnotationWidget(qtw.QWidget):
         # update samples and notify timeline etc.
         self.check_for_selected_sample(force_update=True)
 
-    @property
-    def samples(self):
-        return self.global_state.samples if self.global_state is not None else []
-
-    @samples.setter
-    def samples(self, new_samples):
-        assert isinstance(new_samples, list)
-        for s in new_samples:
-            assert isinstance(s, Sample)
-        self.global_state.samples = new_samples
-
-    @property
-    def n_frames(self):
-        return self.global_state.n_frames if self.global_state is not None else 0
-
-    @property
-    def scheme(self):
-        return self.global_state.dataset.scheme
-
-    @property
-    def dependencies(self):
-        return self.global_state.dataset.dependencies

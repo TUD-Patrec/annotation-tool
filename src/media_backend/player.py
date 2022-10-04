@@ -95,14 +95,27 @@ class AbstractMediaPlayer(qtw.QWidget):
     def remove_input(self):
         self.remove_wanted.emit(self)
 
+    def change_offset(self, offs):
+        self.offset = offs
+        self.update_media_position(UpdateReason.OFFSET)
+
     @qtc.pyqtSlot()
     def adjust_offset(self):
-        offset, ok = qtw.QInputDialog.getInt(
-            self, "Offset", "Enter offset", value=self.offset
-        )
-        if ok:
-            self.offset = offset
-            self.update_media_position(UpdateReason.OFFSET)
+        old_offset = self.offset
+        input_dialog = qtw.QInputDialog()
+
+        input_dialog.setInputMode(qtw.QInputDialog.IntInput)
+        input_dialog.setIntRange(-2**31, 2**31 - 1)
+        input_dialog.intValueChanged.connect(self.change_offset)
+        input_dialog.setIntValue(self.offset)
+        input_dialog.setWindowTitle('Adjust offset')
+        input_dialog.setLabelText('Offset')
+
+        input_dialog.rejected.connect(lambda: self.change_offset(old_offset))
+
+        self.inp_dia = input_dialog
+
+        input_dialog.open()
 
     @abstractmethod
     @qtc.pyqtSlot(str)

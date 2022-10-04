@@ -2,11 +2,10 @@ from collections import namedtuple
 from copy import deepcopy
 
 import numpy as np
-import logging
 
 from typing import Union
 from src.data_classes.annotation_scheme import AnnotationScheme
-from src.utility.decorators import accepts, returns
+from src.utility.decorators import returns
 
 
 def is_compatible(raw_annotation: Union[np.ndarray, dict], scheme: AnnotationScheme):
@@ -34,7 +33,7 @@ def is_compatible(raw_annotation: Union[np.ndarray, dict], scheme: AnnotationSch
 
 
 def empty_annotation(scheme: AnnotationScheme):
-    return Annotation(None, scheme)
+    return Annotation(scheme)
 
 
 class Annotation:
@@ -158,3 +157,8 @@ class Annotation:
             value = self.annotation_dict[group_name][element_name]
 
             yield annotation_element(group_name, element_name, value, row, col)
+
+    def __hash__(self):
+        return hash(id(self))
+
+

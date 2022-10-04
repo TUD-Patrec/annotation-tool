@@ -39,11 +39,11 @@ class QMediaMainController(qtw.QWidget):
         self.grid.addLayout(self.vbox, 0, 1)
 
     @qtc.pyqtSlot(str)
-    def load_annotation(self, annotation):
+    def load(self, file):
         self.pause()
         self.reset.emit()
         self.clear()
-        self.add_replay_widget(annotation.input_file)
+        self.add_replay_widget(file)
 
     def clear(self):
         if self.replay_widgets:

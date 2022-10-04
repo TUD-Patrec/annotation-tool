@@ -38,12 +38,9 @@ class QMediaWidget(qtw.QWidget):
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.addWidget(self.controller)
 
-    @qtc.pyqtSlot(object)
-    def load_state(self, o):
-        self.controller.load_annotation(o)
-
-    def load_initial_view(self):
-        self.set_position(0)
+    @qtc.pyqtSlot(str)
+    def load(self, file):
+        self.controller.load(file)
 
     @qtc.pyqtSlot(int)
     def set_position(self, p):

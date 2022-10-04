@@ -14,7 +14,7 @@ class Settings:
     _window_y: int = field(init=False, default=700)
     _dark_mode: bool = field(init=False, default=False)
     _font: int = field(init=False, default=10)
-    _refresh_rate: int = field(init=False, default=100)
+    _refresh_rate: int = field(init=False, default=200)
     _show_millisecs: bool = field(init=False, default=False)
     _small_skip: int = field(init=False, default=1)
     _big_skip: int = field(init=False, default=100)
