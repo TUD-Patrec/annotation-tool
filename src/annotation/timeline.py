@@ -1,11 +1,12 @@
 import logging
-import PyQt5.QtWidgets as qtw
+
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
+import PyQt5.QtWidgets as qtw
 
-from src.utility.functions import FrameTimeMapper
 from src.data_classes.sample import Sample
 from src.utility import functions
+from src.utility.functions import FrameTimeMapper
 
 
 class QTimeLine(qtw.QWidget):

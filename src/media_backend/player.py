@@ -1,10 +1,12 @@
 from abc import abstractmethod
-import PyQt5.QtWidgets as qtw
+from enum import Enum
+
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
+import PyQt5.QtWidgets as qtw
+
 from ..utility import filehandler
 from ..utility.decorators import accepts, returns
-from enum import Enum
 
 
 class UpdateReason(Enum):
@@ -105,11 +107,11 @@ class AbstractMediaPlayer(qtw.QWidget):
         input_dialog = qtw.QInputDialog()
 
         input_dialog.setInputMode(qtw.QInputDialog.IntInput)
-        input_dialog.setIntRange(-2**31, 2**31 - 1)
+        input_dialog.setIntRange(-(2**31), 2**31 - 1)
         input_dialog.intValueChanged.connect(self.change_offset)
         input_dialog.setIntValue(self.offset)
-        input_dialog.setWindowTitle('Adjust offset')
-        input_dialog.setLabelText('Offset')
+        input_dialog.setWindowTitle("Adjust offset")
+        input_dialog.setLabelText("Offset")
 
         input_dialog.rejected.connect(lambda: self.change_offset(old_offset))
 

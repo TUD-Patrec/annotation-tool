@@ -1,7 +1,8 @@
-import PyQt5.QtWidgets as qtw
-import PyQt5.QtCore as qtc
-
 from copy import deepcopy
+
+import PyQt5.QtCore as qtc
+import PyQt5.QtWidgets as qtw
+
 from src.data_classes.sample import Sample
 from src.dialogs.annotation_dialog import QAnnotationDialog
 
@@ -217,8 +218,12 @@ class QAnnotationWidget(qtw.QWidget):
     def new_sample(self, new_sample):
         assert len(self.samples) > 0
 
-        left = None  # index to the rightmost sample with: new_sample.lower >= left.lower
-        right = None  # index to the leftmost sample with: new_sample.upper <= right.lower
+        left = (
+            None  # index to the rightmost sample with: new_sample.lower >= left.lower
+        )
+        right = (
+            None  # index to the leftmost sample with: new_sample.upper <= right.lower
+        )
 
         # grab those indices
         for idx, s in enumerate(self.samples):
@@ -286,4 +291,3 @@ class QAnnotationWidget(qtw.QWidget):
 
         # update samples and notify timeline etc.
         self.check_for_selected_sample(force_update=True)
-

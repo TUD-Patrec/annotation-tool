@@ -1,10 +1,12 @@
 import logging
-import numpy as np
-import pyqtgraph.opengl as gl
-import PyQt5.QtCore as qtc
 
-from ..player import AbstractMediaPlayer, AbstractMediaLoader, UpdateReason
+import numpy as np
+import PyQt5.QtCore as qtc
+import pyqtgraph.opengl as gl
+
 from src.data_classes.settings import Settings
+
+from ..player import AbstractMediaLoader, AbstractMediaPlayer, UpdateReason
 
 
 class MocapLoader(AbstractMediaLoader):

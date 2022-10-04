@@ -1,12 +1,12 @@
-import shutil
-import PyQt5.QtWidgets as qtw
-import os
-import numpy as np
 import logging
+import os
+import shutil
 
-from ..utility import filehandler
-from ..utility import functions
+import numpy as np
+import PyQt5.QtWidgets as qtw
+
 from ..qt_helper_widgets.line_edit_adapted import QLineEditAdapted
+from ..utility import filehandler, functions
 
 
 class QExportAnnotationDialog(qtw.QDialog):

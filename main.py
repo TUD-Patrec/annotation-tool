@@ -1,10 +1,11 @@
-import os
-import logging
-import sys
 import ctypes
-import PyQt5.QtWidgets as qtw
-import PyQt5.QtCore as qtc
+import logging
+import os
+import sys
 from sys import platform
+
+import PyQt5.QtCore as qtc
+import PyQt5.QtWidgets as qtw
 
 from src.main_controller import main
 from src.utility import filehandler

@@ -1,15 +1,15 @@
 import logging
 
-import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
+import PyQt5.QtWidgets as qtw
 
 from src.data_classes.settings import Settings
 
-from .type_specific_player.video import VideoPlayer
-from .type_specific_player.mocap import MocapPlayer
 from .player import AbstractMediaPlayer
 from .timer import Timer
+from .type_specific_player.mocap import MocapPlayer
+from .type_specific_player.video import VideoPlayer
 
 
 class QMediaMainController(qtw.QWidget):

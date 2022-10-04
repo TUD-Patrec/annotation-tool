@@ -1,4 +1,5 @@
 import time
+
 import PyQt5.QtCore as qtc
 
 from .player import AbstractMediaPlayer

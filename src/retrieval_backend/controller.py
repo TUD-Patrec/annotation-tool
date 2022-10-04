@@ -1,22 +1,22 @@
 import logging
 import time
-import PyQt5.QtWidgets as qtw
-import PyQt5.QtCore as qtc
+
 import numpy as np
+import PyQt5.QtCore as qtc
+import PyQt5.QtWidgets as qtw
 from scipy import spatial
 
-from src.data_classes import Sample, Annotation, AnnotationScheme
-from src.qt_helper_widgets.histogram import Histogram_Widget
-
-from src.qt_helper_widgets.lines import QHLine
-from src.qt_helper_widgets.display_scheme import QShowAnnotation
+from src.data_classes import Annotation, AnnotationScheme, Sample
 from src.dialogs.annotation_dialog import QAnnotationDialog
+from src.dialogs.dialog_manager import open_dialog
+from src.qt_helper_widgets.display_scheme import QShowAnnotation
+from src.qt_helper_widgets.histogram import Histogram_Widget
+from src.qt_helper_widgets.lines import QHLine
 from src.retrieval_backend.filter import FilterCriteria
+from src.retrieval_backend.filter_dialog import QRetrievalFilter
 from src.retrieval_backend.interval import Interval
 from src.retrieval_backend.query import Query
-from src.retrieval_backend.filter_dialog import QRetrievalFilter
 from src.utility.decorators import accepts
-from src.dialogs.dialog_manager import open_dialog
 
 
 def format_progress(x, y):
@@ -221,18 +221,21 @@ class QRetrievalWidget(qtw.QWidget):
             if end == upper:
                 # 1) if intervals has elements -> extend the last interval to end at the new end-position
                 if last_intervals:
-                    logging.debug('Extending last interval')
+                    logging.debug("Extending last interval")
                     for i in last_intervals:
                         i.end = end
 
                 # 2) if intervals is empty -> extend the interval left and right to the needed size for the network
                 else:
-                    logging.debug('Extending interval left and right')
+                    logging.debug("Extending interval left and right")
                     start_adjusted = max(0, start - self._interval_size)
                     end_adjusted = start_adjusted + self._interval_size - 1
 
                     # find best sourrounding interval
-                    while end_adjusted < self.n_frames - 1 and start_adjusted < start - self._interval_size // 2:
+                    while (
+                        end_adjusted < self.n_frames - 1
+                        and start_adjusted < start - self._interval_size // 2
+                    ):
                         start_adjusted += 1
                         end_adjusted += 1
 
@@ -245,7 +248,8 @@ class QRetrievalWidget(qtw.QWidget):
                             i.end = end
                     else:
                         logging.warning(
-                            f"Was not able to create interval that is small enough to fit inside the video/mocap -> n_frames is smaller than interval_size!")
+                            f"Was not able to create interval that is small enough to fit inside the video/mocap -> n_frames is smaller than interval_size!"
+                        )
             else:
                 last_intervals = []
                 for i in self.get_predictions(start, end):
@@ -383,7 +387,9 @@ class QRetrievalWidget(qtw.QWidget):
                 windows.append([intvl.start, min(intvl.end, next_interval.start)])
 
         # filter for windows that have at least one common frame with the interval
-        windows = list(filter(lambda x: x[0] <= interval.end and x[1] >= interval.start, windows))
+        windows = list(
+            filter(lambda x: x[0] <= interval.end and x[1] >= interval.start, windows)
+        )
 
         annotated_windows = []
         for w in windows:

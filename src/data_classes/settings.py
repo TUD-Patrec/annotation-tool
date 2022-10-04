@@ -1,8 +1,8 @@
 import logging
-
 from dataclasses import dataclass, field, fields
+
 from src.utility import filehandler
-from src.utility.decorators import Singleton
+from src.utility.decorators import Singleton, accepts_m
 
 
 @Singleton
@@ -31,88 +31,72 @@ class Settings:
         return self._annotator_id
 
     @annotator_id.setter
+    @accepts_m(int)
     def annotator_id(self, value):
-        if type(value) != int:
-            raise ValueError
-        else:
-            self._annotator_id = value
+        self._annotator_id = value
 
     @property
     def debugging_mode(self):
         return self._debugging_mode
 
     @debugging_mode.setter
+    @accepts_m(bool)
     def debugging_mode(self, value):
-        if type(value) != bool:
-            raise ValueError
-        else:
-            self._debugging_mode = value
+        self._debugging_mode = value
 
     @property
     def window_x(self):
         return self._window_x
 
     @window_x.setter
+    @accepts_m(int)
     def window_x(self, value):
-        if type(value) != int:
-            raise ValueError
-        else:
-            self._window_x = value
+        self._window_x = value
 
     @property
     def window_y(self):
         return self._window_y
 
     @window_y.setter
+    @accepts_m(int)
     def window_y(self, value):
-        if type(value) != int:
-            raise ValueError
-        else:
-            self._window_y = value
+        self._window_y = value
 
     @property
     def darkmode(self):
         return self._dark_mode
 
     @darkmode.setter
+    @accepts_m(bool)
     def darkmode(self, value):
-        if type(value) != bool:
-            raise ValueError
-        else:
-            self._dark_mode = value
+        self._dark_mode = value
 
     @property
     def font(self):
         return self._font
 
     @font.setter
+    @accepts_m(int)
     def font(self, value):
-        if type(value) != int:
-            raise ValueError
-        else:
-            self._font = min(max(6, value), 30)
+        self._font = min(max(6, value), 30)
 
     @property
     def refresh_rate(self):
         return self._refresh_rate
 
     @refresh_rate.setter
+    @accepts_m(int)
     def refresh_rate(self, value):
-        if type(value) != int:
-            raise ValueError
-        else:
-            self._refresh_rate = min(max(1, value), 200)
+        self._refresh_rate = min(max(1, value), 500)
 
     @property
     def show_millisecs(self):
         return self._show_millisecs
 
     @show_millisecs.setter
+    @accepts_m(bool)
     def show_millisecs(self, value):
-        if type(value) != bool:
-            raise ValueError
-        else:
-            self._show_millisecs = value
+        self._show_millisecs = value
 
     @property
     def small_skip(self):

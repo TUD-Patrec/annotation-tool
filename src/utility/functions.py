@@ -1,12 +1,13 @@
 import functools
 import logging
 import os
-from .filehandler import Paths, is_non_zero_file
+
+from src.data_classes.settings import Settings
+
 from ..data_classes.datasets import DatasetDescription
 from ..data_classes.globalstate import GlobalState
-
 from .decorators import Singleton
-from src.data_classes.settings import Settings
+from .filehandler import Paths, is_non_zero_file
 
 
 def scale(N, M, x):
@@ -79,13 +80,13 @@ class FrameTimeMapper:
         self.millisecs = 1
         self._frame_to_ms, self._ms_to_frame = scale_functions(1, 1, True)
 
-    def settings_changed(self):
+    def update(self, n_frames=None, millisecs=None):
+        if n_frames:
+            self.n_frames = n_frames
+        if millisecs:
+            self.millisecs = millisecs
         self.use_time = Settings.instance().show_millisecs
 
-    def update(self, n_frames, millisecs):
-        self.n_frames = n_frames
-        self.millisecs = millisecs
-        logging.info("{}, {}".format(n_frames, millisecs))
         self._frame_to_ms, self._ms_to_frame = scale_functions(
             self.n_frames, self.millisecs, True
         )

@@ -1,6 +1,6 @@
-import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
+import PyQt5.QtWidgets as qtw
 
 from src.data_classes.settings import Settings
 
@@ -33,7 +33,7 @@ class SettingsDialog(qtw.QDialog):
         form.addRow("Darkmode:", self.darkmode)
 
         self.refresh_rate = qtw.QLineEdit()
-        form.addRow("Backup Refresh Rate", self.refresh_rate)
+        form.addRow("MoCap FPS:", self.refresh_rate)
 
         self.frame_based = qtw.QComboBox()
         form.addRow("Timeline Style:", self.frame_based)
@@ -55,7 +55,7 @@ class SettingsDialog(qtw.QDialog):
         form.addRow("Distance big step:", big_skip_widget)
 
         self.debugging_mode = qtw.QCheckBox()
-        form.addRow("Debugging-Mode", self.debugging_mode)
+        form.addRow("Debugging-Mode:", self.debugging_mode)
 
         self.save_button = qtw.QPushButton()
         self.save_button.setText("Save")
@@ -80,6 +80,8 @@ class SettingsDialog(qtw.QDialog):
 
         self.setLayout(form)
         self.load_layout()
+        self.adjustSize()
+        self.setFixedSize(self.size())
 
     def load_layout(self):
         settings = Settings.instance()

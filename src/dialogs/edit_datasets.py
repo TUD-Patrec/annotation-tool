@@ -1,14 +1,13 @@
-import PyQt5.QtWidgets as qtw
-import PyQt5.QtCore as qtc
-
 from functools import partial
+
+import PyQt5.QtCore as qtc
+import PyQt5.QtWidgets as qtw
 
 from ..data_classes import AnnotationScheme
 from ..data_classes.datasets import DatasetDescription
-from ..utility import filehandler
-from ..utility import functions
-from ..qt_helper_widgets.line_edit_adapted import QLineEditAdapted
 from ..qt_helper_widgets.adaptive_scroll_area import QAdaptiveScrollArea
+from ..qt_helper_widgets.line_edit_adapted import QLineEditAdapted
+from ..utility import filehandler, functions
 
 
 class QEditDatasets(qtw.QDialog):

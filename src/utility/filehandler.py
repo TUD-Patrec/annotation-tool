@@ -1,14 +1,16 @@
-import os
-import logging
-import pickle
-import numpy as np
 import json
-import cv2
+import logging
 import math
-
+import os
+import pickle
 from dataclasses import dataclass, field
-from .decorators import Singleton
+
+import cv2
+import numpy as np
+
 from src.data_classes.settings import Settings
+
+from .decorators import Singleton
 
 
 @Singleton
@@ -129,25 +131,30 @@ def path_to_dirname(path):
         return dirname
 
 
-def meta_data(path):
+__cached_meta_data__ = {}  # used for caching results
+
+
+def meta_data(path, use_cached=True):
+    global __cached_meta_data__
+    if use_cached:
+        tpl = __cached_meta_data__.get(path)
+        if tpl:
+            return tpl
     if is_non_zero_file(path):
         if path.split(".")[-1] == "csv":
-            return meta_data_of_mocap(path)
+            meta = meta_data_of_mocap(path)
         if path.split(".")[-1] in ["mp4", "avi"]:
-            return meta_data_of_video(path)
+            meta = meta_data_of_video(path)
+        __cached_meta_data__[path] = meta
+        return meta
     else:
         raise FileNotFoundError
 
 
 def meta_data_of_mocap(path):
-    logging.info("meta_mocap Start")
-
     mocap = csv_to_numpy(path)
     frame_count = mocap.shape[0]
     fps = Settings.instance().refresh_rate
-
-    logging.info("meta_mocap End")
-
     return 1000 * int(frame_count / fps), frame_count, fps
 
 

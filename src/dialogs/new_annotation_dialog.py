@@ -1,13 +1,13 @@
-import PyQt5.QtWidgets as qtw
-import PyQt5.QtCore as qtc
 import os
 
-from src.data_classes.globalstate import GlobalState
-from ..data_classes.settings import Settings
-from ..utility import filehandler
-from ..utility import functions
+import PyQt5.QtCore as qtc
+import PyQt5.QtWidgets as qtw
 
+from src.data_classes.globalstate import GlobalState
+
+from ..data_classes.settings import Settings
 from ..qt_helper_widgets.line_edit_adapted import QLineEditAdapted
+from ..utility import filehandler, functions
 
 
 class QNewAnnotationDialog(qtw.QDialog):

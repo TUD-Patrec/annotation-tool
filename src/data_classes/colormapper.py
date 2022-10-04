@@ -1,11 +1,12 @@
-from dataclasses import dataclass, field
 import logging
-
-from .annotation import Annotation
-from ..utility.decorators import Singleton
-from distinctipy import distinctipy
-import PyQt5.QtGui as qtg
 import random
+from dataclasses import dataclass, field
+
+import PyQt5.QtGui as qtg
+from distinctipy import distinctipy
+
+from ..utility.decorators import Singleton
+from .annotation import Annotation
 
 
 @Singleton

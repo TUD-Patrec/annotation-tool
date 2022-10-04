@@ -1,23 +1,25 @@
-import PyQt5.QtWidgets as qtw
+import logging
+import logging.config
+import sys
+
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
-import sys, logging, logging.config
+import PyQt5.QtWidgets as qtw
 
-from .data_classes.globalstate import GlobalState
 from src.annotation.annotation_widget import QAnnotationWidget
-from .gui import GUI
-from .mediator import Mediator
-from .playback import QPlaybackWidget
-from .display_current_sample import QDisplaySample
-from src.retrieval_backend.controller import QRetrievalWidget
-from src.data_classes.settings import Settings
 from src.annotation.timeline import QTimeLine
-from .utility.functions import FrameTimeMapper
-from .utility import filehandler
-
+from src.data_classes.settings import Settings
+from src.retrieval_backend.controller import QRetrievalWidget
 from src.utility.breeze_resources import *
 
+from .data_classes.globalstate import GlobalState
+from .display_current_sample import QDisplaySample
+from .gui import GUI
 from .media import QMediaWidget
+from .mediator import Mediator
+from .playback import QPlaybackWidget
+from .utility import filehandler
+from .utility.functions import FrameTimeMapper
 
 
 class MainApplication(qtw.QApplication):
@@ -97,34 +99,47 @@ class MainApplication(qtw.QApplication):
 
     @qtc.pyqtSlot(GlobalState)
     def load_state(self, state):
-        duration, n_frames, fps = filehandler.meta_data(state.input_file)
-        FrameTimeMapper.instance().update(n_frames, duration)
+        if state is not None:
+            duration, n_frames, fps = filehandler.meta_data(state.input_file)
+            FrameTimeMapper.instance().update(n_frames=n_frames, millisecs=duration)
 
-        # save for later reuse
-        self.n_frames = n_frames
+            # save for later reuse
+            self.n_frames = n_frames
 
-        # reset playback
-        self.playback.reset()
+            # reset playback
+            self.playback.reset()
 
-        # store annotation
-        self.global_state = state
+            # store annotation
+            self.global_state = state
 
-        # update mediator
-        self.mediator.n_frames = n_frames
+            # update mediator
+            self.mediator.n_frames = n_frames
 
-        # update playback
-        self.playback.n_frames = n_frames
+            # update playback
+            self.playback.n_frames = n_frames
 
-        # load annotation in widgets
-        self.timeline.set_range(n_frames)
-        self.annotation_widget.load(state.samples, state.dataset.scheme, state.dataset.dependencies, n_frames)
-        self.media_player.load(state.input_file)
+            # load annotation in widgets
+            self.timeline.set_range(n_frames)
+            self.annotation_widget.load(
+                state.samples,
+                state.dataset.scheme,
+                state.dataset.dependencies,
+                n_frames,
+            )
+            self.media_player.load(state.input_file)
 
-        if isinstance(self.flex_widget, QRetrievalWidget):
-            self.flex_widget.load(state.samples, state.dataset.scheme, state.dataset.dependencies, n_frames)
+            if isinstance(self.flex_widget, QRetrievalWidget):
+                self.flex_widget.load(
+                    state.samples,
+                    state.dataset.scheme,
+                    state.dataset.dependencies,
+                    n_frames,
+                )
 
-        self.save_annotation()
-        self.mediator.set_position(0)
+            self.save_annotation()
+            self.mediator.set_position(0)
+        else:
+            raise RuntimeError("State must not be None")
 
     @qtc.pyqtSlot()
     def load_manual_annotation(self):
@@ -140,14 +155,18 @@ class MainApplication(qtw.QApplication):
             assert len(self.annotation_widget.undo_stack) == 0
             assert len(self.annotation_widget.redo_stack) == 0
 
-            self.annotation_widget.samples_changed.connect(self.flex_widget.set_selected)
+            self.annotation_widget.samples_changed.connect(
+                self.flex_widget.set_selected
+            )
             self.annotation_widget.setEnabled(True)
 
     @qtc.pyqtSlot()
     def load_retrieval_mode(self):
         if not isinstance(self.flex_widget, QRetrievalWidget):
             logging.info("LOADING RETRIEVAL MODE")
-            self.annotation_widget.samples_changed.disconnect(self.flex_widget.set_selected)
+            self.annotation_widget.samples_changed.disconnect(
+                self.flex_widget.set_selected
+            )
             self.annotation_widget.setEnabled(False)
             self.annotation_widget.clear_undo_redo()
 
@@ -161,7 +180,12 @@ class MainApplication(qtw.QApplication):
 
             if self.global_state is not None:
                 state = self.global_state
-                self.flex_widget.load(state.samples, state.dataset.scheme, state.dataset.dependencies, self.n_frames)
+                self.flex_widget.load(
+                    state.samples,
+                    state.dataset.scheme,
+                    state.dataset.dependencies,
+                    self.n_frames,
+                )
 
     def save_annotation(self):
         if self.global_state is None:
@@ -175,10 +199,6 @@ class MainApplication(qtw.QApplication):
             else:
                 assert self.n_frames == 0
             self.global_state.samples = samples
-            for idx, x in enumerate(self.global_state.samples):
-                logging.debug(
-                    "{}-Sample: ({}, {})".format(idx, x.start_position, x.end_position)
-                )
             self.global_state.to_disk()
 
     @qtc.pyqtSlot()
@@ -190,7 +210,7 @@ class MainApplication(qtw.QApplication):
         custom_font.setPointSize(settings.font)
         app.setFont(custom_font)
 
-        FrameTimeMapper.instance().settings_changed()
+        FrameTimeMapper.instance().update()
 
         log_config_dict = filehandler.logging_config()
         log_config_dict["handlers"]["screen_handler"]["level"] = (

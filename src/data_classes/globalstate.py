@@ -3,14 +3,17 @@ import logging
 import os
 import random
 import string
-import numpy as np
 from dataclasses import dataclass, field
 from typing import List
+
+import numpy as np
+
+from src.data_classes.annotation import empty_annotation
+
+from ..utility import filehandler
+from ..utility.decorators import accepts
 from .datasets import DatasetDescription
 from .sample import Sample
-from ..utility import filehandler
-from src.data_classes.annotation import empty_annotation
-from ..utility.decorators import accepts
 
 
 @dataclass()

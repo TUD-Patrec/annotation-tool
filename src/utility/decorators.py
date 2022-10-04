@@ -4,9 +4,12 @@ from contextlib import suppress
 from functools import wraps
 
 
+def accepts_m(*types):
+    return accepts(object, *types)
+
+
 def accepts(*types):
     def check_accepts(f):
-
         #  assert len(types) == f.func_code.co_argcount
         assert len(types) == f.__code__.co_argcount, f"{f.__code__.co_argcount = }"
 
@@ -20,6 +23,10 @@ def accepts(*types):
         return new_f
 
     return check_accepts
+
+
+def returns_m(*types):
+    return returns(object, *types)
 
 
 def returns(rtype):

@@ -1,15 +1,17 @@
-import PyQt5.QtWidgets as qtw
-import PyQt5.QtCore as qtc
-import PyQt5.QtGui as qtg
 import logging
 
+import PyQt5.QtCore as qtc
+import PyQt5.QtGui as qtg
+import PyQt5.QtWidgets as qtw
+
 from src.data_classes.settings import Settings
+
 from .data_classes.globalstate import GlobalState
-from .dialogs.settings_dialog import SettingsDialog
 from .dialogs.edit_datasets import QEditDatasets
-from .dialogs.new_annotation_dialog import QNewAnnotationDialog
-from .dialogs.load_annotation_dialog import QLoadExistingAnnotationDialog
 from .dialogs.export_annotation_dialog import QExportAnnotationDialog
+from .dialogs.load_annotation_dialog import QLoadExistingAnnotationDialog
+from .dialogs.new_annotation_dialog import QNewAnnotationDialog
+from .dialogs.settings_dialog import SettingsDialog
 
 
 class GUI(qtw.QMainWindow):
@@ -208,12 +210,10 @@ class GUI(qtw.QMainWindow):
 
     def manual_anotation_toggled(self, active):
         if active:
-            logging.info("manual anno emit")
             self.use_manual_annotation.emit()
 
     def retrievel_mode_toggled(self, active):
         if active:
-            logging.info("retrieval_backend emit")
             self.use_retrieval_mode.emit()
 
     def open_settings(self):
@@ -228,6 +228,7 @@ class GUI(qtw.QMainWindow):
 
     def create_new_annotation(self):
         if self.dialog is None:
+            self.save_pressed.emit()
             self.dialog = QNewAnnotationDialog()
             self.dialog.load_annotation.connect(self.load_annotation)
             self.dialog.finished.connect(self.free_dialog)
@@ -237,6 +238,7 @@ class GUI(qtw.QMainWindow):
 
     def load_existing_annotation(self):
         if self.dialog is None:
+            self.save_pressed.emit()
             self.dialog = QLoadExistingAnnotationDialog()
             self.dialog.load_annotation.connect(self.load_annotation)
             self.dialog.finished.connect(self.free_dialog)
@@ -246,6 +248,7 @@ class GUI(qtw.QMainWindow):
 
     def export_annotation(self):
         if self.dialog is None:
+            self.save_pressed.emit()
             self.dialog = QExportAnnotationDialog()
             self.dialog.finished.connect(self.free_dialog)
             self.dialog.open()

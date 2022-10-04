@@ -3,8 +3,8 @@ import random
 import string
 from dataclasses import dataclass, field
 
-from . import AnnotationScheme
 from ..utility import filehandler
+from . import AnnotationScheme
 
 
 @dataclass()

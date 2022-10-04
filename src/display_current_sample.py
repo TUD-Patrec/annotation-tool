@@ -1,10 +1,10 @@
 import logging
 
-import PyQt5.QtWidgets as qtw
 import PyQt5.QtCore as qtc
+import PyQt5.QtWidgets as qtw
 
-from .qt_helper_widgets.lines import QHLine
 from .qt_helper_widgets.display_scheme import QShowAnnotation
+from .qt_helper_widgets.lines import QHLine
 
 
 class QDisplaySample(qtw.QWidget):

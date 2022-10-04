@@ -10,8 +10,8 @@ import logging
 import PyQt5.QtCore as qtc
 
 from src.annotation.annotation_widget import QAnnotationWidget
-from src.data_classes import Settings, GlobalState
 from src.annotation.timeline import QTimeLine
+from src.data_classes import GlobalState, Settings
 from src.media import QMediaWidget
 from src.playback import QPlaybackWidget
 

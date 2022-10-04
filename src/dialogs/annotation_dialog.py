@@ -1,6 +1,6 @@
-import PyQt5.QtWidgets as qtw
-import PyQt5.QtCore as qtc
 import numpy as np
+import PyQt5.QtCore as qtc
+import PyQt5.QtWidgets as qtw
 
 from src.data_classes.annotation import Annotation
 

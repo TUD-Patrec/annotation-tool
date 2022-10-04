@@ -1,8 +1,11 @@
 from dataclasses import dataclass, field
-from .colormapper import ColorMapper
+
 import PyQt5.QtGui as qtg
+
 from src.data_classes.annotation import Annotation
 from src.utility.decorators import accepts, returns
+
+from .colormapper import ColorMapper
 
 
 @dataclass(order=True, unsafe_hash=True)

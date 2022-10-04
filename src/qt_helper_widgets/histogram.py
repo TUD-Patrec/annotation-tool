@@ -1,4 +1,5 @@
 import logging
+
 import matplotlib
 
 matplotlib.use("Qt5Agg")
@@ -6,7 +7,6 @@ matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import PyQt5.QtWidgets as qtw
-
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 

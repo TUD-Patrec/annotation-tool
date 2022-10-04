@@ -1,9 +1,10 @@
-import logging, cv2
-import numpy as np
+import logging
 
-import PyQt5.QtWidgets as qtw
+import cv2
+import numpy as np
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
+import PyQt5.QtWidgets as qtw
 
 from ..player import AbstractMediaPlayer, UpdateReason
 

@@ -1,9 +1,9 @@
 from collections import namedtuple
 from copy import deepcopy
+from typing import Union
 
 import numpy as np
 
-from typing import Union
 from src.data_classes.annotation_scheme import AnnotationScheme
 from src.utility.decorators import returns
 
@@ -134,13 +134,16 @@ class Annotation:
             return scheme_equal and vec_equal
         else:
             return False
+
     def __copy__(self):
         new_anno = Annotation(self.scheme, self.annotation_vector)
         assert self == new_anno and new_anno is not self
         return new_anno
 
     def __deepcopy__(self, memodict={}):
-        new_anno = Annotation(deepcopy(self.scheme, memodict), deepcopy(self.annotation_vector, memodict))
+        new_anno = Annotation(
+            deepcopy(self.scheme, memodict), deepcopy(self.annotation_vector, memodict)
+        )
         assert self == new_anno
         return new_anno
 
@@ -160,5 +163,3 @@ class Annotation:
 
     def __hash__(self):
         return hash(id(self))
-
-
