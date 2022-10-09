@@ -1,11 +1,7 @@
-import logging
-import math
-import time
 from copy import deepcopy
 from dataclasses import dataclass, field
 
 from src.data_classes import Annotation, Sample
-from src.utility.decorators import accepts
 
 
 @dataclass(unsafe_hash=True, order=True)
@@ -24,113 +20,77 @@ class Interval:
         sample = Sample(self.start, self.end, anno)
 
 
-@accepts(list)
-def generate_intervals(ranges, stepsize, interval_size):
-    start_time = time.perf_counter()
+def create_sub_intervals(intervals, stepsize, interval_size):
+    res = []
+    for intrvl in intervals:
+        res += partition_interval(intrvl, stepsize, interval_size)
+    return res
 
+
+def partition_interval(interval, stepsize, interval_size):
+    # ascending
+    asc_partition = []
+    lo, hi = interval
+
+    while lo + interval_size - 1 <= hi:
+        upper = lo + interval_size - 1
+        asc_partition.append((lo, upper))
+        lo = lo + stepsize
+
+    # descending
+    desc_partition = []
+    lo, hi = interval
+
+    while lo + interval_size - 1 <= hi:
+        lower = hi - interval_size + 1
+        desc_partition.append((lower, hi))
+        hi = hi - stepsize
+
+    # join both lists
+    combined_partition = []
+    for (a_lo, a_hi), (d_lo, d_hi) in zip(asc_partition, desc_partition):
+        if a_lo == d_lo:
+            combined_partition.append((a_lo, a_hi))
+        elif a_lo > d_lo:
+            break
+        else:
+            combined_partition.append((a_lo, a_hi))
+            combined_partition.append((d_lo, d_hi))
+
+    combined_partition.sort()
+
+    return combined_partition
+
+
+def create_smallest_description(intervals):
+    intervals.sort()
+    res = []
+    for tpl in intervals:
+        lo = min(tpl)
+        hi = max(tpl)
+        if len(res) > 0:
+            prev_lo, prev_hi = res.pop()
+            # merge possible
+            if lo <= prev_hi + 1:
+                res.append((prev_lo, hi))
+            else:
+                res.append((prev_lo, prev_hi))
+                res.append((lo, hi))
+        else:
+            res.append((lo, hi))
+    return res
+
+
+def generate_intervals(ranges, stepsize, interval_size):
     if len(ranges) == 0:
         return
 
-    ranges.sort()
-
     # generate smallest description of ranges -> merge adjacent tuples
-    ls = []
+    ranges = create_smallest_description(ranges)
+    print(f"{ranges = }")
 
-    for lo, hi in ranges:
-        if len(ls) > 0:
-            prev_lo, prev_hi = ls.pop()
-            # merge possible
-            if lo <= prev_hi + 1:
-                ls.append((prev_lo, hi))
-            else:
-                ls.append((prev_lo, prev_hi))
-                ls.append((lo, hi))
-        else:
-            ls.append((lo, hi))
+    # create sub_intervals inside each range
+    sub_intervals = create_sub_intervals(ranges, stepsize, interval_size)
+    print(f"{sub_intervals = }")
 
-    boundaries = []
-    for sample in self.samples:
-        # sample already annotated
-        if not sample.annotation.is_empty():
-            continue
-
-        # only grab samples that are not annotated yet
-        l, r = sample.start_position, sample.end_position
-        boundaries.append([l, r])
-
-    # merge adjacent intervals
-    reduced_boundaries = []
-    idx = 0
-    while idx < len(boundaries):
-        l, r = boundaries[idx]
-
-        nxt_idx = idx + 1
-        while nxt_idx < len(boundaries) and boundaries[nxt_idx][0] == r + 1:
-            _, r = boundaries[nxt_idx]
-            nxt_idx += 1
-        reduced_boundaries.append([l, r])
-        idx = nxt_idx
-
-    intervals = []
-    for l, r in reduced_boundaries:
-        tmp = get_intervals_in_range(l, r)
-        intervals.extend(tmp)
-
-    end_time = time.perf_counter()
-    logging.debug(f"GENERATING INTERVALS TOOK {end_time - start_time}ms")
-    return intervals
-
-
-def get_intervals_in_range(lo, hi):
-    if hi <= lo:
-        return []
-
-    intervals = []
-    last_intervals = []
-    start = lo
-    stepsize = self.stepsize()
-
-    while start <= hi:
-        end = min(start + self._interval_size - 1, hi)
-
-        if end == hi:
-            # 1) if intervals has elements -> extend the last interval to end at the new end-position
-            if last_intervals:
-                logging.debug("Extending last interval")
-                for i in last_intervals:
-                    i.end = end
-
-            # 2) if intervals is empty -> extend the interval left and right to the needed size for the network
-            else:
-                logging.debug("Extending interval left and right")
-                start_adjusted = max(0, start - self._interval_size)
-                end_adjusted = start_adjusted + self._interval_size - 1
-
-                # find best sourrounding interval
-                while (
-                    end_adjusted < self.n_frames - 1
-                    and start_adjusted < start - self._interval_size // 2
-                ):
-                    start_adjusted += 1
-                    end_adjusted += 1
-
-                # make sure that the adjusted interval is within the video/Mocap
-                if end_adjusted < self.n_frames:
-                    preds = self.get_predictions(start_adjusted, end_adjusted)
-                    for i in preds:
-                        intervals.append(i)
-                        i.start = start
-                        i.end = end
-                else:
-                    logging.warning(
-                        f"Was not able to create interval that is small enough to fit inside the video/mocap -> n_frames is smaller than interval_size!"
-                    )
-        else:
-            last_intervals = []
-            for i in self.get_predictions(start, end):
-                last_intervals.append(i)
-                intervals.append(i)
-
-        start = start + stepsize
-
-    return intervals
+    return sub_intervals

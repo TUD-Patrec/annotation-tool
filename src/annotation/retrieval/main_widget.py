@@ -7,7 +7,8 @@ import PyQt5.QtWidgets as qtw
 from scipy import spatial
 
 from src.annotation.retrieval.retrieval_backend.filter import FilterCriteria
-from src.annotation.retrieval.retrieval_backend.filter_dialog import QRetrievalFilter
+from src.annotation.retrieval.retrieval_backend.filter_dialog import \
+    QRetrievalFilter
 from src.annotation.retrieval.retrieval_backend.interval import Interval
 from src.annotation.retrieval.retrieval_backend.query import Query
 from src.data_classes import Annotation, AnnotationScheme, Sample
@@ -29,14 +30,13 @@ class QRetrievalWidget(qtw.QWidget):
     make_sample = qtc.pyqtSignal(Interval)
     start_loop = qtc.pyqtSignal(int, int)
 
-    def __init__(self, intervals, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(QRetrievalWidget, self).__init__(*args, **kwargs)
 
         # Settings controll attributes to default values
-        self._query: Query = Query(intervals)
+        self._query: Query = None
         self._current_interval = None
-
-        self.intervals = intervals
+        self.intervals = None
 
         self.init_UI()
 
@@ -136,138 +136,10 @@ class QRetrievalWidget(qtw.QWidget):
         else:
             self.histogram.reset()
 
-    # initialize the intervals from the given annotation
-    def generate_intervals(self):
-        start_time = time.time()
-
-        boundaries = []
-        for sample in self.samples:
-            # sample already annotated
-            if not sample.annotation.is_empty():
-                continue
-
-            # only grab samples that are not annotated yet
-            l, r = sample.start_position, sample.end_position
-            boundaries.append([l, r])
-
-        # merge adjacent intervals
-        reduced_boundaries = []
-        idx = 0
-        while idx < len(boundaries):
-            l, r = boundaries[idx]
-
-            nxt_idx = idx + 1
-            while nxt_idx < len(boundaries) and boundaries[nxt_idx][0] == r + 1:
-                _, r = boundaries[nxt_idx]
-                nxt_idx += 1
-            reduced_boundaries.append([l, r])
-            idx = nxt_idx
-
-        intervals = []
-        for l, r in reduced_boundaries:
-            tmp = self.get_intervals_in_range(l, r)
-            intervals.extend(tmp)
-
-        end_time = time.time()
-        logging.debug(f"GENERATING INTERVALS TOOK {end_time - start_time}ms")
-        return intervals
-
-    def get_intervals_in_range(self, lower, upper):
-        if upper <= lower:
-            return []
-
-        intervals = []
-        last_intervals = []
-        start = lower
-        stepsize = self.stepsize()
-
-        while start <= upper:
-            end = min(start + self._interval_size - 1, upper)
-
-            if end == upper:
-                # 1) if intervals has elements -> extend the last interval to end at the new end-position
-                if last_intervals:
-                    logging.debug("Extending last interval")
-                    for i in last_intervals:
-                        i.end = end
-
-                # 2) if intervals is empty -> extend the interval left and right to the needed size for the network
-                else:
-                    logging.debug("Extending interval left and right")
-                    start_adjusted = max(0, start - self._interval_size)
-                    end_adjusted = start_adjusted + self._interval_size - 1
-
-                    # find best sourrounding interval
-                    while (
-                        end_adjusted < self.n_frames - 1
-                        and start_adjusted < start - self._interval_size // 2
-                    ):
-                        start_adjusted += 1
-                        end_adjusted += 1
-
-                    # make sure that the adjusted interval is within the video/Mocap
-                    if end_adjusted < self.n_frames:
-                        preds = self.get_predictions(start_adjusted, end_adjusted)
-                        for i in preds:
-                            intervals.append(i)
-                            i.start = start
-                            i.end = end
-                    else:
-                        logging.warning(
-                            f"Was not able to create interval that is small enough to fit inside the video/mocap -> n_frames is smaller than interval_size!"
-                        )
-            else:
-                last_intervals = []
-                for i in self.get_predictions(start, end):
-                    last_intervals.append(i)
-                    intervals.append(i)
-
-            start = start + stepsize
-
-        return intervals
-
-    def get_predictions(self, lower, upper):
-        network_output = self.run_network(lower, upper)  # 1D array, x \in [0,1]^N
-        success, combinations = self.get_combinations()
-        if success:
-            network_output = network_output.reshape(1, -1)
-            dist = spatial.distance.cdist(combinations, network_output, "cosine")
-            dist = dist.flatten()
-
-            indices = np.argsort(dist)
-
-            n_tries = min(len(combinations), self.TRIES_PER_INTERVAL)
-
-            for idx in indices[:n_tries]:
-                proposed_classification = combinations[idx]
-                similarity = 1 - dist[idx]
-
-                anno = Annotation(self.scheme, proposed_classification)
-
-                yield Interval(lower, upper, anno, similarity)
-        else:
-            # Rounding the output to nearest integers and computing the distance to that
-            network_output = network_output.flatten()  # check if actually needed
-            proposed_classification = np.round(network_output)
-            proposed_classification = proposed_classification.astype(np.int8)
-            assert not np.array_equal(network_output, proposed_classification)
-            similarity = 1 - spatial.distance.cosine(
-                network_output, proposed_classification
-            )
-
-            anno = Annotation(self.scheme, proposed_classification)
-            yield Interval(lower, upper, anno, similarity)
-
-    def get_combinations(self):
-        if self.dependencies is not None:
-            return True, np.array(self.dependencies)
-        else:
-            return False, None
-
-    # TODO: actually use a network, currently only proof of concept
-    def run_network(self, lower, upper):
-        array_length = len(self.scheme)
-        return np.random.rand(array_length)
+    def load(self, intervals):
+        self.intervals = intervals
+        self._query = Query(intervals)
+        self.load_next()
 
     @qtc.pyqtSlot(bool)
     def modify_filter_clicked(self, _):
@@ -411,20 +283,3 @@ class QRetrievalWidget(qtw.QWidget):
         i = self._current_interval
         sample = Sample(i.start, i.end, i.annotation)
         return sample
-
-    def stepsize(self):
-        if hasattr(self, "_stepsize"):
-            return self._stepsize
-        else:
-            step_size = max(
-                1,
-                min(
-                    int(self._interval_size * (1 - self._overlap)), self._interval_size
-                ),
-            )
-            while not self._interval_size % step_size == 0:
-                step_size -= 1
-
-            assert step_size / (1 - self._overlap) == self._interval_size
-            self._stepsize = step_size
-            return step_size

@@ -1,8 +1,13 @@
 from copy import deepcopy
 
+import numpy as np
+from scipy import spatial
+
 from src.annotation.annotation_base import AnnotationBaseClass
 from src.annotation.retrieval.main_widget import QRetrievalWidget
-from src.data_classes import Sample
+from src.annotation.retrieval.retrieval_backend.interval import (
+    Interval, generate_intervals)
+from src.data_classes import Annotation, Sample
 
 
 class RetrievalAnnotation(AnnotationBaseClass):
@@ -115,6 +120,72 @@ class RetrievalAnnotation(AnnotationBaseClass):
     def add_to_undo_stack(self):
         pass
 
-    # TODO
     def load_subclass(self):
         self.main_widget.load()
+        self.load_intervals()
+
+    def load_intervals(self):
+        # collect all boundaries of unannotated samples
+        tmp = [
+            (s.start_position, s.end_position)
+            for s in self.samples
+            if s.annotation.is_empty()
+        ]
+
+        sub_intervals = generate_intervals(tmp, self.stepsize(), self._interval_size)
+
+        intervals = []
+
+        for lo, hi in sub_intervals:
+            for pred in self.get_predictions(lo, hi):
+                intervals.append(pred)
+
+    def get_predictions(self, lower, upper):
+        network_output = self.run_network(lower, upper)  # 1D array, x \in [0,1]^N
+        success, combinations = self.get_combinations()
+        if success:
+            network_output = network_output.reshape(1, -1)
+            dist = spatial.distance.cdist(combinations, network_output, "cosine")
+            dist = dist.flatten()
+
+            indices = np.argsort(dist)
+
+            n_tries = min(len(combinations), self.TRIES_PER_INTERVAL)
+
+            for idx in indices[:n_tries]:
+                proposed_classification = combinations[idx]
+                similarity = 1 - dist[idx]
+
+                anno = Annotation(self.scheme, proposed_classification)
+
+                yield Interval(lower, upper, anno, similarity)
+        else:
+            # Rounding the output to nearest integers and computing the distance to that
+            network_output = network_output.flatten()  # check if actually needed
+            proposed_classification = np.round(network_output)
+            proposed_classification = proposed_classification.astype(np.int8)
+            assert not np.array_equal(network_output, proposed_classification)
+            similarity = 1 - spatial.distance.cosine(
+                network_output, proposed_classification
+            )
+
+            anno = Annotation(self.scheme, proposed_classification)
+            yield Interval(lower, upper, anno, similarity)
+
+    def get_combinations(self):
+        if self.dependencies is not None:
+            return True, np.array(self.dependencies)
+        else:
+            return False, None
+
+    # TODO: actually use a network, currently only proof of concept
+    def run_network(self, lower, upper):
+        array_length = len(self.scheme)
+        return np.random.rand(array_length)
+
+    def stepsize(self):
+        res = max(
+            1,
+            min(int(self._interval_size * (1 - self._overlap)), self._interval_size),
+        )
+        return res
