@@ -9,7 +9,7 @@ import logging
 
 import PyQt5.QtCore as qtc
 
-from src.annotation.annotation_widget import QAnnotationWidget
+from src.annotation.controller import AnnotationController
 from src.annotation.timeline import QTimeLine
 from src.data_classes import GlobalState, Settings
 from src.media import QMediaWidget
@@ -29,7 +29,7 @@ class Mediator(qtc.QObject):
 
     def add_receiver(self, receiver):
         assert isinstance(
-            receiver, (QTimeLine, QMediaWidget, QAnnotationWidget, QPlaybackWidget)
+            receiver, (QTimeLine, QMediaWidget, AnnotationController, QPlaybackWidget)
         )
         if receiver not in self.receivers:
             self.receivers.append(receiver)

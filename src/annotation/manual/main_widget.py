@@ -1,10 +1,9 @@
-import logging
-
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
-from .qt_helper_widgets.display_scheme import QShowAnnotation
-from .qt_helper_widgets.lines import QHLine
+from src.data_classes import Sample
+from src.qt_helper_widgets.display_scheme import QShowAnnotation
+from src.qt_helper_widgets.lines import QHLine
 
 
 class QDisplaySample(qtw.QWidget):
@@ -45,7 +44,8 @@ class QDisplaySample(qtw.QWidget):
         self.setLayout(vbox)
         self.setMinimumWidth(300)
 
-    def set_selected(self, _, sample):
+    @qtc.pyqtSlot(list, Sample)
+    def setSelected(self, _, sample):
         if sample is None:
             self.middle_widget.show_annotation(None)
             self.start_value.setText(str(0))
@@ -54,3 +54,7 @@ class QDisplaySample(qtw.QWidget):
             self.middle_widget.show_annotation(sample.annotation)
             self.start_value.setText(str(sample.start_position))
             self.end_value.setText(str(sample.end_position))
+
+    @qtc.pyqtSlot(bool)
+    def setEnabled(self, a0: bool) -> None:
+        pass

@@ -1,3 +1,4 @@
+import enum
 import logging
 
 import PyQt5.QtCore as qtc
@@ -12,6 +13,14 @@ from .dialogs.export_annotation_dialog import QExportAnnotationDialog
 from .dialogs.load_annotation_dialog import QLoadExistingAnnotationDialog
 from .dialogs.new_annotation_dialog import QNewAnnotationDialog
 from .dialogs.settings_dialog import SettingsDialog
+
+
+class LayoutPosition(enum.Enum):
+    LEFT = 0
+    MIDDLE = 1
+    RIGHT = 2
+    BOTTOM_LEFT = 3
+    BOTTOM_RIGHT = 4
 
 
 class GUI(qtw.QMainWindow):
@@ -48,23 +57,32 @@ class GUI(qtw.QMainWindow):
         # self.setWindowIcon()
 
         self.main_widget = qtw.QWidget()
+        self.setCentralWidget(self.main_widget)
+
+        self.widgets = dict()
+        for layout_pos in LayoutPosition:
+            self.widgets[layout_pos] = qtw.QWidget()
+
         self.vbox = qtw.QVBoxLayout()
-        self.hbox = qtw.QHBoxLayout()
         self.main_widget.setLayout(self.vbox)
 
-        self.left_widget = qtw.QWidget()
-        self.bottom_widget = qtw.QWidget()
-        self.right_widget = qtw.QWidget()
-        self.central_widget = qtw.QWidget()
+        self.top_hbox = qtw.QHBoxLayout()
+        self.top_hbox.addWidget(
+            self.widgets[LayoutPosition.LEFT], alignment=qtc.Qt.AlignLeft
+        )
+        self.top_hbox.addWidget(self.widgets[LayoutPosition.MIDDLE], stretch=1)
+        self.top_hbox.addWidget(
+            self.widgets[LayoutPosition.RIGHT], alignment=qtc.Qt.AlignRight
+        )
 
-        self.hbox.addWidget(self.left_widget, alignment=qtc.Qt.AlignLeft)
-        self.hbox.addWidget(self.central_widget, stretch=1)
-        self.hbox.addWidget(self.right_widget, alignment=qtc.Qt.AlignRight)
+        self.bottom_hbox = qtw.QHBoxLayout()
+        self.bottom_hbox.addWidget(
+            self.widgets[LayoutPosition.BOTTOM_LEFT], alignment=qtc.Qt.AlignLeft
+        )
+        self.bottom_hbox.addWidget(self.widgets[LayoutPosition.BOTTOM_RIGHT], stretch=1)
 
-        self.vbox.addLayout(self.hbox, stretch=1)
-        self.vbox.addWidget(self.bottom_widget)
-
-        self.setCentralWidget(self.main_widget)
+        self.vbox.addLayout(self.top_hbox, stretch=1)
+        self.vbox.addLayout(self.bottom_hbox)
 
         # Menu Bar
         self.make_menu_bar()
@@ -278,30 +296,23 @@ class GUI(qtw.QMainWindow):
         self.dialog.deleteLater()
         self.dialog = None
 
-    def set_left_widget(self, widget):
-        self.hbox.replaceWidget(self.left_widget, widget)
-        self.left_widget.setParent(None)
-        self.right_widget.deleteLater()
-        self.left_widget = widget
+    @qtc.pyqtSlot(qtw.QWidget, LayoutPosition)
+    def set_widget(self, widget, layout_position):
+        old_widget = self.widgets[layout_position]
 
-    def set_central_widget(self, widget):
-        self.hbox.replaceWidget(self.central_widget, widget)
-        self.central_widget.setParent(None)
-        self.right_widget.deleteLater()
-        self.central_widget = widget
-        self.central_widget.adjustSize()
+        if widget is None:
+            widget = qtw.QWidget()
 
-    def set_right_widget(self, widget):
-        self.hbox.replaceWidget(self.right_widget, widget)
-        self.right_widget.setParent(None)
-        self.right_widget.deleteLater()
-        self.right_widget = widget
+        # store new widget into dict
+        self.widgets[layout_position] = widget
 
-    def set_bottom_widget(self, widget):
-        self.vbox.replaceWidget(self.bottom_widget, widget)
-        self.bottom_widget.setParent(None)
-        self.right_widget.deleteLater()
-        self.bottom_widget = widget
+        if layout_position in [LayoutPosition.BOTTOM_RIGHT, LayoutPosition.BOTTOM_LEFT]:
+            self.bottom_hbox.replaceWidget(old_widget, widget)
+        else:
+            self.top_hbox.replaceWidget(old_widget, widget)
+
+        old_widget.setParent(None)
+        old_widget.deleteLater()
 
     def cleaned_up(self):
         self.close()

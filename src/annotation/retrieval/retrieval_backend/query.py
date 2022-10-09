@@ -1,7 +1,7 @@
 import numpy as np
 
-from src.retrieval_backend.filter import FilterCriteria
-from src.retrieval_backend.interval import Interval
+from src.annotation.retrieval.retrieval_backend.filter import FilterCriteria
+from src.annotation.retrieval.retrieval_backend.interval import Interval
 from src.utility.decorators import accepts
 
 

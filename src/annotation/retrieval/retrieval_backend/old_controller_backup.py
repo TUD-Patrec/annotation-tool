@@ -6,16 +6,16 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 from scipy import spatial
 
+from src.annotation.retrieval.retrieval_backend.filter import FilterCriteria
+from src.annotation.retrieval.retrieval_backend.filter_dialog import QRetrievalFilter
+from src.annotation.retrieval.retrieval_backend.interval import Interval
+from src.annotation.retrieval.retrieval_backend.query import Query
 from src.data_classes import Annotation, AnnotationScheme, Sample
 from src.dialogs.annotation_dialog import QAnnotationDialog
 from src.dialogs.dialog_manager import open_dialog
 from src.qt_helper_widgets.display_scheme import QShowAnnotation
 from src.qt_helper_widgets.histogram import Histogram_Widget
 from src.qt_helper_widgets.lines import QHLine
-from src.retrieval_backend.filter import FilterCriteria
-from src.retrieval_backend.filter_dialog import QRetrievalFilter
-from src.retrieval_backend.interval import Interval
-from src.retrieval_backend.query import Query
 from src.utility.decorators import accepts
 
 
@@ -149,10 +149,6 @@ class QRetrievalWidget(qtw.QWidget):
             self.histogram.reset()
 
     def load(self, samples, scheme, dependencies, n_frames):
-        assert isinstance(samples, list)
-        assert isinstance(scheme, AnnotationScheme)
-        assert isinstance(dependencies, np.ndarray) or dependencies is None
-        assert isinstance(n_frames, int) and n_frames >= 0
         self._current_interval = None
 
         self.samples = samples
