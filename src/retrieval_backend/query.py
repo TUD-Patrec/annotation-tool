@@ -1,6 +1,3 @@
-import logging
-import time
-
 import numpy as np
 
 from src.retrieval_backend.filter import FilterCriteria

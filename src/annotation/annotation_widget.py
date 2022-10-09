@@ -100,15 +100,24 @@ class QAnnotationWidget(qtw.QWidget):
         self.clear_undo_redo()
         self.check_for_selected_sample(force_update=True)
 
-    # TODO maybe use binary search to increase speed, currently O(n)
     @qtc.pyqtSlot(int)
     def check_for_selected_sample(self, force_update=False):
-        for s in self.samples:
-            if s.start_position <= self.position <= s.end_position:
-                sample = s
+        # bisec
+        lo = 0
+        hi = len(self.samples) - 1
+
+        while lo <= hi:
+            mid = (lo + hi) // 2
+            sample = self.samples[mid]
+            if sample.start_position <= self.position <= sample.end_position:
                 break
+            elif self.position < sample.start_position:
+                hi = mid - 1
+            else:
+                lo = mid + 1
         else:
-            raise RuntimeError("Could not find sample")
+            raise RuntimeError(f"Could not find sample at position {self.position}")
+
         if force_update or self.selected_sample is not sample:
             self.selected_sample = sample
             self.samples_changed.emit(self.samples, sample)
