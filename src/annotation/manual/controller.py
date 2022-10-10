@@ -85,8 +85,8 @@ class ManualAnnotation(AnnotationBaseClass):
 
     def cut_and_annotate(self):
         if self.enabled:
-            self.split_selected_sample()
-            self.annotate_selected_sample()
+            self.cut()
+            self.annotate()
 
     def merge(self, left):
         if self.enabled:

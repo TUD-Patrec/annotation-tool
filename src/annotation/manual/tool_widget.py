@@ -39,13 +39,13 @@ class ManualAnnotationTools(qtw.QWidget):
         self.merge_left_btn.setStatusTip(
             "Merge highlighted sample with the left neighbour."
         )
-        self.merge_left_btn.clicked.connect(lambda _: self.merge_samples.emit(True))
+        self.merge_left_btn.clicked.connect(lambda _: self.merge.emit(True))
 
         self.merge_right_btn = qtw.QPushButton("Merge Right", self)
         self.merge_right_btn.setStatusTip(
             "Merge highlighted sample with the right neighbour"
         )
-        self.merge_right_btn.clicked.connect(lambda _: self.merge_samples.emit(False))
+        self.merge_right_btn.clicked.connect(lambda _: self.merge.emit(False))
 
         # layout
         vbox = qtw.QVBoxLayout(self)

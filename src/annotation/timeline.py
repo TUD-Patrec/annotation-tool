@@ -35,7 +35,8 @@ class QTimeLine(qtw.QWidget):
         self.setMouseTracking(True)  # Mouse events
         self.setAutoFillBackground(True)  # background
 
-        self.adjustSize()
+        # self.adjustSize()
+        self.setMinimumHeight(200)
 
     @qtc.pyqtSlot(int)
     def set_range(self, n):

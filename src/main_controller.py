@@ -61,6 +61,8 @@ class MainApplication(qtw.QApplication):
         self.annotation_controller.tool_widget_changed.connect(
             lambda w: self.gui.set_widget(w, LayoutPosition.BOTTOM_LEFT)
         )
+        self.annotation_controller.start_loop.connect(self.mediator.start_loop)
+        self.annotation_controller.stop_loop.connect(self.mediator.stop_loop)
         # TODO refactoring
         self.gui.set_widget(
             self.annotation_controller.controller.main_widget, LayoutPosition.RIGHT
@@ -75,10 +77,10 @@ class MainApplication(qtw.QApplication):
         self.gui.load_annotation.connect(self.load_state)
         self.gui.annotate_pressed.connect(self.annotation_controller.annotate)
         self.gui.merge_left_pressed.connect(
-            lambda _: self.annotation_controller.merge(True)
+            lambda: self.annotation_controller.merge(True)
         )
         self.gui.merge_right_pressed.connect(
-            lambda _: self.annotation_controller.merge(False)
+            lambda: self.annotation_controller.merge(False)
         )
         self.gui.cut_pressed.connect(self.annotation_controller.cut)
         self.gui.cut_and_annotate_pressed.connect(
@@ -152,7 +154,7 @@ class MainApplication(qtw.QApplication):
             logging.info("Nothing to save - annotation-object is None")
         else:
             logging.info("Saving current state")
-            samples = self.annotation_widget.samples
+            samples = self.annotation_controller.controller.samples
 
             if len(samples) > 0:
                 assert samples[-1].end_position + 1 == self.n_frames

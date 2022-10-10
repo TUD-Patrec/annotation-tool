@@ -1,144 +1,198 @@
+import logging
 from copy import deepcopy
 
 import numpy as np
+import PyQt5.QtCore as qtc
 from scipy import spatial
 
 from src.annotation.annotation_base import AnnotationBaseClass
 from src.annotation.retrieval.main_widget import QRetrievalWidget
+from src.annotation.retrieval.retrieval_backend.filter import FilterCriteria
+from src.annotation.retrieval.retrieval_backend.filter_dialog import QRetrievalFilter
 from src.annotation.retrieval.retrieval_backend.interval import (
-    Interval, generate_intervals)
+    Interval,
+    generate_intervals,
+)
+from src.annotation.retrieval.retrieval_backend.query import Query
 from src.data_classes import Annotation, Sample
+from src.dialogs.annotation_dialog import QAnnotationDialog
 
 
 class RetrievalAnnotation(AnnotationBaseClass):
+    update_UI = qtc.pyqtSignal(Query, object)
 
-    # TDOD
     def __init__(self):
         super(RetrievalAnnotation, self).__init__()
         self.main_widget = QRetrievalWidget()
 
         # Constants
         self.TRIES_PER_INTERVAL = 3
-        self._interval_size: int = 100
-        self._overlap: float = 0
+        self.interval_size: int = 200
+        self.overlap: float = 1
 
-    def undo(self):
-        pass
+        # Controll Attributes
+        self.query = None
+        self.filter_criterion = FilterCriteria()  # empty filter
+        self.current_interval = None
 
-    def redo(self):
-        pass
+        # GUI widget
+        self.main_widget = QRetrievalWidget()
+        self.update_UI.connect(self.main_widget.update_UI)
+        self.main_widget.change_filter.connect(self.change_filter)
+        self.main_widget.accept_interval.connect(self.accept_interval)
+        self.main_widget.reject_interval.connect(self.reject_interval)
+        self.main_widget.modify_interval.connect(self.modify_interval)
 
-    def annotate(self):
-        pass
+    # Slots
 
-    def cut(self):
-        pass
+    @qtc.pyqtSlot()
+    def change_filter(self):
+        if self.scheme:
+            dialog = QRetrievalFilter(self.filter_criterion, self.scheme)
+            dialog.filter_changed.connect(self.new_filter)
+            self.open_dialog(dialog)
 
-    def cut_and_annotate(self):
-        pass
+    @qtc.pyqtSlot()
+    def modify_interval(self):
+        if self.current_interval:
+            sample = Sample(
+                self.current_interval.start,
+                self.current_interval.end,
+                self.current_interval.annotation,
+            )
 
-    def merge(self, left):
-        pass
+            dialog = QAnnotationDialog(self.scheme, self.dependencies)
+            dialog.new_annotation.connect(self.interval_changed)
+            self.open_dialog(dialog)
+            dialog._set_annotation(sample.annotation)
+        else:
+            self.update_UI.emit(self.query, self.current_interval)
 
-    def insert_sample(self, new_sample):
-        assert len(self.samples) > 0
+    @qtc.pyqtSlot()
+    def accept_interval(self):
+        if self.current_interval:
+            assert self.query is not None
+            self.query.accept_interval(self.current_interval)
+            self.check_for_new_sample(self.current_interval)
+            self.load_next()
+        else:
+            self.update_UI.emit(self.query, self.current_interval)
 
-        left = (
-            None  # index to the rightmost sample with: new_sample.lower >= left.lower
+    @qtc.pyqtSlot()
+    def reject_interval(self):
+        if self.current_interval:
+            assert self.query is not None
+            self.query.reject_interval(self.current_interval)
+            self.load_next()
+        else:
+            self.update_UI.emit(self.query, self.current_interval)
+
+    # Class methods
+    def new_filter(self, filter_criterion):
+        if self.query is not None:
+            self.query.change_filter(filter_criterion)
+            self.load_next()
+        self.filter_criterion = filter_criterion
+
+    def check_for_new_sample(self, interval):
+        assert self.query is not None
+
+        # Load sorted intervals
+        intervals = sorted(self.query._accepted_intervals)
+
+        # get start and end frame-positions
+        windows = []
+        for idx, intvl in enumerate(intervals):
+            if idx == len(intervals) - 1:
+                windows.append([intvl.start, intvl.end])
+            else:
+                next_interval = intervals[idx + 1]
+                windows.append([intvl.start, min(intvl.end, next_interval.start)])
+
+        # filter for windows that have at least one common frame with the interval
+        windows = list(
+            filter(lambda x: x[0] <= interval.end and x[1] >= interval.start, windows)
         )
-        right = (
-            None  # index to the leftmost sample with: new_sample.upper <= right.lower
-        )
 
-        # grab those indices
-        for idx, s in enumerate(self.samples):
-            if s.start_position <= new_sample.start_position <= s.end_position:
-                left = idx
-            if s.start_position <= new_sample.end_position <= s.end_position:
-                right = idx
-            if s.start_position > new_sample.end_position:
-                break
+        annotated_windows = []
+        for w in windows:
+            # filter all intervals that have at least one common frame with one of the windows
+            intervals_in_window = filter(
+                lambda x: x.start <= w[0] <= x.end or x.start <= w[1] <= x.end,
+                intervals,
+            )
 
-        # must not be the case
-        assert left is not None and right is not None
+            # for each window: store all annotation that were submitted for it
+            # this allows for majority-voting
+            tmp = []
+            for i in intervals_in_window:
+                tmp.append(i.annotation)
 
-        # grab all samples that share some common frame-positions with the new sample
-        tmp = [self.samples[idx] for idx in range(left, right + 1)]
+            # add to annotated_windows
+            annotated_windows.append([w, tmp])
 
-        # remove all of them from the sample-list
-        for s in tmp:
-            self.samples.remove(s)
+        # run over annotated windows and do majority-vote
+        for w, annotation_list in annotated_windows:
+            anno = self.majority_vote(annotation_list)
+            if anno:
+                sample = Sample(w[0], w[1], anno)
+                self.insert_sample(sample)
 
-        # create new left_sample
-        left_sample = Sample(
-            tmp[0].start_position,
-            new_sample.start_position - 1,
-            deepcopy(tmp[0].annotation),
-        )
+    def majority_vote(self, annotations):
+        if len(annotations) > 0:
+            max_count = 0
+            selected_annotation = None
+            for a in annotations:
+                count = 0
+                for a2 in annotations:
+                    if a == a2:
+                        count += 1
+                assert count > 0
+                if count > max_count:
+                    max_count = count
+                    selected_annotation = a
+            return selected_annotation
+        else:
+            return None
 
-        # only add it if it is valid
-        if left_sample.start_position <= left_sample.end_position:
-            self.samples.append(left_sample)
-
-        # create new right sample
-        right_sample = Sample(
-            new_sample.end_position + 1,
-            tmp[-1].end_position,
-            deepcopy(tmp[-1].annotation),
-        )
-
-        # only add it if it is valid
-        if right_sample.start_position <= right_sample.end_position:
-            self.samples.append(right_sample)
-
-        # add new sample if it is valid
-        if new_sample.start_position <= new_sample.end_position:
-            self.samples.append(new_sample)
-
-        # reorder samples -> the <= 3 newly added samples were appended to the end
-        self.samples.sort()
-
-        # merge neighbors with same annotation -> left_neighbor must not be the same as left_sample previously,
-        # same for right neighbor
-        idx = self.samples.index(new_sample)
-        # only if the new sample is not the first list element
-        if idx > 0:
-            left_neighbor = self.samples[idx - 1]
-            if left_neighbor.annotation == new_sample.annotation:
-                self.samples.remove(left_neighbor)
-                new_sample.start_position = left_neighbor.start_position
-        # only if the new sample is not the last list element
-        if idx < len(self.samples) - 1:
-            right_neighbor = self.samples[idx + 1]
-            if right_neighbor.annotation == new_sample.annotation:
-                self.samples.remove(right_neighbor)
-                new_sample.end_position = right_neighbor.end_position
-
-        # update samples and notify timeline etc.
-        self.check_for_selected_sample(force_update=True)
-
-    def add_to_undo_stack(self):
-        pass
+    def load_next(self):
+        assert self.query is not None
+        try:
+            old_interval = self.current_interval
+            self.current_interval = next(self.query)
+            if old_interval != self.current_interval:
+                # only emit new loop if the interval has changed remember that for each interval there might be
+                # multiple predictions that get tested one after another
+                l, r = self.current_interval.start, self.current_interval.end
+                self.start_loop.emit(l, r)
+        except StopIteration:
+            logging.debug("StopIteration reached")
+            self.current_interval = None
+        self.update_UI.emit(self.query, self.current_interval)
 
     def load_subclass(self):
-        self.main_widget.load()
-        self.load_intervals()
+        intervals = self.load_intervals()
+        self.query = Query(intervals)
+        self.query.change_filter(self.filter_criterion)
+        self.load_next()
 
     def load_intervals(self):
-        # collect all boundaries of unannotated samples
-        tmp = [
+        # collect all bounds of unannotated samples
+        bounds = [
             (s.start_position, s.end_position)
             for s in self.samples
             if s.annotation.is_empty()
         ]
 
-        sub_intervals = generate_intervals(tmp, self.stepsize(), self._interval_size)
+        sub_intervals = generate_intervals(bounds, self.stepsize(), self.interval_size)
 
         intervals = []
 
         for lo, hi in sub_intervals:
             for pred in self.get_predictions(lo, hi):
                 intervals.append(pred)
+
+        return intervals
 
     def get_predictions(self, lower, upper):
         network_output = self.run_network(lower, upper)  # 1D array, x \in [0,1]^N
@@ -178,14 +232,85 @@ class RetrievalAnnotation(AnnotationBaseClass):
         else:
             return False, None
 
+    def insert_sample(self, new_sample):
+        assert len(self.samples) > 0
+
+        indexed_samples = list(zip(self.samples, range(len(self.samples))))
+        assert len(indexed_samples) == len(self.samples)
+
+        samples_to_the_left = list(
+            filter(
+                lambda x: x[0].start_position <= new_sample.start_position,
+                indexed_samples,
+            )
+        )
+        assert len(samples_to_the_left) > 0
+        left_sample, left_idx = samples_to_the_left[-1]
+
+        samples_to_the_right = list(
+            filter(
+                lambda x: x[0].end_position >= new_sample.end_position, indexed_samples
+            )
+        )
+        assert len(samples_to_the_right) > 0
+        right_sample, right_idx = samples_to_the_right[0]
+
+        print(f"{left_idx = }, {right_idx = }")
+
+        # remove
+        del self.samples[left_idx : right_idx + 1]
+
+        if left_sample.start_position < new_sample.start_position:
+            left_sample = deepcopy(left_sample)
+            left_sample.end_position = new_sample.start_position - 1
+            assert left_sample.start_position <= left_sample.end_position
+            self.samples.append(left_sample)
+
+        if right_sample.end_position > new_sample.end_position:
+            right_sample = deepcopy(right_sample)
+            right_sample.start_position = new_sample.end_position + 1
+            assert right_sample.start_position <= right_sample.end_position
+            self.samples.append(right_sample)
+
+        assert new_sample.start_position <= new_sample.end_position
+        self.samples.append(new_sample)
+
+        # reorder samples -> the <= 3 newly added samples were appended to the end
+        self.samples.sort()
+
+        # merge neighbors with same annotation -> left_neighbor must not be the same as left_sample previously,
+        # same for right neighbor
+        idx = self.samples.index(new_sample)
+        # only if the new sample is not the first list element
+        if idx > 0:
+            left_neighbor = self.samples[idx - 1]
+            if left_neighbor.annotation == new_sample.annotation:
+                self.samples.remove(left_neighbor)
+                new_sample.start_position = left_neighbor.start_position
+        # only if the new sample is not the last list element
+        if idx < len(self.samples) - 1:
+            right_neighbor = self.samples[idx + 1]
+            if right_neighbor.annotation == new_sample.annotation:
+                self.samples.remove(right_neighbor)
+                new_sample.end_position = right_neighbor.end_position
+
+        # update samples and notify timeline etc.
+        self.check_for_selected_sample(force_update=True)
+
     # TODO: actually use a network, currently only proof of concept
     def run_network(self, lower, upper):
         array_length = len(self.scheme)
         return np.random.rand(array_length)
 
+    def interval_changed(self, new_annotation):
+        interval = self.current_interval
+        interval.annotation = new_annotation
+        self.update_UI.emit(self.query, self.current_interval)
+
     def stepsize(self):
         res = max(
-            1,
-            min(int(self._interval_size * (1 - self._overlap)), self._interval_size),
+            5,
+            min(int(self.interval_size * (1 - self.overlap)), self.interval_size),
         )
+        logging.info(f"{res = }")
         return res

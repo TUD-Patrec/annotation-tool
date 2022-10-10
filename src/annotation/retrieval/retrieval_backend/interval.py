@@ -83,7 +83,7 @@ def create_smallest_description(intervals):
 
 def generate_intervals(ranges, stepsize, interval_size):
     if len(ranges) == 0:
-        return
+        return []
 
     # generate smallest description of ranges -> merge adjacent tuples
     ranges = create_smallest_description(ranges)

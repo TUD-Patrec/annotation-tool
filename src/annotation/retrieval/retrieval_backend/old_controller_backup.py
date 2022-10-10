@@ -7,8 +7,7 @@ import PyQt5.QtWidgets as qtw
 from scipy import spatial
 
 from src.annotation.retrieval.retrieval_backend.filter import FilterCriteria
-from src.annotation.retrieval.retrieval_backend.filter_dialog import \
-    QRetrievalFilter
+from src.annotation.retrieval.retrieval_backend.filter_dialog import QRetrievalFilter
 from src.annotation.retrieval.retrieval_backend.interval import Interval
 from src.annotation.retrieval.retrieval_backend.query import Query
 from src.data_classes import Annotation, AnnotationScheme, Sample

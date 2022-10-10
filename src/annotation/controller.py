@@ -15,6 +15,7 @@ class AnnotationController(qtc.QObject):
     right_widget_changed = qtc.pyqtSignal(qtw.QWidget)
     tool_widget_changed = qtc.pyqtSignal(qtw.QWidget)
     samples_changed = qtc.pyqtSignal(list, Sample)
+    sync_position = qtc.pyqtSignal()
 
     def __init__(self, *args, **kwargs):
         super(AnnotationController, self).__init__(*args, **kwargs)
@@ -29,39 +30,34 @@ class AnnotationController(qtc.QObject):
         prev_controller = self.controller
         # only change if the selected mode differs from the current mode
         if prev_controller is None or mode != prev_controller.mode:
-            # grab current values
+            if mode == AnnotationMode.MANUAL:
+                self.stop_loop.emit()
+                self.controller = ManualAnnotation()
+            elif mode == AnnotationMode.RETRIEVAL:
+                self.controller = RetrievalAnnotation()
+            else:
+                raise ValueError
+
+            self.controller.start_loop.connect(self.start_loop)
+            self.controller.stop_loop.connect(self.stop_loop)
+            self.controller.samples_changed.connect(self.samples_changed)
+            self.tool_widget_changed.emit(self.controller.tool_widget)
+            self.right_widget_changed.emit(self.controller.main_widget)
 
             if prev_controller:
+                # grab previos state
                 samples = prev_controller.samples
                 scheme = prev_controller.scheme
                 dependencies = prev_controller.dependencies
                 n_frames = prev_controller.n_frames
+                pos = prev_controller.position
 
                 # disconnect
                 prev_controller.disconnect()
 
-            if mode == AnnotationMode.MANUAL:
-                self.stop_loop.emit()
-                manual_annotation = ManualAnnotation()
-                if prev_controller:
-                    manual_annotation.load(samples, scheme, dependencies, n_frames)
-                self.controller = manual_annotation
-
-            if mode == AnnotationMode.RETRIEVAL:
-                retrieval_annotation = RetrievalAnnotation()
-                retrieval_annotation = ManualAnnotation()  # TODO REMOVE
-                if prev_controller:
-                    retrieval_annotation.load(samples, scheme, dependencies, n_frames)
-                self.controller = retrieval_annotation
-
-            # Connect Signals and Slots
-            self.controller.start_loop.connect(self.start_loop)
-            self.controller.stop_loop.connect(self.stop_loop)
-            self.controller.samples_changed.connect(self.samples_changed)
-
-            # Emit new widgets
-            self.tool_widget_changed.emit(self.controller.tool_widget)
-            self.right_widget_changed.emit(self.controller.main_widget)
+                # load controller in place
+                self.controller.load(samples, scheme, dependencies, n_frames)
+                self.controller.setPosition(pos)
 
     # ALl below slots need to be forwarded
     @qtc.pyqtSlot(list, AnnotationScheme, np.ndarray, int)

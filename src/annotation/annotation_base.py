@@ -2,12 +2,12 @@ from abc import abstractmethod
 
 import numpy as np
 import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
 
 from src.data_classes import AnnotationScheme, Sample
+from src.dialogs.dialog_manager import DialogManager
 
 
-class AnnotationBaseClass(qtc.QObject):
+class AnnotationBaseClass(qtc.QObject, DialogManager):
     start_loop = qtc.pyqtSignal(int, int)
     stop_loop = qtc.pyqtSignal()
     samples_changed = qtc.pyqtSignal(list, Sample)
@@ -67,14 +67,12 @@ class AnnotationBaseClass(qtc.QObject):
             self.tool_widget.setEnabled(x)
 
     @qtc.pyqtSlot()
-    @abstractmethod
     def undo(self):
-        raise NotImplementedError
+        pass
 
     @qtc.pyqtSlot()
-    @abstractmethod
     def redo(self):
-        raise NotImplementedError
+        pass
 
     @qtc.pyqtSlot()
     def clear_undo_redo(self):
@@ -82,34 +80,28 @@ class AnnotationBaseClass(qtc.QObject):
         self.redo_stack = []
 
     @qtc.pyqtSlot()
-    @abstractmethod
     def annotate(self):
-        raise NotImplementedError
+        pass
 
     @qtc.pyqtSlot()
-    @abstractmethod
     def cut(self):
-        raise NotImplementedError
+        pass
 
     @qtc.pyqtSlot()
-    @abstractmethod
     def cut_and_annotate(self):
-        raise NotImplementedError
+        pass
 
     @qtc.pyqtSlot(bool)
-    @abstractmethod
     def merge(self, left):
-        raise NotImplementedError
+        pass
 
     @qtc.pyqtSlot(Sample)
-    @abstractmethod
     def insert_sample(self, new_sample):
-        raise NotImplementedError
+        pass
 
     # Class methods
-    @abstractmethod
     def add_to_undo_stack(self):
-        raise NotImplementedError
+        pass
 
     def update_sample_annotation(self, sample, new_annotation):
         self.add_to_undo_stack()
