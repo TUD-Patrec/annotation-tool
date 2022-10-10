@@ -2,8 +2,8 @@ import time
 
 import PyQt5.QtCore as qtc
 
-from .player import AbstractMediaPlayer
-from .queue import FairQueue
+from src.media.backend.player import AbstractMediaPlayer
+from src.media.backend.queue import FairQueue
 
 
 def time_in_millis():

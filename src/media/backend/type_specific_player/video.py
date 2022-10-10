@@ -6,7 +6,7 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
-from ..player import AbstractMediaPlayer, UpdateReason
+from src.media.backend.player import AbstractMediaPlayer, UpdateReason
 
 
 class VideoPlayer(AbstractMediaPlayer):

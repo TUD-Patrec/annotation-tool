@@ -2,7 +2,7 @@
 
 Synchronization between all kinds of different widgets is getting too complicated to be solved
 inside the main_controller.
-This module is ment to abstract all the tasks which need to happen in the background.
+This module is meant to abstract all the tasks which need to happen in the background.
 
 """
 import logging
@@ -11,8 +11,8 @@ import PyQt5.QtCore as qtc
 
 from src.annotation.controller import AnnotationController
 from src.annotation.timeline import QTimeLine
-from src.data_classes import GlobalState, Settings
-from src.media import QMediaWidget
+from src.data_classes import Settings
+from src.media.media import QMediaWidget
 from src.playback import QPlaybackWidget
 
 

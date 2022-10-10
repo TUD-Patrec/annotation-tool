@@ -1,10 +1,12 @@
 import logging
+import time
 from copy import deepcopy
 
 import numpy as np
 import PyQt5.QtCore as qtc
 from scipy import spatial
 
+import src.network.controller as network
 from src.annotation.annotation_base import AnnotationBaseClass
 from src.annotation.retrieval.main_widget import QRetrievalWidget
 from src.annotation.retrieval.retrieval_backend.filter import FilterCriteria
@@ -27,8 +29,8 @@ class RetrievalAnnotation(AnnotationBaseClass):
 
         # Constants
         self.TRIES_PER_INTERVAL = 3
-        self.interval_size: int = 200
-        self.overlap: float = 1
+        self.interval_size: int = 100
+        self.overlap: float = 0
 
         # Controll Attributes
         self.query = None
@@ -44,7 +46,6 @@ class RetrievalAnnotation(AnnotationBaseClass):
         self.main_widget.modify_interval.connect(self.modify_interval)
 
     # Slots
-
     @qtc.pyqtSlot()
     def change_filter(self):
         if self.scheme:
@@ -96,8 +97,9 @@ class RetrievalAnnotation(AnnotationBaseClass):
 
     def check_for_new_sample(self, interval):
         assert self.query is not None
+        start = time.perf_counter()
 
-        # Load sorted intervals
+        # Load intervals
         intervals = sorted(self.query._accepted_intervals)
 
         # get start and end frame-positions
@@ -131,27 +133,36 @@ class RetrievalAnnotation(AnnotationBaseClass):
             # add to annotated_windows
             annotated_windows.append([w, tmp])
 
+        acc1 = 0
+        acc2 = 0
+
         # run over annotated windows and do majority-vote
         for w, annotation_list in annotated_windows:
+            t1 = time.perf_counter()
             anno = self.majority_vote(annotation_list)
+            t2 = time.perf_counter()
+            acc1 += t2 - t1
             if anno:
                 sample = Sample(w[0], w[1], anno)
+                t3 = time.perf_counter()
                 self.insert_sample(sample)
+                t4 = time.perf_counter()
+                acc2 += t4 - t3
+        end = time.perf_counter()
+        logging.debug(
+            f"check_for_new_sample took {end - start}ms. {acc1 = }ms | {acc2 = }ms."
+        )
 
-    def majority_vote(self, annotations):
-        if len(annotations) > 0:
-            max_count = 0
-            selected_annotation = None
-            for a in annotations:
-                count = 0
-                for a2 in annotations:
-                    if a == a2:
-                        count += 1
-                assert count > 0
-                if count > max_count:
-                    max_count = count
-                    selected_annotation = a
-            return selected_annotation
+    def majority_vote(self, annotation):
+        if len(annotation) >= 0:
+            votes_table = {}
+            for anno in annotation:
+                if anno.binary_str in votes_table:
+                    votes_table[anno.binary_str][1] += 1
+                else:
+                    votes_table[anno.binary_str] = [anno, 1]
+            max_key = max(votes_table, key=lambda x: votes_table.get(x)[1])
+            return votes_table[max_key][0]
         else:
             return None
 
@@ -236,23 +247,21 @@ class RetrievalAnnotation(AnnotationBaseClass):
         assert len(self.samples) > 0
 
         indexed_samples = list(zip(self.samples, range(len(self.samples))))
-        assert len(indexed_samples) == len(self.samples)
 
-        samples_to_the_left = list(
-            filter(
-                lambda x: x[0].start_position <= new_sample.start_position,
-                indexed_samples,
-            )
-        )
-        assert len(samples_to_the_left) > 0
-        left_sample, left_idx = samples_to_the_left[-1]
+        samples_to_the_left = [
+            (x, y)
+            for x, y in indexed_samples
+            if x.start_position <= new_sample.start_position <= x.end_position
+        ]
+        assert len(samples_to_the_left) == 1
+        left_sample, left_idx = samples_to_the_left[0]
 
-        samples_to_the_right = list(
-            filter(
-                lambda x: x[0].end_position >= new_sample.end_position, indexed_samples
-            )
-        )
-        assert len(samples_to_the_right) > 0
+        samples_to_the_right = [
+            (x, y)
+            for x, y in indexed_samples
+            if x.start_position <= new_sample.end_position <= x.end_position
+        ]
+        assert len(samples_to_the_right) == 1
         right_sample, right_idx = samples_to_the_right[0]
 
         print(f"{left_idx = }, {right_idx = }")
@@ -261,15 +270,29 @@ class RetrievalAnnotation(AnnotationBaseClass):
         del self.samples[left_idx : right_idx + 1]
 
         if left_sample.start_position < new_sample.start_position:
-            left_sample = deepcopy(left_sample)
-            left_sample.end_position = new_sample.start_position - 1
-            assert left_sample.start_position <= left_sample.end_position
+            left_sample = Sample(
+                left_sample.start_position,
+                new_sample.start_position - 1,
+                deepcopy(left_sample.annotation),
+            )
+            assert (
+                left_sample.start_position
+                <= left_sample.end_position
+                <= new_sample.start_position
+            )
             self.samples.append(left_sample)
 
         if right_sample.end_position > new_sample.end_position:
-            right_sample = deepcopy(right_sample)
-            right_sample.start_position = new_sample.end_position + 1
-            assert right_sample.start_position <= right_sample.end_position
+            right_sample = Sample(
+                new_sample.end_position + 1,
+                right_sample.end_position,
+                deepcopy(right_sample.annotation),
+            )
+            assert (
+                new_sample.end_position
+                <= right_sample.start_position
+                <= right_sample.end_position
+            )
             self.samples.append(right_sample)
 
         assert new_sample.start_position <= new_sample.end_position
@@ -277,7 +300,6 @@ class RetrievalAnnotation(AnnotationBaseClass):
 
         # reorder samples -> the <= 3 newly added samples were appended to the end
         self.samples.sort()
-
         # merge neighbors with same annotation -> left_neighbor must not be the same as left_sample previously,
         # same for right neighbor
         idx = self.samples.index(new_sample)
@@ -285,13 +307,14 @@ class RetrievalAnnotation(AnnotationBaseClass):
         if idx > 0:
             left_neighbor = self.samples[idx - 1]
             if left_neighbor.annotation == new_sample.annotation:
-                self.samples.remove(left_neighbor)
+                del self.samples[idx - 1]
                 new_sample.start_position = left_neighbor.start_position
+        idx = self.samples.index(new_sample)
         # only if the new sample is not the last list element
         if idx < len(self.samples) - 1:
             right_neighbor = self.samples[idx + 1]
             if right_neighbor.annotation == new_sample.annotation:
-                self.samples.remove(right_neighbor)
+                del self.samples[idx + 1]
                 new_sample.end_position = right_neighbor.end_position
 
         # update samples and notify timeline etc.
@@ -301,6 +324,7 @@ class RetrievalAnnotation(AnnotationBaseClass):
     def run_network(self, lower, upper):
         array_length = len(self.scheme)
         return np.random.rand(array_length)
+        # return network.run_network(lower, upper)
 
     def interval_changed(self, new_annotation):
         interval = self.current_interval

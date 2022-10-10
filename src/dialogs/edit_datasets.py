@@ -4,6 +4,7 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
 from ..data_classes import AnnotationScheme
+from ..data_classes.annotation_scheme import create_annotation_scheme
 from ..data_classes.datasets import DatasetDescription
 from ..qt_helper_widgets.adaptive_scroll_area import QAdaptiveScrollArea
 from ..qt_helper_widgets.line_edit_adapted import QLineEditAdapted
@@ -153,8 +154,8 @@ class QEditDatasets(qtw.QDialog):
         scheme = filehandler.read_json(self._scheme.text())
 
         try:
-            scheme = AnnotationScheme(scheme)
-        except AssertionError:
+            scheme = create_annotation_scheme(scheme)
+        except ValueError:
             print(scheme)
             self._scheme.setText("Could not load scheme.")
             return

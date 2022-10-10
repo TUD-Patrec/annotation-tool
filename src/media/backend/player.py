@@ -5,8 +5,8 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
-from ..utility import filehandler
-from ..utility.decorators import accepts, returns
+from src.utility import filehandler
+from src.utility.decorators import accepts, returns
 
 
 class UpdateReason(Enum):

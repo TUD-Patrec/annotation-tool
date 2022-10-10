@@ -1,3 +1,4 @@
+import logging
 from collections import namedtuple
 from copy import deepcopy
 from typing import Union
@@ -49,6 +50,7 @@ class Annotation:
         self._scheme = scheme
         self._annotation_dict = self._make_dict(annotation)
         self._annotation_vector = self._make_vector(annotation)
+        self._binary_str = self._make_binary_str(annotation)
 
     def _make_dict(self, a):
         if isinstance(a, np.ndarray):
@@ -89,6 +91,11 @@ class Annotation:
         else:
             raise RuntimeError
 
+    def _make_binary_str(self, a):
+        res = [str(x) for x in self._make_vector(a)]
+        res = "".join(res)
+        return res
+
     def get_empty_copy(self):
         return Annotation(self.scheme)
 
@@ -103,6 +110,11 @@ class Annotation:
         return self._annotation_vector
 
     @property
+    @returns(str)
+    def binary_str(self):
+        return self._binary_str
+
+    @property
     @returns((dict, np.ndarray))
     def annotation(self) -> (dict, np.ndarray):
         return self.annotation_dict, self.annotation_vector
@@ -112,6 +124,7 @@ class Annotation:
         is_compatible(annotation, self.scheme)
         self._annotation_dict = self._make_dict(annotation)
         self._annotation_vector = self._make_vector(annotation)
+        self._binary_str = self._make_binary_str(annotation)
 
     @property
     def scheme(self):
@@ -162,4 +175,5 @@ class Annotation:
             yield annotation_element(group_name, element_name, value, row, col)
 
     def __hash__(self):
-        return hash(id(self))
+        logging.warning("Hash of annotation is depricated")
+        return hash((self.scheme, self.binary_str))

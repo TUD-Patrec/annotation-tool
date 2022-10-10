@@ -10,7 +10,7 @@ class Query:
         self._intervals = intervals
         self._indices = []  # for querying
         self._idx = -1
-        self._sim = None
+        self._sim_distr = None
         self._rejected_intervals = set()
         self._accepted_intervals = set()
         self._accepted_tuples = set()
@@ -51,12 +51,12 @@ class Query:
         return idx
 
     def similarity_distribution(self, use_cached=True):
-        if self._sim is not None and use_cached:
-            return self._sim
+        if self._sim_distr is not None and use_cached:
+            return self._sim_distr
         else:
             gen = [self._intervals[i].similarity for i in self._indices]
-            self._sim = np.array(gen, dtype=np.float32)
-            return self._sim
+            self._sim_distr = np.array(gen, dtype=np.float32)
+            return self._sim_distr
 
     def reset_rejected_intervals(self):
         self._rejected_intervals = set()

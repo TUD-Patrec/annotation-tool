@@ -100,9 +100,24 @@ class QTimeLine(qtw.QWidget):
     def resizeEvent(self, event: qtg.QResizeEvent) -> None:
         qtw.QWidget.resizeEvent(self, event)
         super().resizeEvent(event)
+
+        # adjust pointer_position -> first map to frame-space
+        # by averaging both bounds of the mapping we get the 'best' (lossless) conversion
+        pointer_pos = (
+            self._pixel_to_frame(self.pointer_position)[0]
+            + self._pixel_to_frame(self.pointer_position)[1]
+        ) // 2
+
         self._frame_to_pixel, self._pixel_to_frame = functions.scale_functions(
             N=self.n_frames, M=event.size().width(), last_to_last=True
         )
+
+        # adjust pointer_position -> after updating the size: map back to pixel-space
+        # by averaging both bounds of the mapping we get the 'best' (lossless) conversion
+        self.pointer_position = (
+            self._frame_to_pixel(pointer_pos)[0] + self._frame_to_pixel(pointer_pos)[1]
+        ) // 2
+
         self.update()
 
     def paintEvent(self, event):

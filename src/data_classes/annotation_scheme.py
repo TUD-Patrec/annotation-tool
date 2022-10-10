@@ -1,5 +1,6 @@
 import logging
 from collections import namedtuple
+from dataclasses import dataclass, field
 
 import src.data_classes.annotation as annotation
 
@@ -19,16 +20,24 @@ def scheme_is_valid(scheme):
     return valid
 
 
-class AnnotationScheme:
-    def __init__(self, scheme: list):
-        assert scheme_is_valid(scheme)
-        self._scheme = scheme
-        self._length = 0
+def create_annotation_scheme(scheme: list):
+    if scheme_is_valid(scheme):
+        n = 0
         for _, gr in scheme:
-            self._length += len(gr)
+            n += len(gr)
+        return AnnotationScheme(scheme, str(scheme), n)
+    else:
+        raise ValueError(f"{scheme} is not valid")
+
+
+@dataclass(frozen=True)
+class AnnotationScheme:
+    scheme: list = field(hash=False, compare=False)
+    _scheme_str: str = field(hash=True, compare=True, repr=False)
+    _n: int = field(hash=True, compare=True, repr=False)
 
     def __len__(self):
-        return self._length
+        return self._n
 
     def __iter__(self):
         scheme_element = namedtuple(
@@ -38,25 +47,3 @@ class AnnotationScheme:
         for row, (group_name, group_elements) in enumerate(self.scheme):
             for col, elem in enumerate(group_elements):
                 yield scheme_element(group_name, elem, row, col)
-
-    def get_empty_annotation(self):
-        return annotation.Annotation(self)
-
-    @property
-    def scheme(self):
-        return self._scheme
-
-    @scheme.setter
-    def scheme(self):
-        raise AttributeError("Cannot update the scheme")
-
-    def __eq__(self, other):
-        if isinstance(other, AnnotationScheme):
-            if len(self) != len(other):
-                return False
-            for x, y in zip(self, other):
-                if x != y:
-                    return False
-            return True
-        else:
-            return False

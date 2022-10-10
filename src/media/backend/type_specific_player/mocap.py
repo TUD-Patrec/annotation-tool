@@ -5,8 +5,12 @@ import PyQt5.QtCore as qtc
 import pyqtgraph.opengl as gl
 
 from src.data_classes.settings import Settings
-
-from ..player import AbstractMediaLoader, AbstractMediaPlayer, UpdateReason
+from src.media.backend.player import (
+    AbstractMediaLoader,
+    AbstractMediaPlayer,
+    UpdateReason,
+)
+from src.utility import filehandler
 
 
 class MocapLoader(AbstractMediaLoader):
@@ -15,7 +19,7 @@ class MocapLoader(AbstractMediaLoader):
 
     def load(self):
         try:
-            array = np.loadtxt(self.path, delimiter=",", skiprows=5)
+            array = filehandler.csv_to_numpy(self.path)
             array = array[:, 2:]
             # normalizing
             normalizing_vector = array[:, 66:72]  # 66:72 are the columns for lowerback

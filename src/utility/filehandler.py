@@ -9,6 +9,7 @@ import cv2
 import numpy as np
 
 from src.data_classes.settings import Settings
+from src.media.media_types import MediaType, media_type_of
 
 from .decorators import Singleton
 
@@ -87,7 +88,7 @@ def write_json(path, data):
 
 def csv_to_numpy(path, dtype=np.float64):
     if is_non_zero_file(path):
-        return np.genfromtxt(path, delimiter=",", dtype=dtype)
+        return np.genfromtxt(path, delimiter=",", skip_header=True, dtype=dtype)
     else:
         logging.warning("FILE {} is empty.".format(path))
         return None
@@ -135,15 +136,14 @@ __cached_meta_data__ = {}  # used for caching results
 
 
 def meta_data(path, use_cached=True):
-    global __cached_meta_data__
     if use_cached:
         tpl = __cached_meta_data__.get(path)
         if tpl:
             return tpl
     if is_non_zero_file(path):
-        if path.split(".")[-1] == "csv":
+        if media_type_of(path) == MediaType.LARA_MOCAP:
             meta = meta_data_of_mocap(path)
-        if path.split(".")[-1] in ["mp4", "avi"]:
+        if media_type_of(path) == MediaType.VIDEO:
             meta = meta_data_of_video(path)
         __cached_meta_data__[path] = meta
         return meta
@@ -154,6 +154,7 @@ def meta_data(path, use_cached=True):
 def meta_data_of_mocap(path):
     mocap = csv_to_numpy(path)
     frame_count = mocap.shape[0]
+    logging.debug(f"{frame_count = }")
     fps = Settings.instance().refresh_rate
     return 1000 * int(frame_count / fps), frame_count, fps
 

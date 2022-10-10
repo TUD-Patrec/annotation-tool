@@ -1,4 +1,4 @@
-from .player import AbstractMediaPlayer
+from src.media.backend.player import AbstractMediaPlayer
 
 
 class FairQueue:

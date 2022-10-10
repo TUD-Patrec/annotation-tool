@@ -14,7 +14,7 @@ from src.utility.breeze_resources import *
 from .annotation.controller import AnnotationController
 from .data_classes.globalstate import GlobalState
 from .gui import GUI, LayoutPosition
-from .media import QMediaWidget
+from .media.media import QMediaWidget
 from .mediator import Mediator
 from .playback import QPlaybackWidget
 from .utility import filehandler

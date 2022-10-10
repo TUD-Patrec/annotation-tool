@@ -25,10 +25,6 @@ def accepts(*types):
     return check_accepts
 
 
-def returns_m(*types):
-    return returns(object, *types)
-
-
 def returns(rtype):
     def check_returns(f):
         def new_f(*args, **kwds):
