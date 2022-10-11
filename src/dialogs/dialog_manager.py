@@ -25,6 +25,10 @@ class DialogManager:
         else:
             self.__refocus_dialog__()
 
+    def close_dialog(self):
+        if self.__open_dialog__ is not None:
+            self.__open_dialog__.close()
+
     def __free_dialog__(self):
         self.__open_dialog__
         self.__open_dialog__.deleteLater()

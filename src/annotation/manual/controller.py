@@ -3,7 +3,7 @@ from copy import deepcopy
 from src.annotation.annotation_base import AnnotationBaseClass
 from src.annotation.manual.main_widget import QDisplaySample
 from src.annotation.manual.tool_widget import ManualAnnotationTools
-from src.data_classes import Sample
+from src.dataclasses import Sample
 from src.dialogs.annotation_dialog import QAnnotationDialog
 
 

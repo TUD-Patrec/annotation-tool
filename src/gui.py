@@ -5,9 +5,10 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
-from src.data_classes.settings import Settings
+from src.dataclasses.settings import Settings
 
-from .data_classes.globalstate import GlobalState
+from .dataclasses.globalstate import GlobalState
+from .dialogs.dialog_manager import DialogManager
 from .dialogs.edit_datasets import QEditDatasets
 from .dialogs.export_annotation_dialog import QExportAnnotationDialog
 from .dialogs.load_annotation_dialog import QLoadExistingAnnotationDialog
@@ -23,7 +24,7 @@ class LayoutPosition(enum.Enum):
     BOTTOM_RIGHT = 4
 
 
-class GUI(qtw.QMainWindow):
+class GUI(qtw.QMainWindow, DialogManager):
     load_annotation = qtc.pyqtSignal(GlobalState)
     save_pressed = qtc.pyqtSignal()
     exit_pressed = qtc.pyqtSignal()
@@ -48,7 +49,6 @@ class GUI(qtw.QMainWindow):
         super(GUI, self).__init__(*args, **kwargs)
 
         # window setup
-        self.dialog = None
         settings = Settings.instance()
 
         self.resize(settings.window_x, settings.window_y)
@@ -235,66 +235,31 @@ class GUI(qtw.QMainWindow):
             self.use_retrieval_mode.emit()
 
     def open_settings(self):
-        if self.dialog is None:
-            self.dialog = SettingsDialog()
-            self.dialog.settings_changed.connect(self.settings_changed)
-            self.dialog.window_size_changed.connect(self.resize)
-            self.dialog.finished.connect(self.free_dialog)
-            self.dialog.open()
-        else:
-            self.refocus_dialog()
+        dialog = SettingsDialog()
+        dialog.window_size_changed.connect(self.resize)
+        dialog.settings_changed.connect(self.settings_changed)
+        self.open_dialog(dialog)
 
     def create_new_annotation(self):
-        if self.dialog is None:
-            self.save_pressed.emit()
-            self.dialog = QNewAnnotationDialog()
-            self.dialog.load_annotation.connect(self.load_annotation)
-            self.dialog.finished.connect(self.free_dialog)
-            self.dialog.open()
-        else:
-            self.refocus_dialog()
+        dialog = QNewAnnotationDialog()
+        dialog.load_annotation.connect(self.load_annotation)
+        self.open_dialog(dialog)
+        self.save_pressed.emit()
 
     def load_existing_annotation(self):
-        if self.dialog is None:
-            self.save_pressed.emit()
-            self.dialog = QLoadExistingAnnotationDialog()
-            self.dialog.load_annotation.connect(self.load_annotation)
-            self.dialog.finished.connect(self.free_dialog)
-            self.dialog.open()
-        else:
-            self.refocus_dialog()
+        dialog = QLoadExistingAnnotationDialog()
+        dialog.load_annotation.connect(self.load_annotation)
+        self.open_dialog(dialog)
+        self.save_pressed.emit()
 
     def export_annotation(self):
-        if self.dialog is None:
-            self.save_pressed.emit()
-            self.dialog = QExportAnnotationDialog()
-            self.dialog.finished.connect(self.free_dialog)
-            self.dialog.open()
-        else:
-            self.refocus_dialog()
+        dialog = QExportAnnotationDialog()
+        self.open_dialog(dialog)
+        self.save_pressed.emit()
 
     def edit_datasets(self):
-        if self.dialog is None:
-            self.dialog = QEditDatasets()
-            self.dialog.finished.connect(self.free_dialog)
-            self.dialog.open()
-        else:
-            self.refocus_dialog()
-
-    def refocus_dialog(self):
-        # this will remove minimized status
-        # and restore window with keeping maximized/normal state
-        self.dialog.setWindowState(
-            self.dialog.windowState() & ~qtc.Qt.WindowMinimized | qtc.Qt.WindowActive
-        )
-
-        # this will activate the window
-        self.dialog.activateWindow()
-
-    @qtc.pyqtSlot(int)
-    def free_dialog(self, x):
-        self.dialog.deleteLater()
-        self.dialog = None
+        dialog = QEditDatasets()
+        self.open_dialog(dialog)
 
     @qtc.pyqtSlot(qtw.QWidget, LayoutPosition)
     def set_widget(self, widget, layout_position):
@@ -314,6 +279,7 @@ class GUI(qtw.QMainWindow):
         old_widget.setParent(None)
         old_widget.deleteLater()
 
+    @qtc.pyqtSlot()
     def cleaned_up(self):
         self.close()
 
@@ -322,7 +288,5 @@ class GUI(qtw.QMainWindow):
         self._exit()
 
     def _exit(self):
-        if self.dialog:
-            logging.info("Closing open dialog")
-            self.dialog.close()
+        self.close_dialog()
         self.exit_pressed.emit()

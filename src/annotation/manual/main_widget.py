@@ -1,7 +1,7 @@
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
-from src.data_classes import Sample
+from src.dataclasses import Sample
 from src.qt_helper_widgets.display_scheme import QShowAnnotation
 from src.qt_helper_widgets.lines import QHLine
 
@@ -42,7 +42,7 @@ class QDisplaySample(qtw.QWidget):
         vbox.addWidget(self.bottom_widget, alignment=qtc.Qt.AlignCenter)
 
         self.setLayout(vbox)
-        self.setMinimumWidth(300)
+        self.setFixedWidth(300)
 
     @qtc.pyqtSlot(list, Sample)
     def setSelected(self, _, sample):

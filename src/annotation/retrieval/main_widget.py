@@ -77,7 +77,7 @@ class QRetrievalWidget(qtw.QWidget):
         vbox.addWidget(QHLine())
         vbox.addWidget(self.footer_widget, alignment=qtc.Qt.AlignCenter)
         self.setLayout(vbox)
-        self.setMinimumWidth(300)
+        self.setFixedWidth(400)
 
     # Display the current interval to the user: Show him the Interval boundaries and the predicted annotation
     @qtc.pyqtSlot(Query, object)

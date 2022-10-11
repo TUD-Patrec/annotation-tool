@@ -16,7 +16,7 @@ from src.annotation.retrieval.retrieval_backend.interval import (
     generate_intervals,
 )
 from src.annotation.retrieval.retrieval_backend.query import Query
-from src.data_classes import Annotation, Sample
+from src.dataclasses import Annotation, Sample
 from src.dialogs.annotation_dialog import QAnnotationDialog
 
 

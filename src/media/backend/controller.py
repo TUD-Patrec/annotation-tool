@@ -4,11 +4,12 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
-from src.data_classes.settings import Settings
+from src.dataclasses.settings import Settings
 from src.media.backend.player import AbstractMediaPlayer
 from src.media.backend.timer import Timer
 from src.media.backend.type_specific_player.mocap import MocapPlayer
 from src.media.backend.type_specific_player.video import VideoPlayer
+from src.media.media_types import MediaType, media_type_of
 
 
 class QMediaMainController(qtw.QWidget):
@@ -58,18 +59,15 @@ class QMediaMainController(qtw.QWidget):
     # TODO VIDEO NEEDS TO BE ADDED
     def add_replay_widget(self, path):
         if len(self.replay_widgets) < self.MAX_WIDGETS:
-            file_ext = path.split(".")[-1]
             is_main_widget = len(self.replay_widgets) == 0
 
-            if file_ext in ["mp4", "avi"]:
+            # select correct media_player
+            media_type = media_type_of(path)
+            if media_type == MediaType.VIDEO:
                 widget = VideoPlayer(is_main_widget, self)
+            if media_type == MediaType.LARA_MOCAP:
+                widget = MocapPlayer(is_main_widget, self)
 
-            if file_ext in ["csv"]:
-                # TODO CHECK IF .csv file actually holds mocap data!W
-                try:
-                    widget = MocapPlayer(is_main_widget, self)
-                except:
-                    raise RuntimeError
             if widget.is_main_replay_widget:
                 widget.position_changed.connect(self.position_changed)
                 self.grid.addWidget(widget, 0, 0)

@@ -5,7 +5,7 @@ from typing import Union
 
 import numpy as np
 
-from src.data_classes.annotation_scheme import AnnotationScheme
+from src.dataclasses.annotation_scheme import AnnotationScheme
 from src.utility.decorators import returns
 
 
@@ -175,5 +175,5 @@ class Annotation:
             yield annotation_element(group_name, element_name, value, row, col)
 
     def __hash__(self):
-        logging.warning("Hash of annotation is depricated")
+        # logging.warning("Hash of annotation is depricated")
         return hash((self.scheme, self.binary_str))

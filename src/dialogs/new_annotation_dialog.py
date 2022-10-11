@@ -3,9 +3,9 @@ import os
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
-from src.data_classes.globalstate import GlobalState
+from src.dataclasses.globalstate import GlobalState
 
-from ..data_classes.settings import Settings
+from ..dataclasses.settings import Settings
 from ..qt_helper_widgets.line_edit_adapted import QLineEditAdapted
 from ..utility import filehandler, functions
 

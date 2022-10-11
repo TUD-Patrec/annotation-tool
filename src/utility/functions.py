@@ -2,10 +2,10 @@ import functools
 import logging
 import os
 
-from src.data_classes.settings import Settings
+from src.dataclasses.settings import Settings
 
-from ..data_classes.datasets import DatasetDescription
-from ..data_classes.globalstate import GlobalState
+from ..dataclasses.datasets import DatasetDescription
+from ..dataclasses.globalstate import GlobalState
 from .decorators import Singleton
 from .filehandler import Paths, is_non_zero_file
 

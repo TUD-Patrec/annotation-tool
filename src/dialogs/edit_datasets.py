@@ -1,11 +1,11 @@
+import logging
 from functools import partial
 
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
-from ..data_classes import AnnotationScheme
-from ..data_classes.annotation_scheme import create_annotation_scheme
-from ..data_classes.datasets import DatasetDescription
+from ..dataclasses.annotation_scheme import create_annotation_scheme
+from ..dataclasses.datasets import DatasetDescription
 from ..qt_helper_widgets.adaptive_scroll_area import QAdaptiveScrollArea
 from ..qt_helper_widgets.line_edit_adapted import QLineEditAdapted
 from ..utility import filehandler, functions
@@ -92,10 +92,6 @@ class QEditDatasets(qtw.QDialog):
         dependencies_lbl.setAlignment(qtc.Qt.AlignCenter)
         hbox.addWidget(dependencies_lbl)
 
-        # modify_lbl = qtw.QLabel('Modify')
-        # modify_lbl.setAlignment(qtc.Qt.AlignCenter)
-        # hbox.addWidget(modify_lbl)
-
         remove_lbl = qtw.QLabel("Remove")
         remove_lbl.setAlignment(qtc.Qt.AlignCenter)
         hbox.addWidget(remove_lbl)
@@ -122,11 +118,6 @@ class QEditDatasets(qtw.QDialog):
         dependencies_label.setAlignment(qtc.Qt.AlignCenter)
         hbox.addWidget(dependencies_label)
 
-        # edit_btn = qtw.QPushButton()
-        # edit_btn.setText('Edit')
-        # edit_btn.setEnabled(False)
-        # hbox.addWidget(edit_btn)
-
         remove_btn = qtw.QPushButton()
         remove_btn.setText("Remove")
         rem_partial = partial(self.remove_pressed, id)
@@ -146,7 +137,6 @@ class QEditDatasets(qtw.QDialog):
             self.scroll_widget.addItem(row)
 
     def add_pressed(self):
-        # TODO Check scheme and dependencies fit together
         name = self._name.text()
         if name == "":
             name = "nameless"
@@ -156,21 +146,25 @@ class QEditDatasets(qtw.QDialog):
         try:
             scheme = create_annotation_scheme(scheme)
         except ValueError:
-            print(scheme)
+            logging.error(f"{scheme}")
             self._scheme.setText("Could not load scheme.")
             return
 
-        if self._dependencies.text() != "":
-            try:
-                dependencies = filehandler.csv_to_numpy(
-                    self._dependencies.text(), dtype=int
-                )
-            except:
-                self._dependencies.setText("Could not load dependencies.")
-                return
-            if dependencies.shape[0] < 0 or dependencies.shape[1] != len(scheme):
-                self._dependencies.setText("Could not load dependencies.")
-                return
+        dependency_error_str = "Could not load dependencies."
+        dependency_txt = self._dependencies.text()
+
+        if len(dependency_txt) > 0:
+            if dependency_txt != dependency_error_str:
+                try:
+                    dependencies = filehandler.csv_to_numpy(
+                        self._dependencies.text(), dtype=int
+                    )
+                except:
+                    self._dependencies.setText(dependency_error_str)
+                    return
+                if dependencies.shape[0] < 0 or dependencies.shape[1] != len(scheme):
+                    self._dependencies.setText(dependency_error_str)
+                    return
         else:
             dependencies = []
 

@@ -1,7 +1,7 @@
 from copy import deepcopy
 from dataclasses import dataclass, field
 
-from src.data_classes import Annotation, Sample
+from src.dataclasses import Annotation, Sample
 
 
 @dataclass(unsafe_hash=True, order=True)

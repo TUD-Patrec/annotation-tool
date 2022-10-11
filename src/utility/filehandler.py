@@ -1,3 +1,4 @@
+import csv
 import json
 import logging
 import math
@@ -8,7 +9,7 @@ from dataclasses import dataclass, field
 import cv2
 import numpy as np
 
-from src.data_classes.settings import Settings
+from src.dataclasses.settings import Settings
 from src.media.media_types import MediaType, media_type_of
 
 from .decorators import Singleton
@@ -88,10 +89,27 @@ def write_json(path, data):
 
 def csv_to_numpy(path, dtype=np.float64):
     if is_non_zero_file(path):
-        return np.genfromtxt(path, delimiter=",", skip_header=True, dtype=dtype)
+        has_header = bool(csv_has_header(path))
+        data = np.genfromtxt(path, delimiter=",", skip_header=has_header, dtype=dtype)
+        return data
     else:
-        logging.warning("FILE {} is empty.".format(path))
         return None
+
+
+# TODO error handling
+def csv_has_header(path):
+    with open(path, "r") as csvfile:
+        csv_test_bytes = csvfile.read(
+            1024
+        )  # Grab a sample of the CSV for format detection.
+    try:
+        has_header = csv.Sniffer().has_header(
+            csv_test_bytes
+        )  # Check to see if there's a header in the file.
+    except Exception as e:
+        logging.error(f"{e = }")
+        return False
+    return has_header
 
 
 def numpy_to_csv(path, data):

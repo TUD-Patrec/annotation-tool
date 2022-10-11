@@ -8,7 +8,7 @@ from typing import List
 
 import numpy as np
 
-from src.data_classes.annotation import empty_annotation
+from src.dataclasses.annotation import empty_annotation
 
 from ..utility import filehandler
 from ..utility.decorators import accepts

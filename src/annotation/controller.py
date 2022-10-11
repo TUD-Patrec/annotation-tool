@@ -6,7 +6,7 @@ from src.annotation.annotation_base import AnnotationBaseClass
 from src.annotation.manual.controller import ManualAnnotation
 from src.annotation.modes import AnnotationMode
 from src.annotation.retrieval.controller import RetrievalAnnotation
-from src.data_classes import AnnotationScheme, Sample
+from src.dataclasses import AnnotationScheme, Sample
 
 
 class AnnotationController(qtc.QObject):

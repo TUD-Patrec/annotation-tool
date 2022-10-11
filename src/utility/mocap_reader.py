@@ -1,136 +1,31 @@
-import logging
-
 import numpy as np
-import PyQt5.QtCore as qtc
-import pyqtgraph.opengl as gl
 
-from src.dataclasses.settings import Settings
-from src.media.backend.player import (
-    AbstractMediaLoader,
-    AbstractMediaPlayer,
-    UpdateReason,
-)
-from src.utility import mocap_reader
+from src.media.media_types import MediaType, media_type_of
+from src.utility import filehandler
 
 
-class MocapLoader(AbstractMediaLoader):
-    def __init__(self, path) -> None:
-        super().__init__(path)
-
-    def load(self):
+def load_mocap(path, normalize=True) -> np.ndarray:
+    if media_type_of(path) == MediaType.LARA_MOCAP:
         try:
-            array = mocap_reader.load_mocap(self.path)
-
-            n = array.shape[0]
-
-            # Calculate Skeleton
-            frames = np.zeros((n, 44, 3))  # dimensions are( frames, bodysegments, xyz)
-            for frame_index in range(n):
-                prog = (100 * frame_index) // n
-                self.progress.emit(prog)
-                frame = array[frame_index, :]
-                frame = calculate_skeleton(frame)
-
-                # NORMALIZATION
-                height = 0
-                for segment in [
-                    body_segments_reversed[i]
-                    for i in ["L toe", "R toe", "L foot", "R foot"]
-                ]:
-                    segment_height = frame[segment * 2, 2]
-                    height = min((height, segment_height))
-                frame[:, 2] -= height
-                # END NORMALIZATION
-
-                frames[frame_index, :, :] = frame
-
-            self.media = frames.astype(np.float32)
-
-        except Exception as e:
-            raise e
+            return __load_lara_mocap__(path, normalize)
+        except:
+            raise TypeError
+    else:
+        raise TypeError
 
 
-class MocapPlayer(AbstractMediaPlayer):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.media_backend = MocapBackend()
-        self.allow_frame_merges = True
-        self.media_backend.right_mouse_btn_clicked.connect(self.open_context_menu)
-
-    def load(self, path):
-        self.loading_thread = MocapLoader(path)
-        self.loading_thread.progress.connect(self.pbar.setValue)
-        self.loading_thread.finished.connect(self._loading_finished)
-        self.loading_thread.start()
-        logging.info("Loading start")
-
-    @qtc.pyqtSlot(np.ndarray)
-    def _loading_finished(self, media):
-        assert qtc.QThread.currentThread() is self.thread()
-        logging.info("Loading done")
-        self.n_frames = media.shape[0]
-        self.fps = Settings.instance().refresh_rate
-
-        logging.info(f"{media.dtype = }, {media.nbytes = }")
-
-        self.media_backend.media = media
-        self.media_backend.set_position(0)
-        self.layout().replaceWidget(self.pbar, self.media_backend)
-        self.pbar.setParent(None)
-        del self.pbar
-
-        self.loading_thread.quit()
-        self.loading_thread.wait()
-        self.loading_thread = None
-
-        self.loaded.emit(self)
-
-    def update_media_position(self, update_reason: UpdateReason):
-        pos = self.position + self.offset
-        pos_adjusted = max(0, min(pos, self.n_frames - 1))
-        self.media_backend.set_position(pos_adjusted)
-
-        self.confirm_update(update_reason)
-
-    def shutdown(self):
-        assert qtc.QThread.currentThread() is self.thread()
-        if self.loading_thread:
-            logging.info("Waiting for loading thread to finish")
-            self.loading_thread.quit()
-            self.loading_thread.wait()
-
-
-class MocapBackend(gl.GLViewWidget):
-    right_mouse_btn_clicked = qtc.pyqtSignal()
-
-    def __init__(self):
-        super().__init__()
-        self.media = None
-        self.position = None
-
-        self.zgrid = gl.GLGridItem()
-        self.addItem(self.zgrid)
-
-        self.current_skeleton = gl.GLLinePlotItem(
-            pos=np.array([[0, 0, 0], [0, 0, 0]]),
-            color=np.array([[0, 0, 0, 0], [0, 0, 0, 0]]),
-            mode="lines",
-        )
-        self.addItem(self.current_skeleton)
-
-    @qtc.pyqtSlot(int)
-    def set_position(self, new_pos):
-        self.position = new_pos  # update position
-        skeleton = self.media[self.position]
-        self.current_skeleton.setData(
-            pos=skeleton, color=np.array(skeleton_colors), width=4, mode="lines"
-        )
-
-    def mousePressEvent(self, ev):
-        lpos = ev.position() if hasattr(ev, "position") else ev.localPos()
-        self.mousePos = lpos
-        if ev.button() == qtc.Qt.RightButton:
-            self.right_mouse_btn_clicked.emit()
+def __load_lara_mocap__(path, normalize=True):
+    try:
+        array = filehandler.csv_to_numpy(path)
+        array = array[:, 2:]
+        if normalize:
+            normalizing_vector = array[:, 66:72]  # 66:72 are the columns for lowerback
+            for _ in range(21):
+                normalizing_vector = np.hstack((normalizing_vector, array[:, 66:72]))
+            array = np.subtract(array, normalizing_vector)
+        return array
+    except Exception as e:
+        raise e
 
 
 body_segments = {

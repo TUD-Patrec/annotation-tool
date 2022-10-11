@@ -8,11 +8,11 @@ import PyQt5.QtWidgets as qtw
 
 from src.annotation.modes import AnnotationMode
 from src.annotation.timeline import QTimeLine
-from src.data_classes.settings import Settings
+from src.dataclasses.settings import Settings
 from src.utility.breeze_resources import *
 
 from .annotation.controller import AnnotationController
-from .data_classes.globalstate import GlobalState
+from .dataclasses.globalstate import GlobalState
 from .gui import GUI, LayoutPosition
 from .media.media import QMediaWidget
 from .mediator import Mediator

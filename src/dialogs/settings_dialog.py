@@ -2,7 +2,7 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
-from src.data_classes.settings import Settings
+from src.dataclasses.settings import Settings
 
 
 class SettingsDialog(qtw.QDialog):

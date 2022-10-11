@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 
 import PyQt5.QtGui as qtg
 
-from src.data_classes.annotation import Annotation
+from src.dataclasses.annotation import Annotation
 from src.utility.decorators import accepts, returns
 
 from .colormapper import ColorMapper

@@ -2,7 +2,7 @@ import logging
 from collections import namedtuple
 from dataclasses import dataclass, field
 
-import src.data_classes.annotation as annotation
+import src.dataclasses.annotation as annotation
 
 
 def scheme_is_valid(scheme):

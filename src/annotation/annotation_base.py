@@ -3,7 +3,7 @@ from abc import abstractmethod
 import numpy as np
 import PyQt5.QtCore as qtc
 
-from src.data_classes import AnnotationScheme, Sample
+from src.dataclasses import AnnotationScheme, Sample
 from src.dialogs.dialog_manager import DialogManager
 
 
