@@ -18,8 +18,8 @@ def get_application_path():
     else:
         raise RuntimeError('Could not get the path of this script')
     return application_path
-    
-    
+
+
 def enable_high_dpi_scaling():
 
     # adjust scaling to high dpi monitors
@@ -27,14 +27,14 @@ def enable_high_dpi_scaling():
         qtw.QApplication.setAttribute(qtc.Qt.AA_EnableHighDpiScaling, True)
     if hasattr(qtc.Qt, 'AA_UseHighDpiPixmaps'):
         qtw.QApplication.setAttribute(qtc.Qt.AA_UseHighDpiPixmaps, True)
-    
-    # Adjust scaling for windows 
+
+    # Adjust scaling for windows
     if platform == "win32":
         # Query DPI Awareness (Windows 10 and 8)
         #awareness = ctypes.c_int()
         #errorCode = ctypes.windll.shcore.GetProcessDpiAwareness(0, ctypes.byref(awareness))
         # print( awareness.value)
-        
+
         # Set DPI Awareness  (Windows 10 and 8)
         PROCESS_DPI_UNAWARE = 0
         PROCESS_SYSTEM_DPI_AWARE = 1
@@ -42,22 +42,25 @@ def enable_high_dpi_scaling():
         errorCode = ctypes.windll.shcore.SetProcessDpiAwareness(PROCESS_DPI_UNAWARE)
         if errorCode == 0:
             logging.info('Running DPI-unaware')
-    
-    
-if __name__ == '__main__':
+
+def start():
     application_path = get_application_path()
-      
+
     # Injecting root_path
     paths = filehandler.Paths.instance()
     paths.root = application_path
-    
+
     # Init Folders and logger
     filehandler.init_folder_structure()
     filehandler.init_logger()
-    
+
     logging.info('Running relative to {}'.format(application_path))
-        
+
     enable_high_dpi_scaling()
-        
+
     main()
-    
+
+
+if __name__ == '__main__':
+    start()
+
