@@ -5,6 +5,9 @@ image: python:3.9
 .default_rules:
   master-version:
     - if: $CI_COMMIT_BRANCH == "master" && $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+  manual-version:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*/
+      when: manual
 
 before_script:
   - python --version  # For debugging
@@ -47,12 +50,14 @@ poetry configure testpypi:
     - poetry config pypi-token.testpypi ${TESTPYPI_TOKEN}
   rules:
     - !reference [.default_rules, master-version]
+    - !reference [.default_rules, manual-version]
 
 publish testpypi:
   needs: ["flake8 check", "black check", "isort check", "poetry configure testpypi"]
   script: poetry publish --build -r testpypi
   rules:
     - !reference [.default_rules, master-version]
+    - !reference [.default_rules, manual-version]
 
 build linux executable:
   stage: "build binaries"
@@ -74,6 +79,7 @@ build linux executable:
     - 'if [[ ! -z "${OWNCLOUD_KEY}" ]]; then curl -k -T annotation-tool-linux -u "${OWNCLOUD_KEY}:${OWNCLOUD_PASSWORD}" -H "X-Requested-With: XMLHttpRequest" https://owncloud.cs.tu-dortmund.de/public.php/webdav/annotation-tool-linux; fi'
   rules:
     - !reference [.default_rules, master-version]
+    - !reference [.default_rules, manual-version]
 
 build windows executable:
   stage: "build binaries"
@@ -95,3 +101,4 @@ build windows executable:
     - 'if [[ ! -z "${OWNCLOUD_KEY}" ]]; then curl -k -T annotation-tool-windows.exe -u "${OWNCLOUD_KEY}:${OWNCLOUD_PASSWORD}" -H "X-Requested-With: XMLHttpRequest" https://owncloud.cs.tu-dortmund.de/public.php/webdav/annotation-tool-windows.exe; fi'
   rules:
     - !reference [.default_rules, master-version]
+    - !reference [.default_rules, manual-version]
