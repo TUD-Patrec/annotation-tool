@@ -11,7 +11,7 @@ import pyqtgraph as pg
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 
-class Histogram_Widget_old(qtw.QWidget):
+class Histogram_Widget(qtw.QWidget):
     def __init__(self, *args, **kwargs):
         super(Histogram_Widget, self).__init__(*args, **kwargs)
 
@@ -71,9 +71,9 @@ class Histogram_Widget_old(qtw.QWidget):
         return np.array(res, dtype=np.int64) if isinstance(x, np.ndarray) else int(res)
 
 
-class Histogram_Widget(pg.PlotWidget):
+class Histogram_Widget_new(pg.PlotWidget):
     def __init__(self, *args, **kwargs):
-        super(Histogram_Widget, self).__init__(*args, **kwargs)
+        super(Histogram_Widget_new, self).__init__(*args, **kwargs)
 
         self.position = 0
         self.data = None

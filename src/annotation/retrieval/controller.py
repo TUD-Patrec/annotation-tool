@@ -333,7 +333,7 @@ class RetrievalAnnotation(AnnotationBaseClass):
 
     def stepsize(self):
         res = max(
-            5,
+            1,
             min(int(self.interval_size * (1 - self.overlap)), self.interval_size),
         )
         logging.info(f"{res = }")
