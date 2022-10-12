@@ -11,8 +11,7 @@ import numpy as np
 
 from src.dataclasses.settings import Settings
 from src.media.media_types import MediaType, media_type_of
-
-from .decorators import Singleton
+from src.utility.decorators import Singleton
 
 
 @Singleton

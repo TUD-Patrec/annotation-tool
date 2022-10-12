@@ -4,8 +4,6 @@ import os.path
 import cv2
 import filetype
 
-from src.utility import filehandler
-
 
 class MediaType(enum.Enum):
     UNKNOWN = 0
@@ -37,6 +35,8 @@ def is_video(path) -> bool:
 
 
 def is_LARA_mocap(path) -> bool:
+    import src.utility.filehandler as filehandler
+
     if not os.path.isfile(path):
         return False
     try:
