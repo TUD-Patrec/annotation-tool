@@ -6,7 +6,14 @@ build-backend = "poetry.core.masonry.api"
 name = "annotation-tool"
 version = "0.1.0"
 description = ""
-authors = ["Philipp Oberdiek <git@oberdiek.net>"]
+authors = [
+    "Fernando Moya Rueda <fernando.moya@cs.tu-dortmund.de>",
+    "Erik Altermann <erik.altermann@tu-dortmund.de>",
+    "Nilah Ravi Nair <nilah.nair@tu-dortmund.de>",
+    "Philipp Oberdiek <git@oberdiek.net>",
+    "Raphael Spiekermann <raphael.spiekermann@tu-dortmund.de>",
+]
+maintainers = []
 packages = [
     { include = "src" },
     { include = "main.py" },
