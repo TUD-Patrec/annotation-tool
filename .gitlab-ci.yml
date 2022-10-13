@@ -12,43 +12,36 @@ image: python:3.9
 before_script:
   - python --version  # For debugging
 
-stages:
-  - "test"
-  - "build binaries"
-
 install poetry:
   script:
     - pip install --upgrade pip
     - pip install poetry
 
-install poetry win:
+install project:
+  needs: ["install poetry"]
   script:
-    - /usr/win64/bin/python -m pip install --upgrade pip
-    - /usr/win64/bin/python -m pip install poetry
+    - poetry install
 
 flake8 check:
-  stage: test
-  needs: ["install poetry"]
+  needs: ["install project"]
   script:
     - poetry install
     - poetry run flake8 "${CI_PROJECT_DIR}" --count --statistics
 
 black check:
-  stage: test
-  needs: ["install poetry"]
+  needs: ["install project"]
   script:
     - poetry install
     - poetry run black --check "${CI_PROJECT_DIR}"
 
 isort check:
-  stage: test
-  needs: ["install poetry"]
+  needs: ["install project"]
   script:
     - poetry install
     - poetry run isort --check --settings-path pyproject.toml --recursive "${CI_PROJECT_DIR}"
 
 poetry configure testpypi:
-  needs: ["install poetry"]
+  needs: ["install project"]
   script:
     - poetry config repositories.testpypi https://test.pypi.org/legacy/
     - poetry config pypi-token.testpypi ${TESTPYPI_TOKEN}
@@ -57,15 +50,14 @@ poetry configure testpypi:
     - !reference [.default_rules, manual-version]
 
 publish testpypi:
-  needs: ["flake8 check", "black check", "isort check", "poetry configure testpypi", "install poetry"]
+  needs: ["flake8 check", "black check", "isort check", "poetry configure testpypi", "install project"]
   script: poetry publish --build -r testpypi
   rules:
     - !reference [.default_rules, master-version]
     - !reference [.default_rules, manual-version]
 
 build linux executable:
-  stage: "build binaries"
-  needs: ["flake8 check", "black check", "isort check", "install poetry"]
+  needs: ["flake8 check", "black check", "isort check", "install project"]
   variables:
     SRCDIR: "$CI_PROJECT_DIR"
     PLATFORMS: "linux"
@@ -84,8 +76,7 @@ build linux executable:
     - !reference [.default_rules, manual-version]
 
 build windows executable:
-  stage: "build binaries"
-  needs: ["flake8 check", "black check", "isort check", "install poetry win"]
+  needs: ["flake8 check", "black check", "isort check"]
   variables:
     SRCDIR: "$CI_PROJECT_DIR"
     PLATFORMS: "windows"
@@ -93,7 +84,8 @@ build windows executable:
     name: fydeinc/pyinstaller
     entrypoint: ["/bin/sh", "-l", "-c"]
   script:
-    - pwd
+    - /usr/win64/bin/python -m pip install --upgrade pip
+    - /usr/win64/bin/python -m pip install poetry
     - /usr/win64/bin/python -m poetry config virtualenvs.create false
     - /usr/win64/bin/python -m poetry install
     - /entrypoint.sh --onefile --noconsole --name annotation-tool main.py
