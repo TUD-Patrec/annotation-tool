@@ -10,10 +10,11 @@ import src.network.controller as network
 from src.annotation.annotation_base import AnnotationBaseClass
 from src.annotation.retrieval.main_widget import QRetrievalWidget
 from src.annotation.retrieval.retrieval_backend.filter import FilterCriteria
-from src.annotation.retrieval.retrieval_backend.filter_dialog import \
-    QRetrievalFilter
+from src.annotation.retrieval.retrieval_backend.filter_dialog import QRetrievalFilter
 from src.annotation.retrieval.retrieval_backend.interval import (
-    Interval, generate_intervals)
+    Interval,
+    generate_intervals,
+)
 from src.annotation.retrieval.retrieval_backend.query import Query
 from src.dataclasses import Annotation, Sample
 from src.dialogs.annotation_dialog import QAnnotationDialog
@@ -228,7 +229,6 @@ class RetrievalAnnotation(AnnotationBaseClass):
             network_output = network_output.flatten()  # check if actually needed
             proposed_classification = np.round(network_output)
             proposed_classification = proposed_classification.astype(np.int8)
-            # assert not np.array_equal(network_output, proposed_classification)
             similarity = 1 - spatial.distance.cosine(
                 network_output, proposed_classification
             )
@@ -319,7 +319,6 @@ class RetrievalAnnotation(AnnotationBaseClass):
         # update samples and notify timeline etc.
         self.check_for_selected_sample(force_update=True)
 
-    # TODO: actually use a network, currently only proof of concept
     def run_network(self, lower, upper):
         # [lower, upper) is expected to be a range instead of a closed interval -> add 1 to right interval border
         return network.run_network(lower, upper + 1)

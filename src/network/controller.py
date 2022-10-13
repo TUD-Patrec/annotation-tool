@@ -8,7 +8,6 @@ import numpy as np
 import torch
 
 from src.media.media_types import MediaType, media_type_of
-from src.network.LARa.lara_specifics import get_annotation_vector
 from src.network.network import Network
 from src.utility.mocap_reader import load_mocap
 
@@ -31,7 +30,7 @@ def __current_data_path__():
     return data_file
 
 
-def run_network(lower, upper):
+def run_network(lower, upper) -> Union[List[np.ndarray], np.ndarray]:
     path = __current_data_path__()
     return __run_network__(path, lower, upper)
 
@@ -138,9 +137,9 @@ def __run_network__(
         y = res[0][1]
         logging.info(f"Single result: {y = }")
         # print(f'Single result: {y = }')
-        return y
+        return y, media_type
     else:
-        return res
+        return res, media_type
 
 
 def __load_raw_data__(file: os.PathLike, media_type: MediaType = None) -> np.ndarray:
@@ -220,13 +219,9 @@ def __preprocess_lara__(data) -> np.ndarray:
     return data
 
 
-def __postprocess__(data: np.ndarray, media_type:MediaType) -> np.ndarray:
-    if media_type == MediaType.LARA_MOCAP:
-        data = __postprocess_lara__(data)
+def __postprocess__(data: np.ndarray, media_type: MediaType) -> np.ndarray:
     return data
 
-def __postprocess_lara__(data: np.ndarray) -> np.ndarray:
-    return get_annotation_vector(data)
 
 def __segment_data__(
     data: np.ndarray, segment_size: int, step: int

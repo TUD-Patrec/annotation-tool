@@ -283,31 +283,41 @@ def normalize(data):
 
     return data
 
-def get_combinations():
-    __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-    attribute_combinations = np.genfromtxt(join(__location__, "attr_per_class.txt"), delimiter=",", dtype=int)
-    return np.unique(attribute_combinations[:, 1:], axis=0)
 
-def attr_to_class(attr_vec, combinations) -> np.ndarray:
-    idx = np.argwhere((combinations[:, 1:] == attr_vec).all(axis=1)).flatten().item()
+def __get_combinations__():
+    __location__ = os.path.realpath(
+        os.path.join(os.getcwd(), os.path.dirname(__file__))
+    )
+    attribute_combinations = np.genfromtxt(
+        join(__location__, "attr_per_class.txt"), delimiter=",", dtype=int
+    )
+    return np.unique(attribute_combinations, axis=0)
+
+
+def __attr_to_class__(attr_vec: np.ndarray, combinations: np.ndarray) -> np.ndarray:
+    print(f"{attr_vec.shape = }")
+    print(f"{combinations.shape = }")
+
+    tmp = np.argwhere((combinations[:, 1:] == attr_vec).all(axis=1))
+    print(f"{tmp = }")
+    idx = tmp.flatten().item()
     n_labels = 8
     label = combinations[idx]
-    one_hot = np.zeros(n_labels)
+    one_hot = np.zeros(n_labels, dtype=np.int8)
     one_hot[label] = 1
     return one_hot
 
+
 def get_annotation_vector(attr_vector: np.ndarray) -> np.ndarray:
-    combinations = get_combinations()
-    label_one_hot = attr_to_class(attr_vector, combinations)
-    return np.append(label_one_hot, attr_vector)
+    combinations = __get_combinations__()
+    label_one_hot = __attr_to_class__(attr_vector, combinations)
+    return np.append(label_one_hot, attr_vector).astype(dtype=np.int8)
 
 
 if __name__ == "__main__":
-    combs = get_combinations()
+    combs = __get_combinations__()
     print(combs[5])
 
     arr = combs[5, 1:]
-    idx = attr_to_class(arr, combs)
-    print(idx)
-
-
+    attr_vec = get_annotation_vector(arr)
+    print(attr_vec)
