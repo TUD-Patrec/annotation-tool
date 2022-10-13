@@ -16,35 +16,39 @@ stages:
   - "test"
   - "build binaries"
 
-flake8 check:
-  stage: test
-  needs: []
+install poetry:
   script:
     - pip install --upgrade pip
     - pip install poetry
+
+install poetry win:
+  script:
+    - /usr/win64/bin/python -m pip install --upgrade pip
+    - /usr/win64/bin/python -m pip install poetry
+
+flake8 check:
+  stage: test
+  needs: ["install poetry"]
+  script:
     - poetry install
     - poetry run flake8 "${CI_PROJECT_DIR}" --count --statistics
 
 black check:
   stage: test
-  needs: []
+  needs: ["install poetry"]
   script:
-    - pip install --upgrade pip
-    - pip install poetry
     - poetry install
     - poetry run black --check "${CI_PROJECT_DIR}"
 
 isort check:
   stage: test
-  needs: []
+  needs: ["install poetry"]
   script:
-    - pip install --upgrade pip
-    - pip install poetry
     - poetry install
     - poetry run isort --check --settings-path pyproject.toml --recursive "${CI_PROJECT_DIR}"
 
 poetry configure testpypi:
-  needs: []
+  needs: ["install poetry"]
   script:
     - poetry config repositories.testpypi https://test.pypi.org/legacy/
     - poetry config pypi-token.testpypi ${TESTPYPI_TOKEN}
@@ -53,7 +57,7 @@ poetry configure testpypi:
     - !reference [.default_rules, manual-version]
 
 publish testpypi:
-  needs: ["flake8 check", "black check", "isort check", "poetry configure testpypi"]
+  needs: ["flake8 check", "black check", "isort check", "poetry configure testpypi", "install poetry"]
   script: poetry publish --build -r testpypi
   rules:
     - !reference [.default_rules, master-version]
@@ -61,7 +65,7 @@ publish testpypi:
 
 build linux executable:
   stage: "build binaries"
-  needs: ["flake8 check", "black check", "isort check"]
+  needs: ["flake8 check", "black check", "isort check", "install poetry"]
   variables:
     SRCDIR: "$CI_PROJECT_DIR"
     PLATFORMS: "linux"
@@ -70,8 +74,6 @@ build linux executable:
     entrypoint: ["/bin/sh", "-l", "-c"]
   script:
     - pwd
-    - pip install --upgrade pip
-    - pip install poetry
     - poetry config virtualenvs.create false
     - poetry install
     - /entrypoint.sh --onefile --noconsole --name annotation-tool main.py
@@ -83,7 +85,7 @@ build linux executable:
 
 build windows executable:
   stage: "build binaries"
-  needs: ["flake8 check", "black check", "isort check"]
+  needs: ["flake8 check", "black check", "isort check", "install poetry win"]
   variables:
     SRCDIR: "$CI_PROJECT_DIR"
     PLATFORMS: "windows"
@@ -92,8 +94,6 @@ build windows executable:
     entrypoint: ["/bin/sh", "-l", "-c"]
   script:
     - pwd
-    - /usr/win64/bin/python -m pip install --upgrade pip
-    - /usr/win64/bin/python -m pip install poetry
     - /usr/win64/bin/python -m poetry config virtualenvs.create false
     - /usr/win64/bin/python -m poetry install
     - /entrypoint.sh --onefile --noconsole --name annotation-tool main.py
