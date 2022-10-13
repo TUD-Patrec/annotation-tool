@@ -17,6 +17,7 @@ def load_mocap(path, normalize=True) -> np.ndarray:
 def __load_lara_mocap__(path, normalize=True):
     try:
         array = filehandler.csv_to_numpy(path)
+        # array = array[:, 2:]
         array = array[:, 2:]
         if normalize:
             normalizing_vector = array[:, 66:72]  # 66:72 are the columns for lowerback

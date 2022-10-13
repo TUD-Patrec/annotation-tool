@@ -10,11 +10,10 @@ import src.network.controller as network
 from src.annotation.annotation_base import AnnotationBaseClass
 from src.annotation.retrieval.main_widget import QRetrievalWidget
 from src.annotation.retrieval.retrieval_backend.filter import FilterCriteria
-from src.annotation.retrieval.retrieval_backend.filter_dialog import QRetrievalFilter
+from src.annotation.retrieval.retrieval_backend.filter_dialog import \
+    QRetrievalFilter
 from src.annotation.retrieval.retrieval_backend.interval import (
-    Interval,
-    generate_intervals,
-)
+    Interval, generate_intervals)
 from src.annotation.retrieval.retrieval_backend.query import Query
 from src.dataclasses import Annotation, Sample
 from src.dialogs.annotation_dialog import QAnnotationDialog
@@ -29,7 +28,7 @@ class RetrievalAnnotation(AnnotationBaseClass):
 
         # Constants
         self.TRIES_PER_INTERVAL = 3
-        self.interval_size: int = 100
+        self.interval_size: int = 200
         self.overlap: float = 0
 
         # Controll Attributes
@@ -229,7 +228,7 @@ class RetrievalAnnotation(AnnotationBaseClass):
             network_output = network_output.flatten()  # check if actually needed
             proposed_classification = np.round(network_output)
             proposed_classification = proposed_classification.astype(np.int8)
-            assert not np.array_equal(network_output, proposed_classification)
+            # assert not np.array_equal(network_output, proposed_classification)
             similarity = 1 - spatial.distance.cosine(
                 network_output, proposed_classification
             )
@@ -322,9 +321,8 @@ class RetrievalAnnotation(AnnotationBaseClass):
 
     # TODO: actually use a network, currently only proof of concept
     def run_network(self, lower, upper):
-        array_length = len(self.scheme)
-        return np.random.rand(array_length)
-        # return network.run_network(lower, upper)
+        # [lower, upper) is expected to be a range instead of a closed interval -> add 1 to right interval border
+        return network.run_network(lower, upper + 1)
 
     def interval_changed(self, new_annotation):
         interval = self.current_interval

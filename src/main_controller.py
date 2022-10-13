@@ -6,6 +6,7 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
+import src.network.controller as network
 from src.annotation.modes import AnnotationMode
 from src.annotation.timeline import QTimeLine
 from src.dataclasses.settings import Settings
@@ -116,6 +117,9 @@ class MainApplication(qtw.QApplication):
         if state is not None:
             duration, n_frames, fps = filehandler.meta_data(state.input_file)
             FrameTimeMapper.instance().update(n_frames=n_frames, millisecs=duration)
+
+            # update network module
+            network.update_file(state.input_file)
 
             # save for later reuse
             self.n_frames = n_frames

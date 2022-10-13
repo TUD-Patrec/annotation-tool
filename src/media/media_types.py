@@ -1,4 +1,5 @@
 import enum
+import logging
 import os.path
 
 import cv2
@@ -45,6 +46,7 @@ def is_LARA_mocap(path) -> bool:
     except UserWarning as u:
         return False
     except Exception as e:
+        logging.error(f"{e}")
         return False
 
 

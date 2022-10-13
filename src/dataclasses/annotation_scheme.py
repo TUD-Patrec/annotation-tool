@@ -6,18 +6,22 @@ import src.dataclasses.annotation as annotation
 
 
 def scheme_is_valid(scheme):
-    valid = True
-    valid &= scheme is not None
-    valid &= isinstance(scheme, list)
-    valid &= len(scheme) > 0
-    for x in scheme:
-        valid &= isinstance(x, (list, tuple))
-        valid &= len(x) == 2
-        group_name, group_elements = x
-        valid &= isinstance(group_name, str)
-        valid &= isinstance(group_elements, list)
-        valid &= len(group_elements) > 0
-    return valid
+    try:
+        valid = True
+        valid &= scheme is not None
+        valid &= isinstance(scheme, list)
+        valid &= len(scheme) > 0
+        for x in scheme:
+            valid &= isinstance(x, (list, tuple))
+            valid &= len(x) == 2
+            group_name, group_elements = x
+            valid &= isinstance(group_name, str)
+            valid &= isinstance(group_elements, list)
+            valid &= len(group_elements) > 0
+        return valid
+    except Exception as e:
+        logging.error(f"{e}")
+        return False
 
 
 def create_annotation_scheme(scheme: list):

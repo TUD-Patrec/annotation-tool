@@ -142,7 +142,6 @@ class QEditDatasets(qtw.QDialog):
             name = "nameless"
 
         scheme = filehandler.read_json(self._scheme.text())
-
         try:
             scheme = create_annotation_scheme(scheme)
         except ValueError:

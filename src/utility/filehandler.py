@@ -106,7 +106,7 @@ def csv_has_header(path):
             csv_test_bytes
         )  # Check to see if there's a header in the file.
     except Exception as e:
-        logging.error(f"{e = }")
+        logging.error(f"{e}")
         return False
     return has_header
 
@@ -160,8 +160,10 @@ def meta_data(path, use_cached=True):
     if is_non_zero_file(path):
         if media_type_of(path) == MediaType.LARA_MOCAP:
             meta = meta_data_of_mocap(path)
-        if media_type_of(path) == MediaType.VIDEO:
+        elif media_type_of(path) == MediaType.VIDEO:
             meta = meta_data_of_video(path)
+        else:
+            raise ValueError(f"Could not determine media-type for {path}")
         __cached_meta_data__[path] = meta
         return meta
     else:
