@@ -12,52 +12,49 @@ image: python:3.9
 before_script:
   - python --version  # For debugging
 
-install poetry:
+flake8 check:
+  needs: []
   script:
     - pip install --upgrade pip
     - pip install poetry
-
-install project:
-  needs: ["install poetry"]
-  script:
-    - poetry install
-
-flake8 check:
-  needs: ["install project"]
-  script:
+    - poetry config virtualenvs.create false
     - poetry install
     - poetry run flake8 "${CI_PROJECT_DIR}" --count --statistics
 
 black check:
-  needs: ["install project"]
+  needs: []
   script:
+    - pip install --upgrade pip
+    - pip install poetry
+    - poetry config virtualenvs.create false
     - poetry install
     - poetry run black --check "${CI_PROJECT_DIR}"
 
 isort check:
-  needs: ["install project"]
+  needs: []
   script:
+    - pip install --upgrade pip
+    - pip install poetry
+    - poetry config virtualenvs.create false
     - poetry install
     - poetry run isort --check --settings-path pyproject.toml --recursive "${CI_PROJECT_DIR}"
 
-poetry configure testpypi:
-  needs: ["install project"]
+publish testpypi:
+  needs: ["flake8 check", "black check", "isort check"]
   script:
+    - pip install --upgrade pip
+    - pip install poetry
+    - poetry config virtualenvs.create false
+    - poetry install
     - poetry config repositories.testpypi https://test.pypi.org/legacy/
     - poetry config pypi-token.testpypi ${TESTPYPI_TOKEN}
-  rules:
-    - !reference [.default_rules, master-version]
-    - !reference [.default_rules, manual-version]
-
-publish testpypi:
-  needs: ["flake8 check", "black check", "isort check", "poetry configure testpypi", "install project"]
-  script: poetry publish --build -r testpypi
+    - poetry publish --build -r testpypi
   rules:
     - !reference [.default_rules, master-version]
     - !reference [.default_rules, manual-version]
 
 build linux executable:
-  needs: ["flake8 check", "black check", "isort check", "install project"]
+  needs: ["flake8 check", "black check", "isort check"]
   variables:
     SRCDIR: "$CI_PROJECT_DIR"
     PLATFORMS: "linux"
@@ -65,7 +62,8 @@ build linux executable:
     name: fydeinc/pyinstaller
     entrypoint: ["/bin/sh", "-l", "-c"]
   script:
-    - pwd
+    - pip install --upgrade pip
+    - pip install poetry
     - poetry config virtualenvs.create false
     - poetry install
     - /entrypoint.sh --onefile --noconsole --name annotation-tool main.py
