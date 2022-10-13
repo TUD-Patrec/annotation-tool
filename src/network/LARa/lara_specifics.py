@@ -1,3 +1,6 @@
+import os
+from os.path import join
+
 import numpy as np
 
 NORM_MAX_THRESHOLDS = [
@@ -279,3 +282,26 @@ def normalize(data):
         raise e
 
     return data
+
+def get_combinations():
+    __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+    attribute_combinations = np.genfromtxt(join(__location__, "attr_per_class.txt"), delimiter=",", dtype=int)
+    return np.unique(attribute_combinations[:, 1:], axis=0)
+
+def attr_to_class(attr_vec, combinations):
+    idx = np.argwhere((combinations[:, 1:] == attr_vec).all(axis=1)).flatten().item()
+
+    return idx
+
+
+
+
+if __name__ == "__main__":
+    combs = get_combinations()
+    print(combs[5])
+
+    arr = combs[5, 1:]
+    idx = attr_to_class(arr, combs)
+    print(idx)
+
+

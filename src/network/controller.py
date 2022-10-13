@@ -162,9 +162,9 @@ def __load_network__(media_type: MediaType) -> Tuple[Network, dict]:
     # find best fitting network
 
     if media_type == MediaType.LARA_MOCAP:
-        network_path = r"C:\Users\Raphael\Desktop\attrib_network.pt"
+        # network_path = r"C:\Users\Raphael\Desktop\attrib_network.pt"
         # network_path = r"C:\Users\Raphael\Desktop\cnn_imu_attrib_network.pt"
-        # network_path = r"C:\Users\Raphael\Desktop\cnn_attrib_network.pt"
+        network_path = r"C:\Users\Raphael\Desktop\cnn_attrib_network.pt"
     elif media_type == MediaType.VIDEO:
         raise NotImplementedError
     else:
@@ -212,7 +212,7 @@ def __preprocess_data__(data, media_type: MediaType) -> np.ndarray:
 
 def __preprocess_lara__(data) -> np.ndarray:
     data = np.delete(data, range(66, 72), 1)
-    import src.network.lara_specifics as lara_util
+    import src.network.LARa.lara_specifics as lara_util
 
     data = lara_util.normalize(data)
     return data
