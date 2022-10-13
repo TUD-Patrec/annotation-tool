@@ -9,43 +9,45 @@ image: python:3.9
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*/
       when: manual
 
+.setup:
+  script:
+    - pip install --upgrade pip
+    - pip install poetry
+    - poetry config virtualenvs.create false
+    - poetry install
+
+.setup_win:
+  script:
+    - /usr/win64/bin/python -m pip install --upgrade pip
+    - /usr/win64/bin/python -m pip install poetry
+    - /usr/win64/bin/python -m poetry config virtualenvs.create false
+    - /usr/win64/bin/python -m poetry install
+
 before_script:
   - python --version  # For debugging
 
 flake8 check:
   needs: []
   script:
-    - pip install --upgrade pip
-    - pip install poetry
-    - poetry config virtualenvs.create false
-    - poetry install
+    - !reference [.setup, script]
     - poetry run flake8 "${CI_PROJECT_DIR}" --count --statistics
 
 black check:
   needs: []
   script:
-    - pip install --upgrade pip
-    - pip install poetry
-    - poetry config virtualenvs.create false
-    - poetry install
+    - !reference [.setup, script]
     - poetry run black --check "${CI_PROJECT_DIR}"
 
 isort check:
   needs: []
   script:
-    - pip install --upgrade pip
-    - pip install poetry
-    - poetry config virtualenvs.create false
-    - poetry install
+    - !reference [.setup, script]
     - poetry run isort --check --settings-path pyproject.toml --recursive "${CI_PROJECT_DIR}"
 
 publish testpypi:
   needs: ["flake8 check", "black check", "isort check"]
   script:
-    - pip install --upgrade pip
-    - pip install poetry
-    - poetry config virtualenvs.create false
-    - poetry install
+    - !reference [.setup, script]
     - poetry config repositories.testpypi https://test.pypi.org/legacy/
     - poetry config pypi-token.testpypi ${TESTPYPI_TOKEN}
     - poetry publish --build -r testpypi
@@ -62,10 +64,7 @@ build linux executable:
     name: fydeinc/pyinstaller
     entrypoint: ["/bin/sh", "-l", "-c"]
   script:
-    - pip install --upgrade pip
-    - pip install poetry
-    - poetry config virtualenvs.create false
-    - poetry install
+    - !reference [.setup, script]
     - /entrypoint.sh --onefile --noconsole --name annotation-tool main.py
     - mv "dist/linux/annotation-tool" "${CI_PROJECT_DIR}/annotation-tool-linux"
     - 'if [[ ! -z "${OWNCLOUD_KEY}" ]]; then curl -k -T annotation-tool-linux -u "${OWNCLOUD_KEY}:${OWNCLOUD_PASSWORD}" -H "X-Requested-With: XMLHttpRequest" https://owncloud.cs.tu-dortmund.de/public.php/webdav/annotation-tool-linux; fi'
@@ -82,10 +81,7 @@ build windows executable:
     name: fydeinc/pyinstaller
     entrypoint: ["/bin/sh", "-l", "-c"]
   script:
-    - /usr/win64/bin/python -m pip install --upgrade pip
-    - /usr/win64/bin/python -m pip install poetry
-    - /usr/win64/bin/python -m poetry config virtualenvs.create false
-    - /usr/win64/bin/python -m poetry install
+    - !reference [.setup_win, script]
     - /entrypoint.sh --onefile --noconsole --name annotation-tool main.py
     - mv "dist/windows/annotation-tool.exe" "${CI_PROJECT_DIR}/annotation-tool-windows.exe"
     - 'if [[ ! -z "${OWNCLOUD_KEY}" ]]; then curl -k -T annotation-tool-windows.exe -u "${OWNCLOUD_KEY}:${OWNCLOUD_PASSWORD}" -H "X-Requested-With: XMLHttpRequest" https://owncloud.cs.tu-dortmund.de/public.php/webdav/annotation-tool-windows.exe; fi'
