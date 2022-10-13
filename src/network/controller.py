@@ -8,6 +8,7 @@ import numpy as np
 import torch
 
 from src.media.media_types import MediaType, media_type_of
+from src.network.LARa.lara_specifics import get_annotation_vector
 from src.network.network import Network
 from src.utility.mocap_reader import load_mocap
 
@@ -129,6 +130,7 @@ def __run_network__(
     res = []
     for seg, i in zip(data, intervals):
         y = __forward__(seg, network)
+        y = __postprocess__(y, media_type)
         res.append((i, y))
         print(i, y)
 
@@ -218,6 +220,14 @@ def __preprocess_lara__(data) -> np.ndarray:
     return data
 
 
+def __postprocess__(data: np.ndarray, media_type:MediaType) -> np.ndarray:
+    if media_type == MediaType.LARA_MOCAP:
+        data = __postprocess_lara__(data)
+    return data
+
+def __postprocess_lara__(data: np.ndarray) -> np.ndarray:
+    return get_annotation_vector(data)
+
 def __segment_data__(
     data: np.ndarray, segment_size: int, step: int
 ) -> Tuple[List[np.ndarray], List[tuple]]:
@@ -251,7 +261,6 @@ def __forward__(data_segment: np.ndarray, network: Network) -> np.ndarray:
     input_tensor = torch.from_numpy(data_segment[np.newaxis, np.newaxis, :, :]).float()
     output_tensor: torch.Tensor = network.forward(input_tensor)
     output_array = output_tensor.detach().numpy()
-    # output_array = np.round(output_array).astype(dtype=np.int8)
     return output_array.flatten()
 
 

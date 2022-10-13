@@ -288,12 +288,18 @@ def get_combinations():
     attribute_combinations = np.genfromtxt(join(__location__, "attr_per_class.txt"), delimiter=",", dtype=int)
     return np.unique(attribute_combinations[:, 1:], axis=0)
 
-def attr_to_class(attr_vec, combinations):
+def attr_to_class(attr_vec, combinations) -> np.ndarray:
     idx = np.argwhere((combinations[:, 1:] == attr_vec).all(axis=1)).flatten().item()
+    n_labels = 8
+    label = combinations[idx]
+    one_hot = np.zeros(n_labels)
+    one_hot[label] = 1
+    return one_hot
 
-    return idx
-
-
+def get_annotation_vector(attr_vector: np.ndarray) -> np.ndarray:
+    combinations = get_combinations()
+    label_one_hot = attr_to_class(attr_vector, combinations)
+    return np.append(label_one_hot, attr_vector)
 
 
 if __name__ == "__main__":
