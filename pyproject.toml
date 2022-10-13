@@ -6,6 +6,8 @@ build-backend = "poetry.core.masonry.api"
 name = "annotation-tool"
 version = "0.3.0-alpha.1"
 description = ""
+readme = "README.md"
+license = "MIT"
 authors = [
     "Fernando Moya Rueda <fernando.moya@cs.tu-dortmund.de>",
     "Erik Altermann <erik.altermann@tu-dortmund.de>",
