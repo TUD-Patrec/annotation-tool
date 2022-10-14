@@ -1,12 +1,10 @@
-import logging
-
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
 from src.dataclasses.sample import Sample
 from src.utility import functions
-from src.utility.functions import FrameTimeMapper
+from src.utility.functions import FrameTimeMapper, ms_to_time_string
 
 
 class QTimeLine(qtw.QWidget):
@@ -35,7 +33,8 @@ class QTimeLine(qtw.QWidget):
         self.setMouseTracking(True)  # Mouse events
         self.setAutoFillBackground(True)  # background
 
-        # self.adjustSize()
+
+        # Constants
         self.setMinimumHeight(200)
 
     @qtc.pyqtSlot(int)
@@ -121,6 +120,19 @@ class QTimeLine(qtw.QWidget):
         self.update()
 
     def paintEvent(self, event):
+        # set some constants
+        N_TICKS = 15
+        HEIGHT_SAMPLE = 75
+        MARGIN_SAMPLE = 10
+        WIDTH_TEXT = 100
+        HEIGHT_TEXT = 25
+        HEIGHT_LINE = 40
+        HEIGHT_DASHED_LINE = 20
+        MARGIN_HORIZONTAL_LINES = 40
+
+        # step_size between ticks
+        dist = self.width() / (N_TICKS + 1)
+
         qp = qtg.QPainter()
         qp.begin(self)
         qp.setPen(self.textColor)
@@ -128,37 +140,47 @@ class QTimeLine(qtw.QWidget):
         qp.setRenderHint(qtg.QPainter.Antialiasing)
 
         # Draw time
-
-        n_ticks = 15
-        dist = self.width() / (n_ticks + 1)
-
         pos = dist
         while pos < self.width() - int(dist):
             frame_idx = self._pixel_to_frame(int(pos))[0]
 
-            txt = FrameTimeMapper.instance().frame_repr(frame_idx)
+            time_stamp = FrameTimeMapper.instance().frame_to_ms(frame_idx)
+            time_stamp = ms_to_time_string(time_stamp)
 
-            qp.drawText(int(pos) - 50, 0, 100, 100, qtc.Qt.AlignHCenter, txt)
+            start_pos = int(pos) - WIDTH_TEXT // 2
+
+            # Draw time_stamps and frame_numbers
+            qp.drawText(start_pos, 0, WIDTH_TEXT, HEIGHT_TEXT, qtc.Qt.AlignHCenter, time_stamp)
+            lower_text_y = MARGIN_HORIZONTAL_LINES + 2 * MARGIN_SAMPLE + HEIGHT_SAMPLE + HEIGHT_TEXT
+            qp.drawText(start_pos, lower_text_y, WIDTH_TEXT, HEIGHT_TEXT, qtc.Qt.AlignHCenter, str(frame_idx))
+
             pos += dist
 
-        # Draw down line
+        # Draw horizontal lines
         qp.setPen(qtg.QPen(qtc.Qt.darkCyan, 5, qtc.Qt.SolidLine))
-        qp.drawLine(0, 40, self.width(), 40)
+        qp.drawLine(0, MARGIN_HORIZONTAL_LINES, self.width(), 40)
+        lower_horizontal_line_y = MARGIN_HORIZONTAL_LINES + 2 * MARGIN_SAMPLE + HEIGHT_SAMPLE
+        qp.drawLine(0, lower_horizontal_line_y, self.width(), lower_horizontal_line_y)
 
         # Draw dash lines
         qp.setPen(qtg.QPen(self.textColor))
         pos = dist
         while pos < self.width():
-            qp.drawLine(int(pos), 40, int(pos), 20)
+            qp.drawLine(int(pos), MARGIN_HORIZONTAL_LINES, int(pos), HEIGHT_DASHED_LINE)
+            lower_dashed_line_y = MARGIN_HORIZONTAL_LINES + 2 * MARGIN_SAMPLE + HEIGHT_SAMPLE
+            qp.drawLine(int(pos), lower_dashed_line_y, int(pos), lower_dashed_line_y + HEIGHT_DASHED_LINE)
             pos += dist
 
+        # Draw line of current mouse-position
         if self.pos is not None and self.is_in:
-            qp.drawLine(self.pos.x(), 0, self.pos.x(), 40)
+            qp.drawLine(self.pos.x(), 0, self.pos.x(), HEIGHT_LINE)
 
+        # Draw pointer_position
         if self.pointer_position is not None:
             pos = self.pointer_position
 
-            line = qtc.QLine(qtc.QPoint(pos, 40), qtc.QPoint(pos, self.height()))
+            line_height = 2 * MARGIN_SAMPLE + HEIGHT_SAMPLE
+            line = qtc.QLine(qtc.QPoint(pos, MARGIN_HORIZONTAL_LINES), qtc.QPoint(pos, MARGIN_HORIZONTAL_LINES + line_height))
             poly = qtg.QPolygon(
                 [
                     qtc.QPoint(pos - 10, 20),
@@ -192,13 +214,15 @@ class QTimeLine(qtw.QWidget):
                 color = qtg.QColor(r, g, b, 255)
 
             # Clear clip path
+            height = MARGIN_HORIZONTAL_LINES + MARGIN_SAMPLE
+
             path = qtg.QPainterPath()
-            path.addRoundedRect(qtc.QRectF(sample_start, 50, sample_length, 75), 10, 10)
+            path.addRoundedRect(qtc.QRectF(sample_start, height, sample_length, HEIGHT_SAMPLE), 10, 10)
             qp.setClipPath(path)
 
             path = qtg.QPainterPath()
             qp.setPen(color)
-            path.addRoundedRect(qtc.QRectF(sample_start, 50, sample_length, 75), 10, 10)
+            path.addRoundedRect(qtc.QRectF(sample_start, height, sample_length, HEIGHT_SAMPLE), 10, 10)
             qp.fillPath(path, color)
             qp.drawPath(path)
 
