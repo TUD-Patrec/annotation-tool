@@ -11,10 +11,11 @@ import src.network.controller as network
 from src.annotation.annotation_base import AnnotationBaseClass
 from src.annotation.retrieval.main_widget import QRetrievalWidget
 from src.annotation.retrieval.retrieval_backend.filter import FilterCriteria
-from src.annotation.retrieval.retrieval_backend.filter_dialog import \
-    QRetrievalFilter
+from src.annotation.retrieval.retrieval_backend.filter_dialog import QRetrievalFilter
 from src.annotation.retrieval.retrieval_backend.interval import (
-    Interval, generate_intervals)
+    Interval,
+    generate_intervals,
+)
 from src.annotation.retrieval.retrieval_backend.query import Query
 from src.dataclasses import Annotation, Sample
 from src.dialogs.annotation_dialog import QAnnotationDialog
