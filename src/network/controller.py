@@ -2,11 +2,12 @@ import enum
 import logging
 import os
 import time
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 import numpy as np
 import torch
 
+import src.network.LARa.lara_specifics as lara_util
 from src.media.media_types import MediaType, media_type_of
 from src.network.network import Network
 from src.utility.mocap_reader import load_mocap
@@ -17,20 +18,20 @@ class NetworkType(enum.Enum):
     LARA_ATTR_CNN_IMU = 1
 
 
-data_file = None
+__data_file__ = None
 
 
 def update_file(file: os.PathLike):
-    global data_file
-    data_file = file
+    global __data_file__
+    __data_file__ = file
 
 
 def __current_data_path__():
-    global data_file
-    return data_file
+    global __data_file__
+    return __data_file__
 
 
-def run_network(lower, upper) -> Union[List[np.ndarray], np.ndarray]:
+def run_network(lower, upper) -> np.ndarray:
     path = __current_data_path__()
     return __run_network__(path, lower, upper)
 
@@ -60,28 +61,22 @@ def __get_data__(file):
     return data, media_type
 
 
-def __run_network__(
-    file: os.PathLike, start: int = 0, end: int = -1
-) -> Union[List[np.ndarray], np.ndarray]:
+def __run_network__(file: os.PathLike, start: int = 0, end: int = -1) -> np.ndarray:
 
     # load data
     data, media_type = __get_data__(file)
 
     logging.info(f"{media_type = }, {data.shape = }")
-    # print(f'{media_type = }, {data.shape = }')
 
     # select compatible networks
     network, config = __load_network__(media_type)
     logging.info(f"{config = }")
-    # print(f"{config = }")
 
     # for segmentation
     segment_size = config.get("sliding_window_length")
     assert isinstance(segment_size, int) and segment_size > 0
     logging.info(f"{segment_size = }")
-    # print(f"{segment_size = }")
 
-    # make sure the data is segmentable
     assert (
         segment_size <= data.shape[0]
     ), f"{segment_size = } is bigger than {data.shape[0] = }"
@@ -110,36 +105,30 @@ def __run_network__(
 
             # some consistency checks
             assert 0 <= start <= end < data.shape[0], f"{start = }, {end = }"
-            assert end - start == segment_size
+            assert end - start >= segment_size
 
-        # select data in the specified interval
         data = data[start:end]
 
-    logging.info(f"After data filter {start = }, {end = }: {data.shape = }")
-    # print(f"After data filter: {data.shape = }")
+        # select data in the specified interval
+        logging.info(f"After data filter {start = }, {end = }: {data.shape = }")
 
-    # segment data
-    step = segment_size
-    data, intervals = __segment_data__(data, segment_size, step)
+    # input-frame is too large -> pick the most middle segment as a representation of the whole frame
+    if data.shape[0] > segment_size:
+        logging.info(
+            f"{data.shape = } is too large for the network -> reduction needed"
+        )
+        mid = data.shape[0] // 2
+        lo = mid - segment_size // 2
+        logging.debug(f"{lo = }, {mid = }, {lo + segment_size = }")
+        data = data[lo : lo + segment_size]
 
-    logging.info(f"{intervals = }")
-    # print(f"{intervals = }")
+    assert data.shape[0] == segment_size, f"{data.shape = }, {segment_size = }"
 
-    # run network for each segment
-    res = []
-    for seg, i in zip(data, intervals):
-        y = __forward__(seg, network)
-        y = __postprocess__(y, media_type)
-        res.append((i, y))
-        print(i, y)
+    print(f"INPUT_DATA: {data}")
 
-    if len(res) == 1:
-        y = res[0][1]
-        logging.info(f"Single result: {y = }")
-        # print(f'Single result: {y = }')
-        return y, media_type
-    else:
-        return res, media_type
+    y = __forward__(data, network)
+
+    return y
 
 
 def __load_raw_data__(file: os.PathLike, media_type: MediaType = None) -> np.ndarray:
@@ -190,6 +179,7 @@ def __load_network__(media_type: MediaType) -> Tuple[Network, dict]:
 
             network = Network(config)
             network.load_state_dict(state_dict)
+            network.eval()
 
             # cache results
             __cached_network__["network_path"] = network_path
@@ -213,7 +203,6 @@ def __preprocess_data__(data, media_type: MediaType) -> np.ndarray:
 
 def __preprocess_lara__(data) -> np.ndarray:
     data = np.delete(data, range(66, 72), 1)
-    import src.network.LARa.lara_specifics as lara_util
 
     data = lara_util.normalize(data)
     return data
@@ -254,48 +243,29 @@ def __segment_data__(
 
 def __forward__(data_segment: np.ndarray, network: Network) -> np.ndarray:
     input_tensor = torch.from_numpy(data_segment[np.newaxis, np.newaxis, :, :]).float()
-    output_tensor: torch.Tensor = network.forward(input_tensor)
+    output_tensor: torch.Tensor = network(input_tensor)
     output_array = output_tensor.detach().numpy()
     return output_array.flatten()
 
 
 if __name__ == "__main__":
-    # data_path = r"C:\Users\Raphael\Desktop\L01_S14_R01 - Kopie.csv"
-    data_path = r"C:\Users\Raphael\Desktop\L01_S01_R01_norm_data.csv"
+    data_path = r"C:\Users\Raphael\Desktop\L01_S14_R01.csv"
+    # data_path = r"C:\Users\Raphael\Desktop\L01_S01_R01_norm_data.csv"
 
-    # data = load_raw_data(data_path)
-    # media_type = media_type_of(data_path)
-    # print(1, data.shape, media_type)
+    update_file(data_path)
 
-    # data = preprocess_data(data, media_type)
-    # print(2, data.shape)
+    # run_network(0, 1000)
 
-    # segments, intervals = segment_data(data, 200, 200)
-    # print(3, segments, intervals)
+    network, cfg = __load_network__(MediaType.LARA_MOCAP)
 
-    # network, config = load_network(media_type)
-    # print(network)
+    input_vec = torch.randn(1, 1, 200, 126)
+    print("input_vec", input_vec)
 
-    # for seg, i in zip(segments, intervals):
-    #    out = forward(seg, network)
-    #    print(i, out)
+    out = network(input_vec)
+    print(out)
 
-    s = time.perf_counter()
-    __run_network__(data_path, end=3213)
-    e = time.perf_counter()
-    print(f"{e - s}sec")
+    print()
 
-    s = time.perf_counter()
-    __run_network__(data_path, end=3213)
-    e = time.perf_counter()
-    print(f"{e - s}sec")
-
-    s = time.perf_counter()
-    __run_network__(data_path, end=3213)
-    e = time.perf_counter()
-    print(f"{e - s}sec")
-
-    s = time.perf_counter()
-    __run_network__(data_path, end=3213)
-    e = time.perf_counter()
-    print(f"{e - s}sec")
+    print("input_vec", input_vec)
+    out = network(input_vec)
+    print(out)

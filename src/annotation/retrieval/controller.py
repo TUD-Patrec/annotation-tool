@@ -1,4 +1,5 @@
 import logging
+import math
 import time
 from copy import deepcopy
 
@@ -10,11 +11,10 @@ import src.network.controller as network
 from src.annotation.annotation_base import AnnotationBaseClass
 from src.annotation.retrieval.main_widget import QRetrievalWidget
 from src.annotation.retrieval.retrieval_backend.filter import FilterCriteria
-from src.annotation.retrieval.retrieval_backend.filter_dialog import QRetrievalFilter
+from src.annotation.retrieval.retrieval_backend.filter_dialog import \
+    QRetrievalFilter
 from src.annotation.retrieval.retrieval_backend.interval import (
-    Interval,
-    generate_intervals,
-)
+    Interval, generate_intervals)
 from src.annotation.retrieval.retrieval_backend.query import Query
 from src.dataclasses import Annotation, Sample
 from src.dialogs.annotation_dialog import QAnnotationDialog
@@ -28,8 +28,8 @@ class RetrievalAnnotation(AnnotationBaseClass):
         self.main_widget = QRetrievalWidget()
 
         # Constants
-        self.TRIES_PER_INTERVAL = 3
-        self.interval_size: int = 200
+        self.TRIES_PER_INTERVAL = math.inf
+        self.interval_size: int = 1000
         self.overlap: float = 0
 
         # Controll Attributes

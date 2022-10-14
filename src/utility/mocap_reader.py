@@ -1,10 +1,12 @@
+import logging
+
 import numpy as np
 
 from src.media.media_types import MediaType, media_type_of
 from src.utility import filehandler
 
 
-def load_mocap(path, normalize=True) -> np.ndarray:
+def load_mocap(path, normalize=False) -> np.ndarray:
     if media_type_of(path) == MediaType.LARA_MOCAP:
         try:
             return __load_lara_mocap__(path, normalize)
@@ -14,11 +16,11 @@ def load_mocap(path, normalize=True) -> np.ndarray:
         raise TypeError
 
 
-def __load_lara_mocap__(path, normalize=True):
+def __load_lara_mocap__(path, normalize):
     try:
         array = filehandler.csv_to_numpy(path)
-        # array = array[:, 2:]
         array = array[:, 2:]
+        logging.info(f"{normalize = }")
         if normalize:
             normalizing_vector = array[:, 66:72]  # 66:72 are the columns for lowerback
             for _ in range(21):
