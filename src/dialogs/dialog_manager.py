@@ -1,9 +1,17 @@
+import enum
+
 import PyQt5.QtCore as qtc
+
+
+class DialogOpenStrategy(enum.Enum):
+    REFOCUS = 0
+    SUBSTITUTE = 1
 
 
 class DialogManager:
     def __init__(self):
         self.__open_dialog__ = None
+        self.strategy = DialogOpenStrategy.SUBSTITUTE
 
     def __refocus_dialog__(self):
         # this will remove minimized status
@@ -23,7 +31,11 @@ class DialogManager:
             dialog.open()
             dialog.finished.connect(self.__free_dialog__)
         else:
-            self.__refocus_dialog__()
+            if self.strategy == DialogOpenStrategy.SUBSTITUTE:
+                self.__open_dialog__.close()  # Close current dialog
+                self.open_dialog(dialog)  # Recurse
+            elif self.strategy == DialogOpenStrategy.REFOCUS:
+                self.__refocus_dialog__()
 
     def close_dialog(self):
         if self.__open_dialog__ is not None:

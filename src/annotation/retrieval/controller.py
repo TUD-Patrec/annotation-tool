@@ -19,6 +19,7 @@ from src.annotation.retrieval.retrieval_backend.interval import (
 from src.annotation.retrieval.retrieval_backend.query import Query
 from src.dataclasses import Annotation, Sample
 from src.dialogs.annotation_dialog import QAnnotationDialog
+from src.network.LARa.lara_specifics import get_annotation_vector
 
 
 class RetrievalAnnotation(AnnotationBaseClass):
@@ -57,16 +58,11 @@ class RetrievalAnnotation(AnnotationBaseClass):
     @qtc.pyqtSlot()
     def modify_interval(self):
         if self.current_interval:
-            sample = Sample(
-                self.current_interval.start,
-                self.current_interval.end,
-                self.current_interval.annotation,
+            dialog = QAnnotationDialog(
+                self.current_interval.as_sample(), self.scheme, self.dependencies
             )
-
-            dialog = QAnnotationDialog(self.scheme, self.dependencies)
-            dialog.new_annotation.connect(self.interval_changed)
+            dialog.finished.connect(lambda _: self.interval_changed())
             self.open_dialog(dialog)
-            dialog._set_annotation(sample.annotation)
         else:
             self.update_UI.emit(self.query, self.current_interval)
 
@@ -211,7 +207,17 @@ class RetrievalAnnotation(AnnotationBaseClass):
         success, combinations = self.get_combinations()
         if success:
             network_output = network_output.reshape(1, -1)
-            dist = spatial.distance.cdist(combinations, network_output, "cosine")
+
+            logging.info(f"{network_output.shape = }, {combinations.shape = }")
+
+            # TODO LARa-special treatment, needs to be redone later
+            if combinations.shape[1] == 27:
+                n_classes = 8
+                dist = spatial.distance.cdist(
+                    combinations[:, n_classes:], network_output, "cosine"
+                )
+            else:
+                dist = spatial.distance.cdist(combinations, network_output, "cosine")
             dist = dist.flatten()
 
             indices = np.argsort(dist)
@@ -228,11 +234,15 @@ class RetrievalAnnotation(AnnotationBaseClass):
         else:
             # Rounding the output to nearest integers and computing the distance to that
             network_output = network_output.flatten()  # check if actually needed
-            proposed_classification = np.round(network_output)
-            proposed_classification = proposed_classification.astype(np.int8)
+            proposed_classification = np.round(network_output).astype(np.int8)
+
             similarity = 1 - spatial.distance.cosine(
                 network_output, proposed_classification
             )
+
+            # TODO LARa-special treatment -> needs to be redone later
+            if proposed_classification.shape[0] == 19:
+                proposed_classification = get_annotation_vector(proposed_classification)
 
             anno = Annotation(self.scheme, proposed_classification)
             yield Interval(lower, upper, anno, similarity)
@@ -324,9 +334,7 @@ class RetrievalAnnotation(AnnotationBaseClass):
         # [lower, upper) is expected to be a range instead of a closed interval -> add 1 to right interval border
         return network.run_network(lower, upper + 1)
 
-    def interval_changed(self, new_annotation):
-        interval = self.current_interval
-        interval.annotation = new_annotation
+    def interval_changed(self):
         self.update_UI.emit(self.query, self.current_interval)
 
     def stepsize(self):

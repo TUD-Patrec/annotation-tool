@@ -16,8 +16,7 @@ class Interval:
         self._sort_index = self.start
 
     def as_sample(self):
-        anno = deepcopy(self.annotation)
-        return Sample(self.start, self.end, anno)
+        return Sample(self.start, self.end, self.annotation)
 
 
 def create_sub_intervals(intervals, stepsize, interval_size):

@@ -2,14 +2,21 @@ import numpy as np
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
+from src.dataclasses import AnnotationScheme, Sample, annotation
 from src.dataclasses.annotation import Annotation
 
 
 class QAnnotationDialog(qtw.QDialog):
-    new_annotation = qtc.pyqtSignal(Annotation)
-
-    def __init__(self, scheme, dependencies, annotation=None, *args, **kwargs):
+    def __init__(
+        self,
+        sample: Sample,
+        scheme: AnnotationScheme,
+        dependencies: np.ndarray = None,
+        *args,
+        **kwargs
+    ):
         super(QAnnotationDialog, self).__init__(*args, **kwargs)
+        self.sample = sample
         self.scheme = scheme
         self.dependencies = dependencies
 
@@ -23,8 +30,7 @@ class QAnnotationDialog(qtw.QDialog):
         self.N = len(self.buttons)
         self.current_selection = np.zeros(self.N, dtype=np.uint8)
 
-        if annotation:
-            self._set_annotation(annotation)
+        self._set_annotation(sample.annotation)
 
     def _set_annotation(self, annotation):
         self.current_selection = np.copy(annotation.annotation_vector)
@@ -199,11 +205,14 @@ class QAnnotationDialog(qtw.QDialog):
             # print('VALID = ', x)
             self.accept_button.setEnabled(x)
 
+    def __reset_annotation__(self):
+        self.sample.annotation = Annotation(self.scheme)
+        self.close()
+
     def __save_annotation__(self):
         # Empty Annotation -> Reset Sample
         if not np.any(self.current_selection):
             self.__reset_annotation__()
-
         # Default Case
         else:
             if self.dependencies is None:
@@ -211,11 +220,10 @@ class QAnnotationDialog(qtw.QDialog):
             else:
                 attr_vec = self.get_current_vector()
 
-            self.new_annotation.emit(Annotation(self.scheme, attr_vec))
-            self.close()
+        anno = self.sample.annotation
+        anno.annotation = attr_vec
 
-    def __reset_annotation__(self):
-        self.new_annotation.emit(Annotation(self.scheme))
+        self.sample.annotation = anno
         self.close()
 
     def __cancel_annotation__(self):

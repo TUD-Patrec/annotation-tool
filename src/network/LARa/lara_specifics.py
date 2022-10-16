@@ -298,7 +298,7 @@ def __attr_to_class__(attr_vec: np.ndarray, combinations: np.ndarray) -> np.ndar
     print(f"{attr_vec.shape = }")
     print(f"{combinations.shape = }")
 
-    tmp = np.argwhere((combinations[:, 1:] == attr_vec).all(axis=1))
+    tmp = np.argwhere((combinations[:, 1:] == attr_vec.round()).all(axis=1))
     print(f"{tmp = }")
     idx = tmp.flatten().item()
     n_labels = 8
@@ -311,7 +311,9 @@ def __attr_to_class__(attr_vec: np.ndarray, combinations: np.ndarray) -> np.ndar
 def get_annotation_vector(attr_vector: np.ndarray) -> np.ndarray:
     combinations = __get_combinations__()
     label_one_hot = __attr_to_class__(attr_vector, combinations)
-    return np.append(label_one_hot, attr_vector).astype(dtype=np.int8)
+    x = np.append(label_one_hot, attr_vector).astype(dtype=np.int8)
+    assert x.shape[0] == 27
+    return x
 
 
 if __name__ == "__main__":

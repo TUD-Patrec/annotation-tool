@@ -1,3 +1,4 @@
+import logging
 from copy import deepcopy
 
 from src.annotation.annotation_base import AnnotationBaseClass
@@ -52,15 +53,11 @@ class ManualAnnotation(AnnotationBaseClass):
 
     def annotate(self):
         if self.enabled:
-            sample = self.selected_sample
-
-            dialog = QAnnotationDialog(self.scheme, self.dependencies)
-
-            dialog.new_annotation.connect(
-                lambda x: self.update_sample_annotation(sample, x)
+            dialog = QAnnotationDialog(
+                self.selected_sample, self.scheme, self.dependencies
             )
-            dialog.open()
-            dialog._set_annotation(sample.annotation)
+            dialog.finished.connect(lambda _: self.check_for_selected_sample(True))
+            self.open_dialog(dialog)
 
     def cut(self):
         if self.enabled:
@@ -72,7 +69,9 @@ class ManualAnnotation(AnnotationBaseClass):
                 start_2, end_2 = self.position + 1, sample.end_position
 
                 s1 = Sample(start_1, end_1, sample.annotation)
-                s2 = Sample(start_2, end_2, sample.annotation)
+                s2 = Sample(start_2, end_2, deepcopy(sample.annotation))
+
+                assert s1.annotation is not s2.annotation
 
                 self.add_to_undo_stack()
 

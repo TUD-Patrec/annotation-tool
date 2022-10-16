@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass, field
 
 import PyQt5.QtGui as qtg

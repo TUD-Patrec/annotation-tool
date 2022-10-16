@@ -123,8 +123,6 @@ def __run_network__(file: os.PathLike, start: int = 0, end: int = -1) -> np.ndar
 
     assert data.shape[0] == segment_size, f"{data.shape = }, {segment_size = }"
 
-    print(f"INPUT_DATA: {data}")
-
     y = __forward__(data, network)
 
     return y

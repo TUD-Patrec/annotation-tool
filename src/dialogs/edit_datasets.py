@@ -151,6 +151,7 @@ class QEditDatasets(qtw.QDialog):
 
         dependency_error_str = "Could not load dependencies."
         dependency_txt = self._dependencies.text()
+        dependencies = []
 
         if len(dependency_txt) > 0:
             if dependency_txt != dependency_error_str:
@@ -164,8 +165,6 @@ class QEditDatasets(qtw.QDialog):
                 if dependencies.shape[0] < 0 or dependencies.shape[1] != len(scheme):
                     self._dependencies.setText(dependency_error_str)
                     return
-        else:
-            dependencies = []
 
         dataset = DatasetDescription(name, scheme, dependencies)
         dataset.to_disk()
