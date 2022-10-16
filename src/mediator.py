@@ -76,13 +76,9 @@ class Mediator(qtc.QObject):
 
         # Filter valid timeouts -> remove outdated ones
         if x == self.position + 1:
-            if self.looping:
-                if x > self.upper:
-                    logging.debug(f"Filtered outdated update = {x = }")
-                    return
-                if x == self.upper:
-                    self.set_position(self.lower)
-                    return
+            if self.looping and x >= self.upper:
+                self.set_position(self.lower)
+                return
             # only update non-mediaWidgets
             self.position += 1
             for rec in self.receivers:
