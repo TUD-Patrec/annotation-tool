@@ -79,7 +79,11 @@ class GUI(qtw.QMainWindow, DialogManager):
         self.bottom_hbox.addWidget(
             self.widgets[LayoutPosition.BOTTOM_LEFT], alignment=qtc.Qt.AlignLeft
         )
-        self.bottom_hbox.addWidget(self.widgets[LayoutPosition.BOTTOM_RIGHT], stretch=1, alignment=qtc.Qt.AlignBottom)
+        self.bottom_hbox.addWidget(
+            self.widgets[LayoutPosition.BOTTOM_RIGHT],
+            stretch=1,
+            alignment=qtc.Qt.AlignBottom,
+        )
 
         self.vbox.addLayout(self.top_hbox, stretch=1)
         self.vbox.addLayout(self.bottom_hbox)

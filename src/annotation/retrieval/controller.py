@@ -9,6 +9,7 @@ from scipy import spatial
 
 import src.network.controller as network
 from src.annotation.annotation_base import AnnotationBaseClass
+from src.annotation.modes import AnnotationMode
 from src.annotation.retrieval.main_widget import QRetrievalWidget
 from src.annotation.retrieval.retrieval_backend.filter import FilterCriteria
 from src.annotation.retrieval.retrieval_backend.filter_dialog import QRetrievalFilter
@@ -27,6 +28,9 @@ class RetrievalAnnotation(AnnotationBaseClass):
 
     def __init__(self):
         super(RetrievalAnnotation, self).__init__()
+
+        self.mode = AnnotationMode.RETRIEVAL
+
         self.main_widget = QRetrievalWidget()
 
         # Constants
@@ -238,6 +242,7 @@ class RetrievalAnnotation(AnnotationBaseClass):
         else:
             # Rounding the output to nearest integers and computing the distance to that
             network_output = network_output.flatten()  # check if actually needed
+            logging.debug(f"{network_output = }")
             proposed_classification = np.round(network_output).astype(np.int8)
 
             similarity = 1 - spatial.distance.cosine(

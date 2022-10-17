@@ -65,7 +65,9 @@ class SettingsDialog(qtw.QDialog):
         form.addRow("Segment size in retrieval-mode:", self.retrieval_segment_size)
 
         self.retrieval_segment_overlap = qtw.QLineEdit()
-        form.addRow("Segment overlap in retrieval-mode:", self.retrieval_segment_overlap)
+        form.addRow(
+            "Segment overlap in retrieval-mode:", self.retrieval_segment_overlap
+        )
 
         self.save_button = qtw.QPushButton()
         self.save_button.setText("Save")
@@ -170,18 +172,34 @@ class SettingsDialog(qtw.QDialog):
 
         old_x, old_y = settings.window_x, settings.window_y
 
-        settings.annotator_id = _read_from_txt(self.annotator_id.text(), int, self.annotator_id.placeholderText())
+        settings.annotator_id = _read_from_txt(
+            self.annotator_id.text(), int, self.annotator_id.placeholderText()
+        )
         settings.debugging_mode = self.debugging_mode.isChecked()
-        settings.window_x = _read_from_txt(self.window_x.text(), int, self.window_x.placeholderText())
-        settings.window_y = _read_from_txt(self.window_y.text(), int, self.window_y.placeholderText())
+        settings.window_x = _read_from_txt(
+            self.window_x.text(), int, self.window_x.placeholderText()
+        )
+        settings.window_y = _read_from_txt(
+            self.window_y.text(), int, self.window_y.placeholderText()
+        )
         settings.font = int(self.font_size.currentText())
         settings.darkmode = self.darkmode.isChecked()
-        settings.refresh_rate = _read_from_txt(self.refresh_rate.text(), int, self.refresh_rate.placeholderText())
+        settings.refresh_rate = _read_from_txt(
+            self.refresh_rate.text(), int, self.refresh_rate.placeholderText()
+        )
         settings.show_millisecs = bool(self.frame_based.currentIndex())
         settings.small_skip = self.small_skip.value()
         settings.big_skip = self.big_skip.value()
-        settings.retrieval_segment_size = _read_from_txt(self.retrieval_segment_size.text(), int, self.retrieval_segment_size.placeholderText())
-        settings.retrieval_segment_overlap = _read_from_txt(self.retrieval_segment_overlap.text(), float, self.retrieval_segment_overlap.placeholderText())
+        settings.retrieval_segment_size = _read_from_txt(
+            self.retrieval_segment_size.text(),
+            int,
+            self.retrieval_segment_size.placeholderText(),
+        )
+        settings.retrieval_segment_overlap = _read_from_txt(
+            self.retrieval_segment_overlap.text(),
+            float,
+            self.retrieval_segment_overlap.placeholderText(),
+        )
 
         settings.to_disk()
 

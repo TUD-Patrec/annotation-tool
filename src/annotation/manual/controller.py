@@ -4,6 +4,7 @@ from copy import deepcopy
 from src.annotation.annotation_base import AnnotationBaseClass
 from src.annotation.manual.main_widget import QDisplaySample
 from src.annotation.manual.tool_widget import ManualAnnotationTools
+from src.annotation.modes import AnnotationMode
 from src.dataclasses import Sample
 from src.dialogs.annotation_dialog import QAnnotationDialog
 
@@ -11,6 +12,8 @@ from src.dialogs.annotation_dialog import QAnnotationDialog
 class ManualAnnotation(AnnotationBaseClass):
     def __init__(self):
         super(ManualAnnotation, self).__init__()
+
+        self.mode = AnnotationMode.MANUAL
 
         self.main_widget = QDisplaySample()
 

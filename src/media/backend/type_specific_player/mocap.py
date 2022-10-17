@@ -19,7 +19,7 @@ class MocapLoader(AbstractMediaLoader):
 
     def load(self):
         try:
-            array = mocap_reader.load_mocap(self.path)
+            array = mocap_reader.load_mocap(self.path, normalize=False)
 
             n = array.shape[0]
 

@@ -28,7 +28,6 @@ class Settings:
         else:
             self.from_disk()
 
-
     @property
     def retrieval_segment_size(self):
         return self._retrieval_segment_size

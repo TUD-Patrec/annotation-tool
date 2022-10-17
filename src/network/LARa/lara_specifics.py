@@ -1,7 +1,9 @@
+import logging
 import os
 from os.path import join
 
 import numpy as np
+from scipy import spatial
 
 NORM_MAX_THRESHOLDS = [
     392.85,
@@ -295,16 +297,30 @@ def __get_combinations__():
 
 
 def __attr_to_class__(attr_vec: np.ndarray, combinations: np.ndarray) -> np.ndarray:
-    print(f"{attr_vec.shape = }")
-    print(f"{combinations.shape = }")
+    assert combinations.shape[0] > 0
+
+    logging.debug(f"{attr_vec = }")
 
     tmp = np.argwhere((combinations[:, 1:] == attr_vec.round()).all(axis=1))
-    print(f"{tmp = }")
-    idx = tmp.flatten().item()
-    n_labels = 8
-    label = combinations[idx]
+    if tmp.shape[0] == 1:
+        idx = tmp.flatten().item()
+    elif tmp.shape[0] == 0:
+        # find closest one
+        dist = spatial.distance.cdist(
+            combinations[:, 1:], attr_vec.reshape(1, -1), "cosine"
+        )
+        idx = np.argmin(dist.flatten())
+    else:
+        raise ValueError(f"{tmp.shape[0] = } must be in [0,1]")
+
+    logging.debug(f"{idx = }")
+
+    n_labels = np.unique(combinations[:, 0]).flatten().shape[0]
+    label = combinations[idx, 0]
+    logging.debug(f"{label = }")
     one_hot = np.zeros(n_labels, dtype=np.int8)
     one_hot[label] = 1
+    logging.debug(f"{one_hot = }")
     return one_hot
 
 
