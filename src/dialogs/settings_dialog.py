@@ -5,6 +5,10 @@ import PyQt5.QtWidgets as qtw
 from src.dataclasses.settings import Settings
 
 
+def _read_from_txt(x: str, x_type, default):
+    return x_type(x) if x != "" else default
+
+
 class SettingsDialog(qtw.QDialog):
     settings_changed = qtc.pyqtSignal()
     window_size_changed = qtc.pyqtSignal(int, int)
@@ -56,6 +60,12 @@ class SettingsDialog(qtw.QDialog):
 
         self.debugging_mode = qtw.QCheckBox()
         form.addRow("Debugging-Mode:", self.debugging_mode)
+
+        self.retrieval_segment_size = qtw.QLineEdit()
+        form.addRow("Segment size in retrieval-mode:", self.retrieval_segment_size)
+
+        self.retrieval_segment_overlap = qtw.QLineEdit()
+        form.addRow("Segment overlap in retrieval-mode:", self.retrieval_segment_overlap)
 
         self.save_button = qtw.QPushButton()
         self.save_button.setText("Save")
@@ -145,21 +155,33 @@ class SettingsDialog(qtw.QDialog):
         self.big_skip_display.setAlignment(qtc.Qt.AlignRight)
         self.big_skip_display.setFixedWidth(75)
 
+        segment_validator = qtg.QIntValidator(100, 10000, self)
+        self.retrieval_segment_size.setValidator(segment_validator)
+        self.retrieval_segment_size.setText(str(settings.retrieval_segment_size))
+        self.retrieval_segment_size.setPlaceholderText(str(200))
+
+        overlap_validator = qtg.QDoubleValidator(0, 0.99, 2, self)
+        self.retrieval_segment_overlap.setValidator(overlap_validator)
+        self.retrieval_segment_overlap.setText(str(settings.retrieval_segment_overlap))
+        self.retrieval_segment_overlap.setPlaceholderText(str(0))
+
     def save_pressed(self):
         settings = Settings.instance()
 
         old_x, old_y = settings.window_x, settings.window_y
 
-        settings.annotation_id = int(self.annotator_id.text())
+        settings.annotator_id = _read_from_txt(self.annotator_id.text(), int, self.annotator_id.placeholderText())
         settings.debugging_mode = self.debugging_mode.isChecked()
-        settings.window_x = int(self.window_x.text())
-        settings.window_y = int(self.window_y.text())
+        settings.window_x = _read_from_txt(self.window_x.text(), int, self.window_x.placeholderText())
+        settings.window_y = _read_from_txt(self.window_y.text(), int, self.window_y.placeholderText())
         settings.font = int(self.font_size.currentText())
         settings.darkmode = self.darkmode.isChecked()
-        settings.refresh_rate = int(self.refresh_rate.text())
+        settings.refresh_rate = _read_from_txt(self.refresh_rate.text(), int, self.refresh_rate.placeholderText())
         settings.show_millisecs = bool(self.frame_based.currentIndex())
         settings.small_skip = self.small_skip.value()
         settings.big_skip = self.big_skip.value()
+        settings.retrieval_segment_size = _read_from_txt(self.retrieval_segment_size.text(), int, self.retrieval_segment_size.placeholderText())
+        settings.retrieval_segment_overlap = _read_from_txt(self.retrieval_segment_overlap.text(), float, self.retrieval_segment_overlap.placeholderText())
 
         settings.to_disk()
 

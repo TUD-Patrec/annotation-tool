@@ -16,6 +16,8 @@ class Settings:
     _font: int = field(init=False, default=10)
     _refresh_rate: int = field(init=False, default=200)
     _show_millisecs: bool = field(init=False, default=False)
+    _retrieval_segment_size: int = field(init=False, default=200)
+    _retrieval_segment_overlap: float = field(init=False, default=0)
     _small_skip: int = field(init=False, default=1)
     _big_skip: int = field(init=False, default=100)
 
@@ -25,6 +27,31 @@ class Settings:
             self.to_disk()
         else:
             self.from_disk()
+
+
+    @property
+    def retrieval_segment_size(self):
+        return self._retrieval_segment_size
+
+    @retrieval_segment_size.setter
+    @accepts_m(int)
+    def retrieval_segment_size(self, x):
+        if x > 0:
+            self._retrieval_segment_size = x
+        else:
+            raise ValueError(f"{x = } needs to be bigger than 0 ")
+
+    @property
+    def retrieval_segment_overlap(self):
+        return self._retrieval_segment_overlap
+
+    @retrieval_segment_overlap.setter
+    @accepts_m(float)
+    def retrieval_segment_overlap(self, x):
+        if 0 <= x < 1:
+            self._retrieval_segment_overlap = x
+        else:
+            raise ValueError(f"{x = } needs to be in [0, 1)")
 
     @property
     def annotator_id(self):

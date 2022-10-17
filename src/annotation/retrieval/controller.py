@@ -17,7 +17,7 @@ from src.annotation.retrieval.retrieval_backend.interval import (
     generate_intervals,
 )
 from src.annotation.retrieval.retrieval_backend.query import Query
-from src.dataclasses import Annotation, Sample
+from src.dataclasses import Annotation, Sample, Settings
 from src.dialogs.annotation_dialog import QAnnotationDialog
 from src.network.LARa.lara_specifics import get_annotation_vector
 
@@ -31,8 +31,8 @@ class RetrievalAnnotation(AnnotationBaseClass):
 
         # Constants
         self.TRIES_PER_INTERVAL = math.inf
-        self.interval_size: int = 1000
-        self.overlap: float = 0
+        self.interval_size: int = Settings.instance().retrieval_segment_size
+        self.overlap: float = Settings.instance().retrieval_segment_overlap
 
         # Controll Attributes
         self.query = None
@@ -50,40 +50,44 @@ class RetrievalAnnotation(AnnotationBaseClass):
     # Slots
     @qtc.pyqtSlot()
     def change_filter(self):
-        if self.scheme:
-            dialog = QRetrievalFilter(self.filter_criterion, self.scheme)
-            dialog.filter_changed.connect(self.new_filter)
-            self.open_dialog(dialog)
+        if self.enabled:
+            if self.scheme:
+                dialog = QRetrievalFilter(self.filter_criterion, self.scheme)
+                dialog.filter_changed.connect(self.new_filter)
+                self.open_dialog(dialog)
 
     @qtc.pyqtSlot()
     def modify_interval(self):
-        if self.current_interval:
-            dialog = QAnnotationDialog(
-                self.current_interval.as_sample(), self.scheme, self.dependencies
-            )
-            dialog.finished.connect(lambda _: self.interval_changed())
-            self.open_dialog(dialog)
-        else:
-            self.update_UI.emit(self.query, self.current_interval)
+        if self.enabled:
+            if self.current_interval:
+                dialog = QAnnotationDialog(
+                    self.current_interval.as_sample(), self.scheme, self.dependencies
+                )
+                dialog.finished.connect(lambda _: self.interval_changed())
+                self.open_dialog(dialog)
+            else:
+                self.update_UI.emit(self.query, self.current_interval)
 
     @qtc.pyqtSlot()
     def accept_interval(self):
-        if self.current_interval:
-            assert self.query is not None
-            self.query.accept_interval(self.current_interval)
-            self.check_for_new_sample(self.current_interval)
-            self.load_next()
-        else:
-            self.update_UI.emit(self.query, self.current_interval)
+        if self.enabled:
+            if self.current_interval:
+                assert self.query is not None
+                self.query.accept_interval(self.current_interval)
+                self.check_for_new_sample(self.current_interval)
+                self.load_next()
+            else:
+                self.update_UI.emit(self.query, self.current_interval)
 
     @qtc.pyqtSlot()
     def reject_interval(self):
-        if self.current_interval:
-            assert self.query is not None
-            self.query.reject_interval(self.current_interval)
-            self.load_next()
-        else:
-            self.update_UI.emit(self.query, self.current_interval)
+        if self.enabled:
+            if self.current_interval:
+                assert self.query is not None
+                self.query.reject_interval(self.current_interval)
+                self.load_next()
+            else:
+                self.update_UI.emit(self.query, self.current_interval)
 
     # Class methods
     def new_filter(self, filter_criterion):

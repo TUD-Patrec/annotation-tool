@@ -45,7 +45,7 @@ class AnnotationController(qtc.QObject):
             self.right_widget_changed.emit(self.controller.main_widget)
 
             if prev_controller:
-                # grab previos state
+                # grab previous state
                 samples = prev_controller.samples
                 scheme = prev_controller.scheme
                 dependencies = prev_controller.dependencies
