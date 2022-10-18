@@ -5,12 +5,12 @@ import sys
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
+import src.utility.breeze_resources  # noqa: F403
 
 import src.network.controller as network
 from src.annotation.modes import AnnotationMode
 from src.annotation.timeline import QTimeLine
 from src.dataclasses.settings import Settings
-from src.utility.breeze_resources import *
 
 from .annotation.controller import AnnotationController
 from .dataclasses.globalstate import GlobalState

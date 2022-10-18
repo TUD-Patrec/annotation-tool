@@ -5,6 +5,7 @@ from copy import deepcopy
 
 import numpy as np
 import PyQt5.QtCore as qtc
+import PyQt5.QtWidgets as qtw
 from scipy import spatial
 
 import src.network.controller as network
@@ -187,9 +188,17 @@ class RetrievalAnnotation(AnnotationBaseClass):
         self.update_UI.emit(self.query, self.current_interval)
 
     def load_subclass(self):
-        intervals = self.load_intervals()
-        self.query = Query(intervals)
-        self.query.change_filter(self.filter_criterion)
+        try:
+            intervals = self.load_intervals()
+            self.query = Query(intervals)
+            self.query.change_filter(self.filter_criterion)
+        except:
+            msg = qtw.QMessageBox()
+            msg.setIcon(qtw.QMessageBox.Critical)
+            msg.setText("Running the network failed!")
+            msg.setInformativeText('Retrieval Mode could not be loaded.\nCheck if the network is actually loaded and reload after!')
+            msg.setWindowTitle("Error")
+            msg.exec_()
         self.load_next()
 
     def load_intervals(self):
