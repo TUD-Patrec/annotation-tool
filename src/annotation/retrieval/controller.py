@@ -194,6 +194,7 @@ class RetrievalAnnotation(AnnotationBaseClass):
             intervals = self.load_intervals()
             self.query = Query(intervals)
             self.query.change_filter(self.filter_criterion)
+            self.load_next()
         except Exception:
             msg = qtw.QMessageBox()
             msg.setIcon(qtw.QMessageBox.Critical)
@@ -202,7 +203,6 @@ class RetrievalAnnotation(AnnotationBaseClass):
             msg.setInformativeText(txt)
             msg.setWindowTitle("Error")
             msg.exec_()
-        self.load_next()
 
     def load_intervals(self):
         # collect all bounds of unannotated samples
