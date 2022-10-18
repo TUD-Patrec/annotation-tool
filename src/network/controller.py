@@ -9,7 +9,20 @@ import torch
 import src.network.LARa.lara_specifics as lara_util
 from src.media.media_types import MediaType, media_type_of
 from src.network.network import Network
+from src.utility.filehandler import Paths, is_non_zero_file
 from src.utility.mocap_reader import load_mocap
+
+__network_dict__ = {}
+
+
+def __get_networks__():
+    network_path = Paths.instance().networks
+
+    networks = []
+    for file in os.listdir(Paths.instance().datasets):
+        file_path = os.path.join(Paths.instance().datasets, file)
+        if is_non_zero_file(file_path):
+            pass
 
 
 class NetworkType(enum.Enum):
@@ -20,12 +33,12 @@ class NetworkType(enum.Enum):
 __data_file__ = None
 
 
-def update_file(file: os.PathLike):
+def update_file(file: os.PathLike) -> None:
     global __data_file__
     __data_file__ = file
 
 
-def __current_data_path__():
+def __current_data_path__() -> os.PathLike:
     global __data_file__
     return __data_file__
 
@@ -38,7 +51,7 @@ def run_network(lower, upper) -> np.ndarray:
 __cached_data__ = {}
 
 
-def __get_data__(file):
+def __get_data__(file: os.PathLike) -> Tuple[np.ndarray, MediaType]:
     media_type = media_type_of(file)
 
     cached_media_type = __cached_data__.get("media_type")
@@ -149,9 +162,21 @@ def __load_network__(media_type: MediaType) -> Tuple[Network, dict]:
     # find best fitting network
 
     if media_type == MediaType.LARA_MOCAP:
-        # network_path = r"C:\Users\Raphael\Desktop\attrib_network.pt"
-        # network_path = r"C:\Users\Raphael\Desktop\cnn_imu_attrib_network.pt"
-        network_path = r"C:\Users\Raphael\Desktop\cnn_attrib_network.pt"
+        path_networks = Paths.instance().networks
+
+        lara_paths = [
+            "attrib_network.pt",
+            "cnn_imu_attrib_network.pt",
+            "cnn_attrib_network.pt",
+        ]
+        lara_paths = [os.path.join(path_networks, x) for x in lara_paths]
+        network_paths = list(filter(os.path.isfile, lara_paths))
+
+        if network_paths:
+            network_path = network_paths[0]
+            logging.debug(f"picked: {network_path = }")
+        else:
+            raise FileNotFoundError("Could not find any LARa-Network")
     elif media_type == MediaType.VIDEO:
         raise NotImplementedError
     else:
@@ -164,28 +189,43 @@ def __load_network__(media_type: MediaType) -> Tuple[Network, dict]:
         config = __cached_network__.get("config")
         return network, config
     else:
-        try:
-            checkpoint = torch.load(network_path, map_location=torch.device("cpu"))
+        if media_type == MediaType.LARA_MOCAP:
+            return __load_lara_network__(network_path)
+        elif media_type == MediaType.VIDEO:
+            raise NotImplementedError
+        else:
+            raise ValueError(f"{media_type = } does not support a network")
 
-            state_dict = checkpoint["state_dict"]
-            config = checkpoint["network_config"]
 
-            # TODO Remove this hack
-            config["fully_convolutional"] = "FC"
-            # print(f"{config = }")
+def __load_lara_network__(network_path: os.PathLike) -> Tuple[Network, dict]:
+    try:
+        checkpoint = torch.load(network_path, map_location=torch.device("cpu"))
 
-            network = Network(config)
-            network.load_state_dict(state_dict)
-            network.eval()
+        state_dict = checkpoint["state_dict"]
+        config = checkpoint["network_config"]
 
-            # cache results
-            __cached_network__["network_path"] = network_path
-            __cached_network__["network"] = network
-            __cached_network__["config"] = config
+        # TODO Remove this hack
+        config["fully_convolutional"] = "FC"
 
-            return network, config
-        except:
-            raise
+        network = Network(config)
+        network.load_state_dict(state_dict)
+        network.eval()
+
+        # cache results
+        __cached_network__["network_path"] = network_path
+        __cached_network__["network"] = network
+        __cached_network__["config"] = config
+
+        return network, config
+    except:
+        raise
+
+
+def __load_video_network(network_path: os.PathLike) -> Tuple[Network, dict]:
+    try:
+        pass
+    except:
+        raise
 
 
 def __preprocess_data__(data, media_type: MediaType) -> np.ndarray:
