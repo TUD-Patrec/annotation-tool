@@ -1,5 +1,5 @@
-import logging
 from dataclasses import dataclass, field, fields
+import logging
 
 from src.utility import filehandler
 from src.utility.decorators import Singleton, accepts_m

@@ -1,6 +1,6 @@
-import logging
 from collections import namedtuple
 from dataclasses import dataclass, field
+import logging
 
 
 def scheme_is_valid(scheme):

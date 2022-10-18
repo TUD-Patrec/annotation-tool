@@ -1,10 +1,10 @@
+from dataclasses import dataclass, field
 import os
 import random
 import string
-from dataclasses import dataclass, field
 
-from ..utility import filehandler
 from . import AnnotationScheme
+from ..utility import filehandler
 
 
 @dataclass()

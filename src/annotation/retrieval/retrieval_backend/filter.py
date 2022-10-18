@@ -1,5 +1,5 @@
-import logging
 from dataclasses import dataclass, field
+import logging
 
 import numpy as np
 

@@ -1,6 +1,6 @@
-import logging
 from collections import namedtuple
 from copy import deepcopy
+import logging
 from typing import Union
 
 import numpy as np

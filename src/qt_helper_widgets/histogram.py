@@ -1,14 +1,14 @@
 import logging
 
+import PyQt5.QtWidgets as qtw
 import matplotlib
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+import matplotlib.pyplot as plt
+import numpy as np
+import pyqtgraph as pg
 
 matplotlib.use("Qt5Agg")
 
-import matplotlib.pyplot as plt
-import numpy as np
-import PyQt5.QtWidgets as qtw
-import pyqtgraph as pg
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 
 class Histogram_Widget(qtw.QWidget):
