@@ -56,7 +56,7 @@ def enable_high_dpi_scaling():
             logging.info("Running DPI-unaware")
 
 
-if __name__ == "__main__":
+def start():
     application_path = get_application_path()
 
     # Injecting root_path
@@ -70,4 +70,9 @@ if __name__ == "__main__":
     logging.info("Running relative to {}".format(application_path))
 
     enable_high_dpi_scaling()
+
     main()
+
+
+if __name__ == "__main__":
+    start()

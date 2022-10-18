@@ -1,5 +1,5 @@
-import logging
 from copy import deepcopy
+import logging
 
 from src.annotation.annotation_base import AnnotationBaseClass
 from src.annotation.manual.main_widget import QDisplaySample
