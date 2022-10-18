@@ -1,27 +1,26 @@
-from copy import deepcopy
 import logging
 import math
 import time
+from copy import deepcopy
 
+import numpy as np
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
-import numpy as np
 from scipy import spatial
 
+import src.network.controller as network
 from src.annotation.annotation_base import AnnotationBaseClass
 from src.annotation.modes import AnnotationMode
 from src.annotation.retrieval.main_widget import QRetrievalWidget
 from src.annotation.retrieval.retrieval_backend.filter import FilterCriteria
-from src.annotation.retrieval.retrieval_backend.filter_dialog import QRetrievalFilter
+from src.annotation.retrieval.retrieval_backend.filter_dialog import \
+    QRetrievalFilter
 from src.annotation.retrieval.retrieval_backend.interval import (
-    Interval,
-    generate_intervals,
-)
+    Interval, generate_intervals)
 from src.annotation.retrieval.retrieval_backend.query import Query
 from src.dataclasses import Annotation, Sample, Settings
 from src.dialogs.annotation_dialog import QAnnotationDialog
 from src.network.LARa.lara_specifics import get_annotation_vector
-import src.network.controller as network
 
 
 class RetrievalAnnotation(AnnotationBaseClass):

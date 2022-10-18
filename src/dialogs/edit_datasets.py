@@ -1,5 +1,5 @@
-from functools import partial
 import logging
+from functools import partial
 
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw

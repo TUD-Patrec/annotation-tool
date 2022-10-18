@@ -1,6 +1,6 @@
+import numpy as np
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
-import numpy as np
 
 from src.annotation.retrieval.retrieval_backend.filter import FilterCriteria
 from src.qt_helper_widgets.checkable_combobox import CheckableComboBox

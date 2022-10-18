@@ -1,7 +1,7 @@
 from abc import abstractmethod
 
-import PyQt5.QtCore as qtc
 import numpy as np
+import PyQt5.QtCore as qtc
 
 from src.dataclasses import AnnotationScheme, Sample
 from src.dialogs.dialog_manager import DialogManager

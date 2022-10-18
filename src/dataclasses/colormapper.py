@@ -1,5 +1,5 @@
-from dataclasses import dataclass, field
 import random
+from dataclasses import dataclass, field
 
 import PyQt5.QtGui as qtg
 from distinctipy import distinctipy

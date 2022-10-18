@@ -2,8 +2,8 @@ import logging
 import os
 import shutil
 
-import PyQt5.QtWidgets as qtw
 import numpy as np
+import PyQt5.QtWidgets as qtw
 
 from ..qt_helper_widgets.line_edit_adapted import QLineEditAdapted
 from ..utility import filehandler, functions
