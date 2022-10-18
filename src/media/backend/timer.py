@@ -86,7 +86,6 @@ class Timer(qtc.QObject):
             self.compute_time()
             self.update_queue()
             self.update_alpha()
-            # logging.info('ALPHA = {} | QUEUE_SIZE = {} | OPEN_TIMEOUTS_SIZE = {} '.format(self.alpha, len(self.queue), len(self.open_timeouts)))
 
             if (
                 len(self.open_timeouts) < self.MAX_OPEN_TIMEOUTS
@@ -126,7 +125,8 @@ class Timer(qtc.QObject):
     def subscribe(self, x):
         assert qtc.QThread.currentThread() is self.thread()
 
-        # Insert new subscriber with the count adjusted to the current inner time of the timer
+        # Insert new subscriber with the count adjusted
+        # to the current inner time of the timer
         r = 1000 / x.fps
         cnt = self.time / r
         self.subscribers.append([x, int(cnt)])
@@ -263,9 +263,9 @@ class Timer(qtc.QObject):
     def update_alpha(self):
         assert qtc.QThread.currentThread() is self.thread()
         N = len(self.queue)
-        THETA = min(
-            len(self.subscribers) * 2, 5
-        )  # allow THETA queued timeouts without reducing speed, offsettings some inconsistencies
+        THETA = min(len(self.subscribers) * 2, 5)
+        # allow THETA queued timeouts without reducing speed,
+        # offsettings some inconsistencies
         if N < THETA:
             self.alpha = 1
         else:

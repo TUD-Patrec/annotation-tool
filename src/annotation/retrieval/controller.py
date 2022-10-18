@@ -1,14 +1,13 @@
+from copy import deepcopy
 import logging
 import math
 import time
-from copy import deepcopy
 
-import numpy as np
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
+import numpy as np
 from scipy import spatial
 
-import src.network.controller as network
 from src.annotation.annotation_base import AnnotationBaseClass
 from src.annotation.modes import AnnotationMode
 from src.annotation.retrieval.main_widget import QRetrievalWidget
@@ -22,6 +21,7 @@ from src.annotation.retrieval.retrieval_backend.query import Query
 from src.dataclasses import Annotation, Sample, Settings
 from src.dialogs.annotation_dialog import QAnnotationDialog
 from src.network.LARa.lara_specifics import get_annotation_vector
+import src.network.controller as network
 
 
 class RetrievalAnnotation(AnnotationBaseClass):
@@ -124,7 +124,8 @@ class RetrievalAnnotation(AnnotationBaseClass):
 
         annotated_windows = []
         for w in windows:
-            # filter all intervals that have at least one common frame with one of the windows
+            # filter all intervals that have at least one common frame
+            # with one of the windows
             intervals_in_window = filter(
                 lambda x: x.start <= w[0] <= x.end or x.start <= w[1] <= x.end,
                 intervals,
@@ -178,7 +179,8 @@ class RetrievalAnnotation(AnnotationBaseClass):
             old_interval = self.current_interval
             self.current_interval = next(self.query)
             if old_interval != self.current_interval:
-                # only emit new loop if the interval has changed remember that for each interval there might be
+                # only emit new loop if the interval has changed
+                # remember that for each interval there might be
                 # multiple predictions that get tested one after another
                 l, r = self.current_interval.start, self.current_interval.end
                 self.start_loop.emit(l, r)
@@ -192,11 +194,12 @@ class RetrievalAnnotation(AnnotationBaseClass):
             intervals = self.load_intervals()
             self.query = Query(intervals)
             self.query.change_filter(self.filter_criterion)
-        except:
+        except Exception:
             msg = qtw.QMessageBox()
             msg.setIcon(qtw.QMessageBox.Critical)
             msg.setText("Running the network failed!")
-            msg.setInformativeText('Retrieval Mode could not be loaded.\nCheck if the network is actually loaded and reload after!')
+            txt = "Retrieval Mode could not be loaded.\nCheck if the network is actually loaded and reload after!"  # noqa: E501
+            msg.setInformativeText(txt)
             msg.setWindowTitle("Error")
             msg.exec_()
         self.load_next()
@@ -328,7 +331,8 @@ class RetrievalAnnotation(AnnotationBaseClass):
 
         # reorder samples -> the <= 3 newly added samples were appended to the end
         self.samples.sort()
-        # merge neighbors with same annotation -> left_neighbor must not be the same as left_sample previously,
+        # merge neighbors with same annotation
+        # -> left_neighbor must not be the same as left_sample previously,
         # same for right neighbor
         idx = self.samples.index(new_sample)
         # only if the new sample is not the first list element
@@ -349,7 +353,8 @@ class RetrievalAnnotation(AnnotationBaseClass):
         self.check_for_selected_sample(force_update=True)
 
     def run_network(self, lower, upper):
-        # [lower, upper) is expected to be a range instead of a closed interval -> add 1 to right interval border
+        # [lower, upper) is expected to be a range instead of a closed interval
+        # -> add 1 to right interval border
         return network.run_network(lower, upper + 1)
 
     def interval_changed(self):

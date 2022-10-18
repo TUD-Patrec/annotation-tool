@@ -100,7 +100,7 @@ class QTimeLine(qtw.QWidget):
         super().resizeEvent(event)
 
         # adjust pointer_position -> first map to frame-space
-        # by averaging both bounds of the mapping we get the 'best' (lossless) conversion
+        # by averaging both bounds of the mapping we get the 'best' conversion
         pointer_pos = (
             self._pixel_to_frame(self.pointer_position)[0]
             + self._pixel_to_frame(self.pointer_position)[1]
@@ -111,7 +111,7 @@ class QTimeLine(qtw.QWidget):
         )
 
         # adjust pointer_position -> after updating the size: map back to pixel-space
-        # by averaging both bounds of the mapping we get the 'best' (lossless) conversion
+        # by averaging both bounds of the mapping we get the 'best' conversion
         self.pointer_position = (
             self._frame_to_pixel(pointer_pos)[0] + self._frame_to_pixel(pointer_pos)[1]
         ) // 2

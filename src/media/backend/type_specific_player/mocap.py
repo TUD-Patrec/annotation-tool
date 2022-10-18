@@ -5,8 +5,11 @@ import numpy as np
 import pyqtgraph.opengl as gl
 
 from src.dataclasses.settings import Settings
-from src.media.backend.player import (AbstractMediaLoader, AbstractMediaPlayer,
-                                      UpdateReason)
+from src.media.backend.player import (
+    AbstractMediaLoader,
+    AbstractMediaPlayer,
+    UpdateReason,
+)
 from src.utility import mocap_reader
 
 
@@ -280,5 +283,6 @@ def calculate_skeleton(frame: np.array) -> np.array:
         t_all.append(a)
         t_all.append(b)
 
-    # convert the list into an array, convert millimeters to meters and return the result
+    # convert the list into an array,
+    # convert millimeters to meters and return the result
     return np.array(t_all) / 1000

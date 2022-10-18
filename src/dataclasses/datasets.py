@@ -73,5 +73,5 @@ class DatasetDescription:
                 dataset_description = filehandler.read_pickle(path)
                 dataset_description._path = path
                 return dataset_description
-            except:
+            except Exception:
                 raise FileNotFoundError("Could not open {}".format(path))

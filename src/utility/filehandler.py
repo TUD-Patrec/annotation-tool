@@ -1,10 +1,10 @@
 import csv
+from dataclasses import dataclass, field
 import json
 import logging
 import math
 import os
 import pickle
-from dataclasses import dataclass, field
 from typing import Tuple
 
 import cv2
@@ -66,9 +66,9 @@ def is_non_zero_file(path):
 
 def footprint_of_file(path):
     with open(path, "rb") as f:
-        x = f.read(2 ** 20)
+        x = f.read(2**20)
     x = int.from_bytes(x, byteorder="big", signed=True)
-    x %= 2 ** 32
+    x %= 2**32
     x ^= os.path.getsize(path)
     return x
 
@@ -209,7 +209,7 @@ def logging_config() -> dict:
         "disable_existing_loggers": True,
         "formatters": {
             "screen": {
-                "format": "[%(asctime)s] [%(levelname)s] [%(filename)s():%(lineno)s] - %(message)s",
+                "format": "[%(asctime)s] [%(levelname)s] [%(filename)s():%(lineno)s] - %(message)s",  # noqa: E501
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },
             "full": {
@@ -241,7 +241,7 @@ def init_logger():
 
 # TODO
 def clean_folders():
-    paths: Paths = Paths.instance()
+    # paths: Paths = Paths.instance()
     pass
 
 

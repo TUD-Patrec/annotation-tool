@@ -6,22 +6,31 @@ from src.media.backend.controller import QMediaMainController
 
 class QMediaWidget(qtw.QWidget):
     """
-    A simple facade, forwarding all necessary slots and signals between the main-application and the media-backend.
+    A simple facade, forwarding all necessary slots and signals
+    between the main-application and the media-backend.
 
     Signals:
-           positionChanged: Transports the current position of the main replaysource (always the leftmost on the screen)
-           cleanedUp: Signals that all sub widgets and threads have been shutdown successfully. Should be waited for befor exiting the app.
+        position_changed
+            Transports the current position of the main replaysource
+            (always the leftmost on the screen)
+        cleanedUp
+            Signals that all sub widgets and threads have been shutdown successfully.
 
     Slots:
-           load_annotation: Expects a Annotation-instance
-           setPosition: Updates the current displayed frame
-           play: Starts running the media
-           pause: Pauses the media
-           setReplaySpeed: Updates how fast the media is played
-           settingsChanged: Needed for updating FPS of Media, which itself does not contain information about its refresh-rate
-           shutdown: Cleans up all threads and subwidgets
-           startLoop: Starts looping the video-segment within the specified interval
-           endLoop: Stops looping
+        load
+           Expects an Annotation-instance
+        set_position
+            Updates the current displayed frame
+        play
+            Starts running the media
+        pause
+            Pauses the media
+        set_replay_speed
+            Updates how fast the media is played
+        settings_changed
+            Needed for updating FPS of Media
+        shutdown
+            Cleans up all threads and subwidgets
     """
 
     position_changed = qtc.pyqtSignal(int)

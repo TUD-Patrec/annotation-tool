@@ -108,7 +108,7 @@ class QLoadExistingAnnotationDialog(qtw.QDialog):
                 self.line_edit.setText(file_path)
             else:
                 self.line_edit.setText(
-                    "The input_file is not compatible with the selected annotation, please select the correct file."
+                    "The input_file is not compatible with the selected annotation, please select the correct file."  # noqa E501
                 )
         self.check_enabled()
 

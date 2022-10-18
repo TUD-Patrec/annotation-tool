@@ -58,7 +58,8 @@ def enforce_types(callable):
             with suppress(KeyError):  # Assume un-annotated parameters can be any type
                 type_hint = spec.annotations[name]
                 if isinstance(type_hint, typing._SpecialForm):
-                    # No check for typing.Any, typing.Union, typing.ClassVar (without parameters)
+                    # No check for typing.Any, typing.Union,
+                    # typing.ClassVar (without parameters)
                     continue
                 try:
                     actual_type = type_hint.__origin__

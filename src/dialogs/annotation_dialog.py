@@ -2,7 +2,7 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 import numpy as np
 
-from src.dataclasses import AnnotationScheme, Sample, annotation
+from src.dataclasses import AnnotationScheme, Sample
 from src.dataclasses.annotation import Annotation
 
 
@@ -32,8 +32,8 @@ class QAnnotationDialog(qtw.QDialog):
 
         self._set_annotation(sample.annotation)
 
-    def _set_annotation(self, annotation):
-        self.current_selection = np.copy(annotation.annotation_vector)
+    def _set_annotation(self, a):
+        self.current_selection = np.copy(a.annotation_vector)
         for idx in np.nonzero(self.current_selection)[0]:
             btn: QPushButtonAdapted = self.buttons[idx]
             btn.setChecked(False)
@@ -116,7 +116,6 @@ class QAnnotationDialog(qtw.QDialog):
             # Nothing to update here
             return
 
-        offset = 0
         vec = self.__get_determined_attributes__()
 
         for idx, scheme_element in enumerate(self.scheme):

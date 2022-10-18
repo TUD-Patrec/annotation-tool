@@ -162,7 +162,10 @@ class VideoHelper(qtc.QObject):
             img = current_img.scaled(
                 width, height, qtc.Qt.KeepAspectRatio, qtc.Qt.SmoothTransformation
             )  # Somehow this is faster
-            # img = self.current_img.scaled(self.lblVid.width(), self.lblVid.height(), qtc.Qt.KeepAspectRatio, qtc.Qt.FastTransformation)
+            # img = self.current_img.scaled(
+            # self.lblVid.width(), self.lblVid.height(),
+            # qtc.Qt.KeepAspectRatio, qtc.Qt.FastTransformation
+            # )
 
             self.image_ready.emit(img, frame, w, h, bytes_per_line, update_reason)
 

@@ -1,6 +1,5 @@
 from collections import namedtuple
 from copy import deepcopy
-import logging
 from typing import Union
 
 import numpy as np
@@ -19,11 +18,10 @@ def is_compatible(raw_annotation: Union[np.ndarray, dict], scheme: AnnotationSch
                 return False
             if not isinstance(val, int):
                 return False
-            if not val in [0, 1]:
+            if val not in [0, 1]:
                 return False
         return True
     if isinstance(raw_annotation, np.ndarray):
-        count = 0
         if len(scheme) != raw_annotation.shape[0]:
             return False
         if len(raw_annotation.shape) > 1:

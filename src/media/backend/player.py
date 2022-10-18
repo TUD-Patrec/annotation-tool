@@ -124,7 +124,8 @@ class AbstractMediaPlayer(qtw.QWidget):
     def load(self, input_file):
         raise NotImplementedError
 
-    # TODO self.position + 1 needs to happen after the position update -> else while waiting for update the position
+    # TODO self.position + 1 needs to happen after the position update
+    #  -> else while waiting for update the position
     # can get updated multiple times -> offsync
     @qtc.pyqtSlot(qtw.QWidget)
     def on_timeout(self, w):
@@ -201,7 +202,8 @@ class AbstractMediaPlayer(qtw.QWidget):
     @property
     def media(self):
         # Need to asure that the media object is not accessed from another thread
-        # Implement thread-secure methods for accessing media-informations (reading a frame for example)
+        # Implement thread-secure methods for accessing
+        # media-informations (reading a frame for example)
         assert qtc.QThread.currentThread() is self.thread()
         return self._media
 
