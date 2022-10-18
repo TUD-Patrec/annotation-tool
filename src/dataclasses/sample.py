@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-import logging
 
 import PyQt5.QtGui as qtg
 

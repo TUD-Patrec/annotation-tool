@@ -147,8 +147,8 @@ class Settings:
             self._big_skip = value
 
     def reset(self):
-        for field in fields(self):
-            setattr(self, field.name, field.default)
+        for fld in fields(self):
+            setattr(self, fld.name, fld.default)
 
     def from_disk(self):
         paths = filehandler.Paths.instance()
@@ -161,9 +161,9 @@ class Settings:
         filehandler.write_json(paths.config, d)
 
     def from_dict(self, d):
-        for field in fields(self):
-            logging.info("{} <- {}".format(field.name, d[field.name]))
-            setattr(self, field.name, d[field.name])
+        for fld in fields(self):
+            logging.info("{} <- {}".format(fld.name, d[fld.name]))
+            setattr(self, fld.name, d[fld.name])
 
     def as_dict(self):
         return dict((field.name, getattr(self, field.name)) for field in fields(self))

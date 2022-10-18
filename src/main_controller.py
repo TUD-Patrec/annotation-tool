@@ -10,7 +10,7 @@ from src.annotation.modes import AnnotationMode
 from src.annotation.timeline import QTimeLine
 from src.dataclasses.settings import Settings
 import src.network.controller as network
-from src.utility.breeze_resources import *
+import src.utility.breeze_resources  # noqa: F401
 
 from .annotation.controller import AnnotationController
 from .dataclasses.globalstate import GlobalState

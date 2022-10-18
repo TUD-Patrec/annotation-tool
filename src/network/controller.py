@@ -9,20 +9,10 @@ import torch
 from src.media.media_types import MediaType, media_type_of
 import src.network.LARa.lara_specifics as lara_util
 from src.network.network import Network
-from src.utility.filehandler import Paths, is_non_zero_file
+from src.utility.filehandler import Paths
 from src.utility.mocap_reader import load_mocap
 
 __network_dict__ = {}
-
-
-def __get_networks__():
-    network_path = Paths.instance().networks
-
-    networks = []
-    for file in os.listdir(Paths.instance().datasets):
-        file_path = os.path.join(Paths.instance().datasets, file)
-        if is_non_zero_file(file_path):
-            pass
 
 
 class NetworkType(enum.Enum):
@@ -124,7 +114,8 @@ def __run_network__(file: os.PathLike, start: int = 0, end: int = -1) -> np.ndar
         # select data in the specified interval
         logging.info(f"After data filter {start = }, {end = }: {data.shape = }")
 
-    # input-frame is too large -> pick the most middle segment as a representation of the whole frame
+    # input-frame is too large
+    # -> pick the most middle segment as a representation of the whole frame
     if data.shape[0] > segment_size:
         logging.info(
             f"{data.shape = } is too large for the network -> reduction needed"
@@ -217,14 +208,14 @@ def __load_lara_network__(network_path: os.PathLike) -> Tuple[Network, dict]:
         __cached_network__["config"] = config
 
         return network, config
-    except:
+    except Exception:
         raise
 
 
 def __load_video_network(network_path: os.PathLike) -> Tuple[Network, dict]:
     try:
         pass
-    except:
+    except Exception:
         raise
 
 

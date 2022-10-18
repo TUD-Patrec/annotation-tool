@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-import datetime
 import logging
 import os
 import random
@@ -143,5 +142,5 @@ class GlobalState:
                 annotation = filehandler.read_pickle(path)
                 annotation._path = path
                 return annotation
-            except:
+            except Exception:
                 raise FileNotFoundError("Could not open {}".format(path))

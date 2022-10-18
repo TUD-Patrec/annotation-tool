@@ -1,5 +1,4 @@
 import functools
-import logging
 import os
 
 from src.dataclasses.settings import Settings
@@ -16,9 +15,9 @@ def scale(N, M, x):
     elif N > M:
         return (x * M) // N, (x * M) // N
     elif N < M:
-        l = (x * M) // N if (x * M) % N == 0 else (x * M) // N + 1
-        u = ((x + 1) * M) // N - 1 if ((x + 1) * M) % N == 0 else ((x + 1) * M) // N
-        return l, u
+        lo = (x * M) // N if (x * M) % N == 0 else (x * M) // N + 1
+        hi = ((x + 1) * M) // N - 1 if ((x + 1) * M) % N == 0 else ((x + 1) * M) // N
+        return lo, hi
     else:
         raise ValueError
 
@@ -29,7 +28,8 @@ def scale_functions(N: int, M: int, last_to_last: bool = False):
     Args:
         N (int): Number of elements in the first range.
         M (int): Number of elements in the second range.
-        last_to_last (bool, optional): Sometimes its usefull if the last elements of two ranges always map to each other. Defaults to False.
+        last_to_last (bool, optional): Sometimes its useful if the last elements
+            of two ranges always map to each other. Defaults to False.
 
     Returns:
         n2m: function: Map from n to m.

@@ -10,7 +10,7 @@ def load_mocap(path, normalize=False) -> np.ndarray:
     if media_type_of(path) == MediaType.LARA_MOCAP:
         try:
             return __load_lara_mocap__(path, normalize)
-        except:
+        except Exception:
             raise TypeError
     else:
         raise TypeError
@@ -181,5 +181,5 @@ def calculate_skeleton(frame: np.array) -> np.array:
         t_all.append(a)
         t_all.append(b)
 
-    # convert the list into an array, convert millimeters to meters and return the result
+    # convert the list into an array, convert mm to meters and return the result
     return np.array(t_all) / 1000

@@ -3,8 +3,6 @@ from textwrap import wrap
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
-from .adaptive_scroll_area import QAdaptiveScrollArea
-
 
 def format_str(s, characters_per_line, line_start=""):
     ls = wrap(s, characters_per_line)

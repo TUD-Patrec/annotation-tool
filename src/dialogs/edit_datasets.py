@@ -159,7 +159,7 @@ class QEditDatasets(qtw.QDialog):
                     dependencies = filehandler.csv_to_numpy(
                         self._dependencies.text(), dtype=int
                     )
-                except:
+                except Exception:
                     self._dependencies.setText(dependency_error_str)
                     return
                 if dependencies.shape[0] < 0 or dependencies.shape[1] != len(scheme):

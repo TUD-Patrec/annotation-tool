@@ -5,6 +5,7 @@ import logging
 import math
 import os
 import pickle
+from typing import Tuple
 
 import cv2
 import numpy as np
@@ -68,7 +69,7 @@ def footprint_of_file(path):
         x = f.read(2**20)
     x = int.from_bytes(x, byteorder="big", signed=True)
     x %= 2**32
-    logging.info("hash = {}".format(x))
+    x ^= os.path.getsize(path)
     return x
 
 
@@ -152,37 +153,37 @@ def path_to_dirname(path):
 __cached_meta_data__ = {}  # used for caching results
 
 
-def meta_data(path, use_cached=True):
-    if use_cached:
-        tpl = __cached_meta_data__.get(path)
-        if tpl:
-            return tpl
+def meta_data(path: os.PathLike, use_cached: bool = True) -> Tuple[float, int, float]:
     if is_non_zero_file(path):
+        cache_key = footprint_of_file(path)
+        if use_cached:
+            tpl = __cached_meta_data__.get(cache_key)
+            if tpl:
+                return tpl
         if media_type_of(path) == MediaType.LARA_MOCAP:
             meta = meta_data_of_mocap(path)
         elif media_type_of(path) == MediaType.VIDEO:
             meta = meta_data_of_video(path)
         else:
             raise ValueError(f"Could not determine media-type for {path}")
-        __cached_meta_data__[path] = meta
+        __cached_meta_data__[cache_key] = meta
         return meta
     else:
         raise FileNotFoundError
 
 
-def meta_data_of_mocap(path):
+def meta_data_of_mocap(path: os.PathLike) -> Tuple[int, int, float]:
     mocap = csv_to_numpy(path)
     frame_count = mocap.shape[0]
-    logging.debug(f"{frame_count = }")
     fps = Settings.instance().refresh_rate
     return 1000 * int(frame_count / fps), frame_count, fps
 
 
-def meta_data_of_video(path):
+def meta_data_of_video(path: os.PathLike) -> Tuple[int, int, float]:
     video = cv2.VideoCapture(path)
-    frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    frame_rate = video.get(cv2.CAP_PROP_FPS)
-    duration = frame_count / frame_rate
+    frame_count: int = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    frame_rate: float = video.get(cv2.CAP_PROP_FPS)
+    duration: float = frame_count / frame_rate
     lower, upper = math.floor(duration), math.ceil(duration)
 
     d_lower = abs(lower * frame_rate - frame_count)
@@ -190,9 +191,9 @@ def meta_data_of_video(path):
 
     # picking the better choice
     if d_lower < d_upper:
-        duration = 1000 * lower
+        duration: int = 1000 * lower
     else:
-        duration = 1000 * upper
+        duration: int = 1000 * upper
 
     return duration, frame_count, frame_rate
 
@@ -202,13 +203,13 @@ def clear_layout(layout):
         layout.itemAt(i).widget().setParent(None)
 
 
-def logging_config():
+def logging_config() -> dict:
     return {
         "version": 1,
         "disable_existing_loggers": True,
         "formatters": {
             "screen": {
-                "format": "[%(asctime)s] [%(levelname)s] [%(filename)s():%(lineno)s] - %(message)s",
+                "format": "[%(asctime)s] [%(levelname)s] [%(filename)s():%(lineno)s] - %(message)s",  # noqa: E501
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },
             "full": {
@@ -240,7 +241,7 @@ def init_logger():
 
 # TODO
 def clean_folders():
-    paths: Paths = Paths.instance()
+    # paths: Paths = Paths.instance()
     pass
 
 

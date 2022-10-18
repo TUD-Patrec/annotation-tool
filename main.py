@@ -44,13 +44,14 @@ def enable_high_dpi_scaling():
     if platform == "win32":
         # Query DPI Awareness (Windows 10 and 8)
         # awareness = ctypes.c_int()
-        # errorCode = ctypes.windll.shcore.GetProcessDpiAwareness(0, ctypes.byref(awareness))
+        # tmp = ctypes.windll.shcore
+        # errorCode = tmp.GetProcessDpiAwareness(0, ctypes.byref(awareness))
         # print( awareness.value)
 
         # Set DPI Awareness  (Windows 10 and 8)
         PROCESS_DPI_UNAWARE = 0
-        PROCESS_SYSTEM_DPI_AWARE = 1
-        PROCESS_PER_MONITOR_DPI_AWARE = 2
+        # PROCESS_SYSTEM_DPI_AWARE = 1
+        # PROCESS_PER_MONITOR_DPI_AWARE = 2
         errorCode = ctypes.windll.shcore.SetProcessDpiAwareness(PROCESS_DPI_UNAWARE)
         if errorCode == 0:
             logging.info("Running DPI-unaware")

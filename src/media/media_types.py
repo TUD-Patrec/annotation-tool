@@ -29,7 +29,7 @@ def is_video(path) -> bool:
                 return ret
             else:
                 return False
-        except Exception as e:
+        except Exception:
             return False
     else:
         return False
@@ -43,7 +43,7 @@ def is_LARA_mocap(path) -> bool:
     try:
         data = filehandler.csv_to_numpy(path)
         return data.shape[0] > 0 and data.shape[1] == 134
-    except UserWarning as u:
+    except UserWarning:
         return False
     except Exception as e:
         logging.error(f"{e}")

@@ -79,7 +79,8 @@ class QRetrievalWidget(qtw.QWidget):
         self.setLayout(vbox)
         self.setFixedWidth(400)
 
-    # Display the current interval to the user: Show him the Interval boundaries and the predicted annotation
+    # Display the current interval to the user:
+    # Show him the Interval boundaries and the predicted annotation
     @qtc.pyqtSlot(Query, object)
     def update_UI(self, query, current_interval):
         if query is None:
