@@ -47,7 +47,7 @@ isort check:
   needs: []
   script:
     - !reference [.setup, script]
-    - poetry run isort --check --settings-path pyproject.toml --recursive "${CI_PROJECT_DIR}"
+    - poetry run isort --check --settings-path pyproject.toml "${CI_PROJECT_DIR}"
 
 publish testpypi:
   needs: ["flake8 check", "black check", "isort check"]
