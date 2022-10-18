@@ -22,7 +22,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8"
+python = ">=3.8,<4"
 distinctipy = "*"
 filetype = "*"
 matplotlib = "3.5.0"
@@ -40,7 +40,7 @@ torch = "*"
 [tool.poetry.dev-dependencies]
 black = "*"
 flake8 = "*"
-isort = "<5"
+isort = "^5"
 pyinstaller = "*"
 toml = "*"
 
