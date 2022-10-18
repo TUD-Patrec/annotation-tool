@@ -122,6 +122,7 @@ class VideoHelper(qtc.QObject):
         self.last_width = -1
         self.last_height = -1
         self.n_frames = int(media.get(cv2.CAP_PROP_FRAME_COUNT))
+        logging.info(f"VideoLength: {self.n_frames}")
 
     @qtc.pyqtSlot(int, int, int, UpdateReason)
     def prepare_update(self, pos, width, height, update_reason):
@@ -170,8 +171,8 @@ class VideoHelper(qtc.QObject):
             self.image_ready.emit(img, frame, w, h, bytes_per_line, update_reason)
 
         else:
-            logging.error("CRASHED")
-            raise RuntimeError
+            logging.warning(f"Reading Frame failed at {pos = }!")
+            self.no_update_needed.emit(update_reason)
 
     @qtc.pyqtSlot()
     def stop(self):
