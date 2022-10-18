@@ -1,38 +1,50 @@
-import os
-import logging
-import sys
 import ctypes
-import PyQt5.QtWidgets as qtw
-import PyQt5.QtCore as qtc
+import logging
+import os
+import sys
 from sys import platform
+
+import PyQt5.QtCore as qtc
+import PyQt5.QtWidgets as qtw
 
 from src.main_controller import main
 from src.utility import filehandler
 
 
 def get_application_path():
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", False):
         application_path = os.path.dirname(sys.executable)
     elif __file__:
         application_path = os.path.split(os.path.realpath(__file__))[0]
     else:
-        raise RuntimeError('Could not get the path of this script')
+        raise RuntimeError("Could not get the path of this script")
     return application_path
+
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 
 def enable_high_dpi_scaling():
 
     # adjust scaling to high dpi monitors
-    if hasattr(qtc.Qt, 'AA_EnableHighDpiScaling'):
+    if hasattr(qtc.Qt, "AA_EnableHighDpiScaling"):
         qtw.QApplication.setAttribute(qtc.Qt.AA_EnableHighDpiScaling, True)
-    if hasattr(qtc.Qt, 'AA_UseHighDpiPixmaps'):
+    if hasattr(qtc.Qt, "AA_UseHighDpiPixmaps"):
         qtw.QApplication.setAttribute(qtc.Qt.AA_UseHighDpiPixmaps, True)
 
     # Adjust scaling for windows
     if platform == "win32":
         # Query DPI Awareness (Windows 10 and 8)
-        #awareness = ctypes.c_int()
-        #errorCode = ctypes.windll.shcore.GetProcessDpiAwareness(0, ctypes.byref(awareness))
+        # awareness = ctypes.c_int()
+        # errorCode = ctypes.windll.shcore.GetProcessDpiAwareness(0, ctypes.byref(awareness))
         # print( awareness.value)
 
         # Set DPI Awareness  (Windows 10 and 8)

@@ -23,21 +23,25 @@ packages = [
 
 [tool.poetry.dependencies]
 python = ">=3.8"
+distinctipy = "*"
+filetype = "*"
+matplotlib = "3.5.0"
 numpy = "*"
+opencv-python = "~4.5.3.56"
+PyOpenGL = "*"
 PyQt5 = [
     { version = "~5.14.2", markers = "sys_platform != 'win32'" },
     { version = "^5.15", markers = "sys_platform == 'win32'" },
 ]
 pyqtgraph = "0.11.0"
-PyOpenGL = "*"
-distinctipy = "*"
-opencv-python = "~4.5.3.56"
+scipy = "*"
+torch = "*"
 
 [tool.poetry.dev-dependencies]
-pyinstaller = "*"
-flake8 = "*"
 black = "*"
+flake8 = "*"
 isort = "4.3.21"
+pyinstaller = "*"
 toml = "*"
 
 [tool.poetry.scripts]
