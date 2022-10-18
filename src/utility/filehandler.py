@@ -1,10 +1,10 @@
 import csv
+from dataclasses import dataclass, field
 import json
 import logging
 import math
 import os
 import pickle
-from dataclasses import dataclass, field
 from typing import Tuple
 
 import cv2

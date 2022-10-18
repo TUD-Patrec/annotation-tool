@@ -1,7 +1,7 @@
-import inspect
-import typing
 from contextlib import suppress
 from functools import wraps
+import inspect
+import typing
 
 
 def accepts_m(*types):

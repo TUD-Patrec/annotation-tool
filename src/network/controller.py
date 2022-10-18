@@ -6,8 +6,8 @@ from typing import List, Tuple
 import numpy as np
 import torch
 
-import src.network.LARa.lara_specifics as lara_util
 from src.media.media_types import MediaType, media_type_of
+import src.network.LARa.lara_specifics as lara_util
 from src.network.network import Network
 from src.utility.filehandler import Paths
 from src.utility.mocap_reader import load_mocap

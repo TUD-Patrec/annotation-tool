@@ -1,9 +1,8 @@
+import PyQt5.QtWidgets as qtw
 import matplotlib
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 import numpy as np
-import PyQt5.QtWidgets as qtw
-from matplotlib.backends.backend_qt5agg import \
-    FigureCanvasQTAgg as FigureCanvas
 
 matplotlib.use("Qt5Agg")
 

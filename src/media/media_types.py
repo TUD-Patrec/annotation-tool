@@ -3,7 +3,6 @@ import logging
 import os.path
 
 import cv2
-
 import filetype
 
 
