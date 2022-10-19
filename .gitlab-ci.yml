@@ -23,14 +23,20 @@ image: python:3.9
     - /usr/win64/bin/python -m poetry config virtualenvs.create false
     - /usr/win64/bin/python -m poetry install
 
+.version_from_tag:
+  script:
+    - poetry version ${CI_COMMIT_TAG}
+
 .setup_pypi:
   script:
     - poetry config pypi-token.pypi ${PYPI_TOKEN}
+    - !reference [.version_from_tag, script]
 
 .setup_testpypi:
   script:
     - poetry config repositories.testpypi https://test.pypi.org/legacy/
     - poetry config pypi-token.testpypi ${TESTPYPI_TOKEN}
+    - !reference [.version_from_tag, script]
 
 before_script:
   - python --version  # For debugging
@@ -90,6 +96,7 @@ build linux executable:
     entrypoint: ["/bin/sh", "-l", "-c"]
   script:
     - !reference [.setup, script]
+    - !reference [.version_from_tag, script]
     - /entrypoint.sh --onefile --noconsole --name annotation-tool main.py
     - mv "dist/linux/annotation-tool" "${CI_PROJECT_DIR}/annotation-tool-linux"
     - 'if [[ ! -z "${OWNCLOUD_KEY}" ]]; then curl -k -T annotation-tool-linux -u "${OWNCLOUD_KEY}:${OWNCLOUD_PASSWORD}" -H "X-Requested-With: XMLHttpRequest" https://owncloud.cs.tu-dortmund.de/public.php/webdav/annotation-tool-linux; fi'
@@ -107,6 +114,7 @@ build windows executable:
     entrypoint: ["/bin/sh", "-l", "-c"]
   script:
     - !reference [.setup_win, script]
+    - !reference [.version_from_tag, script]
     - /entrypoint.sh --onefile --noconsole --name annotation-tool main.py
     - mv "dist/windows/annotation-tool.exe" "${CI_PROJECT_DIR}/annotation-tool-windows.exe"
     - 'if [[ ! -z "${OWNCLOUD_KEY}" ]]; then curl -k -T annotation-tool-windows.exe -u "${OWNCLOUD_KEY}:${OWNCLOUD_PASSWORD}" -H "X-Requested-With: XMLHttpRequest" https://owncloud.cs.tu-dortmund.de/public.php/webdav/annotation-tool-windows.exe; fi'
