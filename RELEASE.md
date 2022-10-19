@@ -26,8 +26,6 @@ The following ToDos need to be completed on a release branch. (see above)
 ```markdown
 ## [Unreleased]
 
-## [<new version>] yyyy-mm-dd
-
 ### Added
 
 - 
@@ -51,6 +49,8 @@ The following ToDos need to be completed on a release branch. (see above)
 ### Security
 
 - 
+
+## [<new version>] yyyy-mm-dd
 ```
 
 ## Notes
