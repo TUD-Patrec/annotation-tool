@@ -73,7 +73,8 @@ def footprint_of_file(path: os.PathLike, fast_hash: bool = False) -> Union[str, 
 
     Args:
         path (os.PathLike): Location of the file.
-        fast_hash (bool): Fast-hash uses a more simple methode to approximate the ID of the file.
+        fast_hash (bool): Fast-hash uses a more simple methode
+        to approximate the ID of the file.
     Returns:
         Hash-value computed for the specified file or None.
     """
