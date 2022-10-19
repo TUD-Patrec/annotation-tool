@@ -23,6 +23,10 @@ image: python:3.9
     - /usr/win64/bin/python -m poetry config virtualenvs.create false
     - /usr/win64/bin/python -m poetry install
 
+.setup_pypi:
+  script:
+    - poetry config pypi-token.pypi ${PYPI_TOKEN}
+
 .setup_testpypi:
   script:
     - poetry config repositories.testpypi https://test.pypi.org/legacy/
@@ -48,6 +52,15 @@ isort check:
   script:
     - !reference [.setup, script]
     - poetry run isort --check --settings-path pyproject.toml "${CI_PROJECT_DIR}"
+
+publish pypi:
+  needs: ["flake8 check", "black check", "isort check"]
+  script:
+    - !reference [.setup, script]
+    - !reference [.setup_pypi, script]
+    - poetry publish --build
+  rules:
+    - !reference [.default_rules, master-version]
 
 publish testpypi:
   needs: ["flake8 check", "black check", "isort check"]
