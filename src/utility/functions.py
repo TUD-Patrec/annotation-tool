@@ -11,7 +11,7 @@ from .filehandler import Paths, is_non_zero_file
 
 
 def scale(N: int, M: int, x: int) -> Tuple[int, int]:
-    """Scaling function that maps scales some point x within a range
+    """Scaling function that scales some point x within a range
     of N elements to another range of M elements while keeping its
     relative position inside that range.
     Scaling from some smaller range to a bigger one ends maps one point

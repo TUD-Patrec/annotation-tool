@@ -1,22 +1,36 @@
 import logging
 
 import numpy as np
-
+import os
 from src.media.media_types import MediaType, media_type_of
 from src.utility import filehandler
 
 
-def load_mocap(path, normalize=False) -> np.ndarray:
+def load_mocap(path: os.PathLike, normalize=False) -> np.ndarray:
+    """Load Motion-capture data from file to numpy array.
+
+    Args:
+        path (os.PathLike): Path to motion-capture data.
+        normalize (bool, optional): Normalize the Skeleton to stay in 
+        the center of the coordinate system. Defaults to False.
+
+    Raises:
+        RuntimeError: If loading mocap failed even if media-type is correct.
+        TypeError: Wrong media-type
+
+    Returns:
+        np.ndarray: Array containing the loaded motion-capture data.
+    """
     if media_type_of(path) == MediaType.LARA_MOCAP:
         try:
             return __load_lara_mocap__(path, normalize)
         except Exception:
-            raise TypeError
+            raise RuntimeError(f"Reading mocap-data from {path} failed.")
     else:
         raise TypeError
 
 
-def __load_lara_mocap__(path, normalize):
+def __load_lara_mocap__(path: os.PathLike, normalize: bool) -> np.ndarray:
     try:
         array = filehandler.read_csv(path)
         array = array[:, 2:]
