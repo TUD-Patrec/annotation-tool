@@ -8,11 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
-- 
+- Makefile for building and testing locally
+- `README.md` with installation instructions
+- Added a license
 
 ### Changed
 
-- 
+- Dependencies are now specified in `pyproject.toml` rather than in `requirements.txt`.
+- Code formatting with `black`.
 
 ### Deprecated
 
