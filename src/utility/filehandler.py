@@ -64,19 +64,27 @@ class Paths:
 
 
 def is_non_zero_file(path: os.PathLike) -> bool:
-    """check if file exists and is non-empty."""
+    """Check if file exists and is non-empty.
+
+    Args:
+        path (os.PathLike): file-path.
+
+    Returns:
+        bool: True if file is non-zero.
+    """
     return os.path.isfile(path) and os.path.getsize(path) > 0
 
 
 def footprint_of_file(path: os.PathLike, fast_hash: bool = False) -> Union[str, None]:
-    """return unique ID for the given path
+    """Return unique ID for the given path
 
     Args:
         path (os.PathLike): Location of the file.
-        fast_hash (bool): Fast-hash uses a more simple methode
-        to approximate the ID of the file.
+        fast_hash (bool, optional): Fast-hash uses a more simple methode
+        to approximate the ID of the file. Defaults to False.
+
     Returns:
-        Hash-value computed for the specified file or None.
+        Union[str, None]: Hash-value computed for the specified file or None.
     """
     if is_non_zero_file(path):
         return __footprint_of_file(path, fast_hash)
@@ -113,8 +121,14 @@ def __generate_file_md5__(path: os.PathLike, block_size: int = 2**20) -> str:
 
 
 def read_json(path: os.PathLike) -> Union[dict, None]:
-    """
-    Try reading .json-file from the specified path.
+    """Try reading .json-file from the specified path.
+
+    Args:
+        path (os.PathLike): Path to .json
+
+    Returns:
+        Union[dict, None]: Dictionary containing the values
+        read from the .json.
     """
     if is_non_zero_file(path):
         try:
@@ -127,23 +141,48 @@ def read_json(path: os.PathLike) -> Union[dict, None]:
 
 
 def write_json(path: os.PathLike, data: dict) -> None:
-    """
-    write values from dict to json-file.
+    """Write values from dict to a json-file.
+
+    Args:
+        path (os.PathLike): Path to the output-file.
+        data (dict): Data to be written.
     """
     with open(path, "w") as f:
         json.dump(data, f, indent=4)
 
 
 def read_csv(path: os.PathLike, data_type: np.dtype = np.float64) -> np.ndarray:
+    """Read csv-file to numpy array.
+
+    Args:
+        path (os.PathLike): Input-file.
+        data_type (np.dtype, optional): dtype for the created numpy array.
+        Defaults to np.float64.
+
+    Raises:
+        FileExistsError: Raised if no file could be read.
+
+    Returns:
+        np.ndarray: Array containing the raw data.
+    """
     if is_non_zero_file(path):
         has_header, delimiter = __sniff_csv__(path)
         data = np.genfromtxt(path, delimiter=delimiter, skip_header=has_header)
         return data.astype(data_type)
     else:
-        raise FileExistsError(f"{path} does not hold a non-empty file.")
+        raise FileNotFoundError(f"{path} does not hold a non-empty file.")
 
 
 def __sniff_csv__(path: os.PathLike) -> Tuple[bool, str]:
+    """Try to read some useful information about the given csv needed for loading
+    the file.
+
+    Args:
+        path (os.PathLike): Path to csv.
+
+    Returns:
+        Tuple[bool, str]: (has_header, delimiter).
+    """
     # grab first few rows from the csv-file
     n_rows = 5
     with open(path, "r") as csvfile:
@@ -179,6 +218,12 @@ def __sniff_csv__(path: os.PathLike) -> Tuple[bool, str]:
 
 
 def write_csv(path, data: np.ndarray) -> None:
+    """Write numpy-array to file.
+
+    Args:
+        path (_type_): Output path.
+        data (np.ndarray): Array containing the data.
+    """
     if np.issubdtype(data.dtype, np.integer):
         np.savetxt(path, data, fmt="%d", delimiter=",")
     else:
@@ -186,35 +231,82 @@ def write_csv(path, data: np.ndarray) -> None:
 
 
 def write_pickle(path: os.PathLike, data: object) -> None:
+    """Freeze object and store as file.
+
+    Args:
+        path (os.PathLike): Output path.
+        data (object): Object to be stored.
+    """
     if data:
         with open(path, "wb") as f:
             pickle.dump(data, f)
 
 
 def read_pickle(path: os.PathLike) -> object:
+    """Read stored object from file.
+
+    Args:
+        path (os.PathLike): Path to object.
+
+    Returns:
+        object: Object loaded from disk.
+    """
     with open(path, "rb") as f:
         data = pickle.load(f)
     return data
 
 
-def create_dir(path: os.PathLike) -> None:
+def create_dir(path: os.PathLike) -> os.PathLike:
+    """Create directory specififed by the path if it is not already
+    existing.
+
+    Args:
+        path (os.PathLike): Path to directory.
+
+    Returns:
+        os.PathLike: Path to newly created directory. 
+    """
     if not os.path.exists(path):
         os.mkdir(path)
     return path
 
 
 def remove_file(path: os.PathLike) -> None:
+    """Remove file from file-system.
+
+    Args:
+        path (os.PathLike): File that should be removed.
+    """
     if os.path.isfile(path):
         os.remove(path)
 
 
-def path_to_filename(path: os.PathLike) -> os.PathLike:
+def path_to_filename(path: os.PathLike) -> str:
+    """Grab the filename from a given file-path.
+
+    Args:
+        path (os.PathLike): Absolute path to some object on
+        the file-system.
+ 
+
+    Returns:
+        os.PathLike: Filename.
+    """
     if os.path.isfile(path):
         filename = os.path.split(path)[-1]
         return filename.split(".")[0]
 
 
 def path_to_dirname(path: os.PathLike) -> os.PathLike:
+    """Grab path to parent-directory of some path.
+
+    Args:
+        path (os.PathLike): Absolute path to some object on
+        the file-system.
+
+    Returns:
+        os.PathLike: Path to parent-directory.
+    """
     if os.path.isdir(path):
         dirname = os.path.split(path)[-1]
         return dirname
@@ -224,17 +316,16 @@ def meta_data(path: os.PathLike) -> Tuple[float, int, float]:
     """Compute some useful information for the given media.
 
     Args:
-        path (os.PathLike): Path to media.
+        path (os.PathLike): Path to media that should be analysed.
 
     Raises:
         FileNotFoundError: Raised if the given path does
         not lead to a non-zero file.
 
     Returns:
-        Tuple[float, int, float]:
-            Length of the media in seconds,
-            Total number of frames,
-            Framerate aka. sampling-rate.
+        Tuple[float, int, float]: Length of the media in seconds,
+        Total number of frames,
+        Framerate aka. sampling-rate.
     """
     if is_non_zero_file(path):
         footprint = footprint_of_file(path)
@@ -282,6 +373,11 @@ def __meta_data_of_video__(path: os.PathLike) -> Tuple[int, int, float]:
 
 
 def logging_config() -> dict:
+    """Create basic configuration for logging.
+
+    Returns:
+        dict: Configuration-dict.
+    """
     return {
         "version": 1,
         "disable_existing_loggers": True,
@@ -310,6 +406,8 @@ def logging_config() -> dict:
 
 
 def init_logger():
+    """Initialize logger.
+    """
     log_config_dict = logging_config()
     log_config_dict["handlers"]["screen_handler"]["level"] = (
         "DEBUG" if Settings.instance().debugging_mode else "WARNING"
@@ -319,11 +417,15 @@ def init_logger():
 
 # TODO
 def clean_folders():
+    """Check folders for unnessesary files and remove those.
+    """
     # paths: Paths = Paths.instance()
     pass
 
 
 def init_folder_structure():
+    """Create all folders needed for the tool to work properly.
+    """
     clean_folders()
 
     paths = Paths.instance()
