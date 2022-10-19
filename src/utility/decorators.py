@@ -19,6 +19,7 @@ def accepts(*types) -> typing.Callable:
     Returns:
         Callable: Wrapped function that is now typesafe on its inputs.
     """
+
     def check_accepts(f):
         #  assert len(types) == f.func_code.co_argcount
         assert len(types) == f.__code__.co_argcount, f"{f.__code__.co_argcount = }"
@@ -45,6 +46,7 @@ def returns(rtype: typing.Type) -> typing.Callable:
         Callable: Wrapped function which return value confirm to
         the type-declaration.
     """
+
     def check_returns(f):
         def new_f(*args, **kwds):
             result = f(*args, **kwds)

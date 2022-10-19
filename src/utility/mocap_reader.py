@@ -1,7 +1,8 @@
 import logging
+import os
 
 import numpy as np
-import os
+
 from src.media.media_types import MediaType, media_type_of
 from src.utility import filehandler
 
@@ -11,7 +12,7 @@ def load_mocap(path: os.PathLike, normalize=False) -> np.ndarray:
 
     Args:
         path (os.PathLike): Path to motion-capture data.
-        normalize (bool, optional): Normalize the Skeleton to stay in 
+        normalize (bool, optional): Normalize the Skeleton to stay in
         the center of the coordinate system. Defaults to False.
 
     Raises:
