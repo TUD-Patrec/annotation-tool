@@ -3,12 +3,15 @@ import logging
 import os
 import sys
 from sys import platform
+import warnings
 
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
 from src.main_controller import main
 from src.utility import filehandler
+
+warnings.filterwarnings("ignore", category=UserWarning)
 
 
 def get_application_path():
