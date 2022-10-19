@@ -4,11 +4,21 @@ import inspect
 import typing
 
 
-def accepts_m(*types):
+def accepts_m(*types) -> typing.Callable:
+    """Check parameter types for a class-method.
+
+    Returns:
+        Callable: Wrapped method that is now typesafe on its inputs.
+    """
     return accepts(object, *types)
 
 
-def accepts(*types):
+def accepts(*types) -> typing.Callable:
+    """Check parameter types for a function.
+
+    Returns:
+        Callable: Wrapped function that is now typesafe on its inputs.
+    """
     def check_accepts(f):
         #  assert len(types) == f.func_code.co_argcount
         assert len(types) == f.__code__.co_argcount, f"{f.__code__.co_argcount = }"
@@ -25,7 +35,16 @@ def accepts(*types):
     return check_accepts
 
 
-def returns(rtype):
+def returns(rtype: typing.Type) -> typing.Callable:
+    """Check return types of a function.
+
+    Args:
+        rtype (Type): Type of the return value.
+
+    Returns:
+        Callable: Wrapped function which return value confirm to
+        the type-declaration.
+    """
     def check_returns(f):
         def new_f(*args, **kwds):
             result = f(*args, **kwds)
