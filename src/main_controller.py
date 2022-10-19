@@ -150,6 +150,8 @@ class MainApplication(qtw.QApplication):
             self.media_player.load(state.input_file)
 
             self.mediator.set_position(0)
+
+            self.save_annotation()
         else:
             raise RuntimeError("State must not be None")
 

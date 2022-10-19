@@ -18,7 +18,7 @@ def load_mocap(path, normalize=False) -> np.ndarray:
 
 def __load_lara_mocap__(path, normalize):
     try:
-        array = filehandler.csv_to_numpy(path)
+        array = filehandler.read_csv(path)
         array = array[:, 2:]
         logging.info(f"{normalize = }")
         if normalize:

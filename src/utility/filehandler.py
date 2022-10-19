@@ -1,11 +1,14 @@
 import csv
 from dataclasses import dataclass, field
+import functools
+import hashlib
 import json
 import logging
 import math
 import os
 import pickle
-from typing import Tuple
+import string
+from typing import Tuple, Union
 
 import cv2
 import numpy as np
@@ -60,56 +63,118 @@ class Paths:
         return os.path.join(self.local_storage, self._config)
 
 
-def is_non_zero_file(path):
+def is_non_zero_file(path: os.PathLike) -> bool:
+    """check if file exists and is non-empty."""
     return os.path.isfile(path) and os.path.getsize(path) > 0
 
 
-def footprint_of_file(path):
+def footprint_of_file(path: os.PathLike, fast_hash: bool = False) -> Union[str, None]:
+    """return unique ID for the given path
+
+    Args:
+        path (os.PathLike): Location of the file.
+        fast_hash (bool): Fast-hash uses a more simple methode to approximate the ID of the file.
+    Returns:
+        Hash-value computed for the specified file or None.
+    """
+    if is_non_zero_file(path):
+        return __footprint_of_file(path, fast_hash)
+    else:
+        return None
+
+
+@functools.lru_cache(maxsize=256)
+def __footprint_of_file(path: os.PathLike, fast_hash: bool = False) -> str:
+    if fast_hash:
+        return __fast_footprint__(path)
+    else:
+        return __generate_file_md5__(path)
+
+
+def __fast_footprint__(path: os.PathLike) -> str:
     with open(path, "rb") as f:
         x = f.read(2**20)
     x = int.from_bytes(x, byteorder="big", signed=True)
     x %= 2**32
     x ^= os.path.getsize(path)
-    return x
+    return str(x)
 
 
-def read_json(path):
+def __generate_file_md5__(path: os.PathLike, block_size: int = 2**20) -> str:
+    m = hashlib.md5()
+    with open(path, "rb") as f:
+        while True:
+            buf = f.read(block_size)
+            if not buf:
+                break
+            m.update(buf)
+    return m.hexdigest()
+
+
+def read_json(path: os.PathLike) -> Union[dict, None]:
+    """
+    Try reading .json-file from the specified path.
+    """
     if is_non_zero_file(path):
-        with open(path, "r") as f:
-            return json.load(f)
+        try:
+            with open(path, "r") as f:
+                return json.load(f)
+        except ValueError:
+            return None
     else:
-        logging.warning("FILE {} is empty.".format(path))
         return None
 
 
-def write_json(path, data):
+def write_json(path: os.PathLike, data: dict) -> None:
+    """
+    write values from dict to json-file.
+    """
     with open(path, "w") as f:
         json.dump(data, f, indent=4)
 
 
-def csv_to_numpy(path, dtype=np.float64):
+def read_csv(path: os.PathLike, data_type: np.dtype = np.float64) -> np.ndarray:
     if is_non_zero_file(path):
-        has_header = bool(csv_has_header(path))
-        data = np.genfromtxt(path, delimiter=",", skip_header=has_header, dtype=dtype)
-        return data
+        has_header, delimiter = sniff_csv(path)
+        data = np.genfromtxt(path, delimiter=delimiter, skip_header=has_header)
+        return data.astype(data_type)
     else:
-        return None
+        raise FileExistsError(f"{path} does not hold a non-empty file.")
 
 
-# TODO error handling
-def csv_has_header(path):
+def sniff_csv(path: os.PathLike) -> Tuple[bool, str]:
+    # grab first few rows from the csv-file
+    n_rows = 5
     with open(path, "r") as csvfile:
-        csv_test_bytes = csvfile.read(
-            1024
-        )  # Grab a sample of the CSV for format detection.
+        lines = [csvfile.readline() for _ in range(n_rows)]
+
+    csv_test_bytes = "".join(lines)
+
+    # check header
     try:
         has_header = csv.Sniffer().has_header(
             csv_test_bytes
         )  # Check to see if there's a header in the file.
-    except Exception as e:
-        logging.error(f"{e}")
-        return False
-    return has_header
+
+    except Exception:
+        # heuristic approach -> check first line for non-algebraic characters
+        header_line = lines[0]
+        header_chars = set(header_line)
+        alg_chars = set(string.digits + "," + " " + "." + "_" + "e" + "-" + "+" + "\n")
+        only_alg_chars = header_chars <= alg_chars
+
+        # if first row is already data then there is no header
+        has_header = not only_alg_chars
+
+        # check delimiter
+    try:
+        dialect = csv.Sniffer().sniff(csv_test_bytes)
+        delimiter = dialect.delimiter
+    except Exception:
+        # default to ,
+        delimiter = ","
+
+    return has_header, delimiter
 
 
 def numpy_to_csv(path, data):
@@ -173,7 +238,7 @@ def meta_data(path: os.PathLike, use_cached: bool = True) -> Tuple[float, int, f
 
 
 def meta_data_of_mocap(path: os.PathLike) -> Tuple[int, int, float]:
-    mocap = csv_to_numpy(path)
+    mocap = read_csv(path)
     frame_count = mocap.shape[0]
     fps = Settings.instance().refresh_rate
     return 1000 * int(frame_count / fps), frame_count, fps

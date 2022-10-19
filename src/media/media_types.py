@@ -41,7 +41,7 @@ def is_LARA_mocap(path) -> bool:
     if not os.path.isfile(path):
         return False
     try:
-        data = filehandler.csv_to_numpy(path)
+        data = filehandler.read_csv(path)
         return data.shape[0] > 0 and data.shape[1] == 134
     except UserWarning:
         return False

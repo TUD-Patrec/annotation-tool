@@ -173,5 +173,5 @@ class Annotation:
             yield annotation_element(group_name, element_name, value, row, col)
 
     def __hash__(self):
-        # logging.warning("Hash of annotation is depricated")
+        # logging.warning("Hash of annotation is deprecated")
         return hash((self.scheme, self.binary_str))
