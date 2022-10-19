@@ -264,7 +264,7 @@ def create_dir(path: os.PathLike) -> os.PathLike:
         path (os.PathLike): Path to directory.
 
     Returns:
-        os.PathLike: Path to newly created directory. 
+        os.PathLike: Path to newly created directory.
     """
     if not os.path.exists(path):
         os.mkdir(path)
@@ -287,7 +287,6 @@ def path_to_filename(path: os.PathLike) -> str:
     Args:
         path (os.PathLike): Absolute path to some object on
         the file-system.
- 
 
     Returns:
         os.PathLike: Filename.
@@ -406,8 +405,7 @@ def logging_config() -> dict:
 
 
 def init_logger():
-    """Initialize logger.
-    """
+    """Initialize logger."""
     log_config_dict = logging_config()
     log_config_dict["handlers"]["screen_handler"]["level"] = (
         "DEBUG" if Settings.instance().debugging_mode else "WARNING"
@@ -417,15 +415,13 @@ def init_logger():
 
 # TODO
 def clean_folders():
-    """Check folders for unnessesary files and remove those.
-    """
+    """Check folders for unnessesary files and remove those."""
     # paths: Paths = Paths.instance()
     pass
 
 
 def init_folder_structure():
-    """Create all folders needed for the tool to work properly.
-    """
+    """Create all folders needed for the tool to work properly."""
     clean_folders()
 
     paths = Paths.instance()
