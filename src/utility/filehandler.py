@@ -136,14 +136,14 @@ def write_json(path: os.PathLike, data: dict) -> None:
 
 def read_csv(path: os.PathLike, data_type: np.dtype = np.float64) -> np.ndarray:
     if is_non_zero_file(path):
-        has_header, delimiter = sniff_csv(path)
+        has_header, delimiter = __sniff_csv__(path)
         data = np.genfromtxt(path, delimiter=delimiter, skip_header=has_header)
         return data.astype(data_type)
     else:
         raise FileExistsError(f"{path} does not hold a non-empty file.")
 
 
-def sniff_csv(path: os.PathLike) -> Tuple[bool, str]:
+def __sniff_csv__(path: os.PathLike) -> Tuple[bool, str]:
     # grab first few rows from the csv-file
     n_rows = 5
     with open(path, "r") as csvfile:
@@ -178,74 +178,91 @@ def sniff_csv(path: os.PathLike) -> Tuple[bool, str]:
     return has_header, delimiter
 
 
-def numpy_to_csv(path, data):
-    np.savetxt(path, data, fmt="%d", delimiter=",")
+def write_csv(path, data: np.ndarray) -> None:
+    if np.issubdtype(data.dtype, np.integer):
+        np.savetxt(path, data, fmt="%d", delimiter=",")
+    else:
+        np.savetxt(path, data, delimiter=",")
 
 
-def write_pickle(path, data):
-    with open(path, "wb") as f:
-        pickle.dump(data, f)
+def write_pickle(path: os.PathLike, data: object) -> None:
+    if data:
+        with open(path, "wb") as f:
+            pickle.dump(data, f)
 
 
-def read_pickle(path):
+def read_pickle(path: os.PathLike) -> object:
     with open(path, "rb") as f:
         data = pickle.load(f)
     return data
 
 
-def create_dir(path):
+def create_dir(path: os.PathLike) -> None:
     if not os.path.exists(path):
         os.mkdir(path)
     return path
 
 
-def remove_file(path):
+def remove_file(path: os.PathLike) -> None:
     if os.path.isfile(path):
         os.remove(path)
 
 
-def path_to_filename(path):
+def path_to_filename(path: os.PathLike) -> os.PathLike:
     if os.path.isfile(path):
         filename = os.path.split(path)[-1]
         return filename.split(".")[0]
 
 
-def path_to_dirname(path):
+def path_to_dirname(path: os.PathLike) -> os.PathLike:
     if os.path.isdir(path):
         dirname = os.path.split(path)[-1]
         return dirname
 
 
-__cached_meta_data__ = {}  # used for caching results
+def meta_data(path: os.PathLike) -> Tuple[float, int, float]:
+    """Compute some useful information for the given media.
 
+    Args:
+        path (os.PathLike): Path to media.
 
-def meta_data(path: os.PathLike, use_cached: bool = True) -> Tuple[float, int, float]:
+    Raises:
+        FileNotFoundError: Raised if the given path does
+        not lead to a non-zero file.
+
+    Returns:
+        Tuple[float, int, float]:
+            Length of the media in seconds,
+            Total number of frames,
+            Framerate aka. sampling-rate.
+    """
     if is_non_zero_file(path):
-        cache_key = footprint_of_file(path)
-        if use_cached:
-            tpl = __cached_meta_data__.get(cache_key)
-            if tpl:
-                return tpl
-        if media_type_of(path) == MediaType.LARA_MOCAP:
-            meta = meta_data_of_mocap(path)
-        elif media_type_of(path) == MediaType.VIDEO:
-            meta = meta_data_of_video(path)
-        else:
-            raise ValueError(f"Could not determine media-type for {path}")
-        __cached_meta_data__[cache_key] = meta
-        return meta
+        footprint = footprint_of_file(path)
+        return __meta_data__((path, footprint))
     else:
         raise FileNotFoundError
 
 
-def meta_data_of_mocap(path: os.PathLike) -> Tuple[int, int, float]:
+@functools.lru_cache(256)
+def __meta_data__(path_and_footprint: Tuple[os.PathLike, str]):
+    path, _ = path_and_footprint
+    if media_type_of(path) == MediaType.LARA_MOCAP:
+        meta = __meta_data_of_mocap__(path)
+    elif media_type_of(path) == MediaType.VIDEO:
+        meta = __meta_data_of_video__(path)
+    else:
+        raise ValueError(f"Could not determine media-type for {path}")
+    return meta
+
+
+def __meta_data_of_mocap__(path: os.PathLike) -> Tuple[int, int, float]:
     mocap = read_csv(path)
     frame_count = mocap.shape[0]
     fps = Settings.instance().refresh_rate
     return 1000 * int(frame_count / fps), frame_count, fps
 
 
-def meta_data_of_video(path: os.PathLike) -> Tuple[int, int, float]:
+def __meta_data_of_video__(path: os.PathLike) -> Tuple[int, int, float]:
     video = cv2.VideoCapture(path)
     frame_count: int = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
     frame_rate: float = video.get(cv2.CAP_PROP_FPS)
@@ -262,11 +279,6 @@ def meta_data_of_video(path: os.PathLike) -> Tuple[int, int, float]:
         duration: int = 1000 * upper
 
     return duration, frame_count, frame_rate
-
-
-def clear_layout(layout):
-    for i in reversed(range(layout.count())):
-        layout.itemAt(i).widget().setParent(None)
 
 
 def logging_config() -> dict:

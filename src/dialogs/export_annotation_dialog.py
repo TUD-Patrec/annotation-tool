@@ -108,7 +108,7 @@ class QExportAnnotationDialog(qtw.QDialog):
 
         # Export main annotation-file
         array = annotation.load_mocap()
-        filehandler.numpy_to_csv(
+        filehandler.write_csv(
             os.path.join(exportation_directory, "annotation.csv"), array
         )
         logging.info("{} created.".format("annotation.csv"))
@@ -134,7 +134,7 @@ class QExportAnnotationDialog(qtw.QDialog):
             logging.info("Exporting dataset-dependencies.")
             out_path = os.path.join(exportation_directory, "dependencies.csv")
             data = np.array(annotation.dataset.dependencies)
-            filehandler.numpy_to_csv(path=out_path, data=data)
+            filehandler.write_csv(path=out_path, data=data)
             del out_path
             del data
 
