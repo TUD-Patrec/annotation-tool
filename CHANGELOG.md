@@ -30,6 +30,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 -
 
+## [0.3.1] 2022-10-20
+
+### Fixed
+
+- Pipeline config
+
 ## [0.3.0] 2022-10-20
 
 ### Added
@@ -44,5 +50,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Dependencies are now specified in `pyproject.toml` rather than in `requirements.txt`.
 - Code formatting with `black`.
 
-[unreleased]: https://gitlab.tu-dortmund.de/patrec/annotation-tool/-/compare/v0.3.0...dev
+[unreleased]: https://gitlab.tu-dortmund.de/patrec/annotation-tool/-/compare/v0.3.1...dev
+[0.3.1]: https://gitlab.tu-dortmund.de/patrec/annotation-tool/-/compare/v0.3.0...v0.3.1
 [0.3.0]: https://gitlab.tu-dortmund.de/patrec/annotation-tool/-/compare/v0.2.1...v0.3.0
