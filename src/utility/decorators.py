@@ -1,54 +1,67 @@
-import inspect
-import typing
 from contextlib import suppress
 from functools import wraps
+import inspect
+import typing
 
-def accepts_(*types):
+
+def accepts_m(*types) -> typing.Callable:
+    """Check parameter types for a class-method.
+
+    Returns:
+        Callable: Wrapped method that is now typesafe on its inputs.
+    """
+    return accepts(object, *types)
+
+
+def accepts(*types) -> typing.Callable:
+    """Check parameter types for a function.
+
+    Returns:
+        Callable: Wrapped function that is now typesafe on its inputs.
+    """
+
     def check_accepts(f):
-        assert len(types) == f.func_code.co_argcount
+        #  assert len(types) == f.func_code.co_argcount
+        assert len(types) == f.__code__.co_argcount, f"{f.__code__.co_argcount = }"
+
         def new_f(*args, **kwds):
             for (a, t) in zip(args, types):
-                assert isinstance(a, t), \
-                       "arg %r does not match %s" % (a,t)
+                assert isinstance(a, t), "arg %r does not match %s" % (a, t)
             return f(*args, **kwds)
-        new_f.func_name = f.func_name
-        return new_f
-    return check_accepts
 
-def accepts(*types):
-    def check_accepts(f):
-        assert len(types) == f.__code__.co_argcount
-        def new_f(*args, **kwds):
-            for (a, t) in zip(args, types):
-                assert isinstance(a, t), \
-                       "arg %r does not match %s" % (a,t)
-            return f(*args, **kwds)
+        # new_f.func_name = f.func_name
         new_f.__name__ = f.__name__
         return new_f
+
     return check_accepts
 
 
-def returns_(rtype):
+def returns(rtype: typing.Type) -> typing.Callable:
+    """Check return types of a function.
+
+    Args:
+        rtype (Type): Type of the return value.
+
+    Returns:
+        Callable: Wrapped function which return value confirm to
+        the type-declaration.
+    """
+
     def check_returns(f):
         def new_f(*args, **kwds):
             result = f(*args, **kwds)
-            assert isinstance(result, rtype), \
-                   "return value %r does not match %s" % (result,rtype)
+            assert isinstance(result, rtype), "return value %r does not match %s" % (
+                result,
+                rtype,
+            )
             return result
-        new_f.func_name = f.func_name
-        return new_f
-    return check_returns
 
-def returns(rtype):
-    def check_returns(f):
-        def new_f(*args, **kwds):
-            result = f(*args, **kwds)
-            assert isinstance(result, rtype), \
-                   "return value %r does not match %s" % (result,rtype)
-            return result
+        # new_f.func_name = f.func_name
         new_f.__name__ = f.__name__
         return new_f
+
     return check_returns
+
 
 # @accepts(int, (int,float))
 # @returns((int,float))
@@ -66,7 +79,8 @@ def enforce_types(callable):
             with suppress(KeyError):  # Assume un-annotated parameters can be any type
                 type_hint = spec.annotations[name]
                 if isinstance(type_hint, typing._SpecialForm):
-                    # No check for typing.Any, typing.Union, typing.ClassVar (without parameters)
+                    # No check for typing.Any, typing.Union,
+                    # typing.ClassVar (without parameters)
                     continue
                 try:
                     actual_type = type_hint.__origin__
@@ -80,13 +94,18 @@ def enforce_types(callable):
                     actual_type = type_hint.__args__
 
                 if not isinstance(value, actual_type):
-                    raise TypeError('Unexpected type for \'{}\' (expected {} but found {})'.format(name, type_hint, type(value)))
+                    raise TypeError(
+                        "Unexpected type for '{}' (expected {} but found {})".format(
+                            name, type_hint, type(value)
+                        )
+                    )
 
     def decorate(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             check_types(*args, **kwargs)
             return func(*args, **kwargs)
+
         return wrapper
 
     if inspect.isclass(callable):
@@ -129,7 +148,7 @@ class Singleton:
             return self._instance
 
     def __call__(self):
-        raise TypeError('Singletons must be accessed through `instance()`.')
+        raise TypeError("Singletons must be accessed through `instance()`.")
 
     def __instancecheck__(self, inst):
         return isinstance(inst, self._decorated)
