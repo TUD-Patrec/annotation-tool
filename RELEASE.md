@@ -50,7 +50,7 @@ The following ToDos need to be completed on a release branch. (see above)
 
 - 
 
-## [<new version>] yyyy-mm-dd
+## [<new version>] - yyyy-mm-dd
 ```
 
 ## Notes
