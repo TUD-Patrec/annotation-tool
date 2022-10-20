@@ -160,13 +160,14 @@ def read_csv(path: os.PathLike, data_type: np.dtype = np.float64) -> np.ndarray:
         Defaults to np.float64.
 
     Raises:
-        FileExistsError: Raised if no file could be read.
+        FileNotFoundError: Raised if no file could be read.
 
     Returns:
         np.ndarray: Array containing the raw data.
     """
     if is_non_zero_file(path):
         has_header, delimiter = __sniff_csv__(path)
+        print(has_header, delimiter)
         data = np.genfromtxt(path, delimiter=delimiter, skip_header=has_header)
         return data.astype(data_type)
     else:

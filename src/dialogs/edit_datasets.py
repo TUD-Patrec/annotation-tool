@@ -59,7 +59,7 @@ class QEditDatasets(qtw.QDialog):
     def get_scheme_path(self):
         file_path, _ = qtw.QFileDialog.getOpenFileName(directory="", filter="(*.json)")
         if filehandler.is_non_zero_file(file_path):
-            # TODO Checking input file if a valid scheme
+            # TODO check scheme valid
 
             self.add_button.setEnabled(True)
             self._scheme.setText(file_path)
@@ -70,7 +70,7 @@ class QEditDatasets(qtw.QDialog):
     def get_dependencies_path(self):
         file_path, _ = qtw.QFileDialog.getOpenFileName(directory="", filter="(*.csv)")
         if filehandler.is_non_zero_file(file_path):
-            # check dependencies valid
+            # TODO check dependencies valid
             self._dependencies.setText(file_path)
         else:
             self._dependencies.setText("")
@@ -157,9 +157,9 @@ class QEditDatasets(qtw.QDialog):
             if dependency_txt != dependency_error_str:
                 try:
                     dependencies = filehandler.read_csv(
-                        self._dependencies.text(), dtype=int
+                        self._dependencies.text(), data_type=int
                     )
-                except Exception:
+                except FileNotFoundError:
                     self._dependencies.setText(dependency_error_str)
                     return
                 if dependencies.shape[0] < 0 or dependencies.shape[1] != len(scheme):
