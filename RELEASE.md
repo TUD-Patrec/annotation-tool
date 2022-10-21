@@ -62,7 +62,7 @@ The CI/CD pipeline needs API keys to be able to upload the compiled package to P
 - `TESTPYPI_TOKEN`: This is the API token to upload the project to TestPyPI.
 - `PYPI_TOKEN`: This is the API token to upload the project to PyPI.
 
-Make sure to define these variables as **protected** and **masked**.
+Make sure to define these variables as **protected** and **masked**. If you generate an owncloud link, it should have permissions to upload **and** change files. The ability to change files is needed to overwrite the executables with new versions.
 
 [semver]: https://semver.org/ "Semantic Versioning"
 [gitflow]: https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow "Gitflow Workflow"
