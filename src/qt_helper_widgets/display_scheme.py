@@ -16,7 +16,7 @@ def format_str(s, characters_per_line, line_start=""):
 
 class QShowAnnotation(qtw.QWidget):
     def __init__(self, *args, **kwargs):
-        super(QShowAnnotation, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.form = qtw.QFormLayout(self)
 
     def show_annotation(self, annotation):

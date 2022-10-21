@@ -10,7 +10,7 @@ from src.dialogs.annotation_dialog import QAnnotationDialog
 
 class ManualAnnotation(AnnotationBaseClass):
     def __init__(self):
-        super(ManualAnnotation, self).__init__()
+        super().__init__()
 
         self.mode = AnnotationMode.MANUAL
 

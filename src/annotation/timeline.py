@@ -145,12 +145,19 @@ class QTimeLine(qtw.QWidget):
 
             time_stamp = FrameTimeMapper.instance().frame_to_ms(frame_idx)
             time_stamp = ms_to_time_string(time_stamp)
+            time_stamp = time_stamp.split(":")
+            time_stamp = ":".join(time_stamp[:-1])
 
             start_pos = int(pos) - WIDTH_TEXT // 2
 
             # Draw time_stamps and frame_numbers
             qp.drawText(
-                start_pos, 0, WIDTH_TEXT, HEIGHT_TEXT, qtc.Qt.AlignHCenter, time_stamp
+                start_pos,
+                0,
+                WIDTH_TEXT,
+                HEIGHT_TEXT,
+                qtc.Qt.AlignHCenter,
+                str(frame_idx),
             )
             lower_text_y = (
                 MARGIN_HORIZONTAL_LINES
@@ -164,7 +171,7 @@ class QTimeLine(qtw.QWidget):
                 WIDTH_TEXT,
                 HEIGHT_TEXT,
                 qtc.Qt.AlignHCenter,
-                str(frame_idx),
+                time_stamp,
             )
 
             pos += dist

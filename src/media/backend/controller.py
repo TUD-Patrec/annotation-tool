@@ -25,7 +25,7 @@ class QMediaMainController(qtw.QWidget):
     cleaned_up = qtc.pyqtSignal()
 
     def __init__(self, *args, **kwargs):
-        super(QMediaMainController, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.replay_widgets = []
 
         self.grid = qtw.QGridLayout(self)

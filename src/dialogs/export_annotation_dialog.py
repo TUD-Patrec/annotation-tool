@@ -5,13 +5,13 @@ import shutil
 import PyQt5.QtWidgets as qtw
 import numpy as np
 
-from ..qt_helper_widgets.line_edit_adapted import QLineEditAdapted
-from ..utility import filehandler, functions
+from src.qt_helper_widgets.line_edit_adapted import QLineEditAdapted
+from src.utility import filehandler, functions
 
 
 class QExportAnnotationDialog(qtw.QDialog):
     def __init__(self, *args, **kwargs):
-        super(QExportAnnotationDialog, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         form = qtw.QFormLayout()
         self.annotation_combobox = qtw.QComboBox()
 
@@ -141,7 +141,7 @@ class QExportAnnotationDialog(qtw.QDialog):
         # Export meta-informations
         if self.export_meta_informations.isChecked():
             logging.info("Exporting meta-informations")
-            meta_dict = dict()
+            meta_dict = {}
             meta_dict["name"] = annotation.name
             meta_dict["dataset_name"] = annotation.dataset.name
             meta_dict["annotator_id"] = annotation.annotator_id

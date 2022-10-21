@@ -13,7 +13,7 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
     samples_changed = qtc.pyqtSignal(list, Sample)
 
     def __init__(self, *args, **kwargs):
-        super(AnnotationBaseClass, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Controlled Widgets
         self.main_widget = None
@@ -33,8 +33,8 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
         self.MAX_UNDO_STACK_SIZE = 50
 
         # undo-redo behavior
-        self.undo_stack = list()
-        self.redo_stack = list()
+        self.undo_stack = []
+        self.redo_stack = []
 
     # SLOTS
     @qtc.pyqtSlot(list, AnnotationScheme, np.ndarray, int)

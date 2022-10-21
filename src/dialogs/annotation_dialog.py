@@ -15,7 +15,7 @@ class QAnnotationDialog(qtw.QDialog):
         *args,
         **kwargs
     ):
-        super(QAnnotationDialog, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.sample = sample
         self.scheme = scheme
         self.dependencies = dependencies
@@ -61,7 +61,7 @@ class QAnnotationDialog(qtw.QDialog):
 
         idx = 0
         self.buttons = []
-        self.button_to_idx_map = dict()
+        self.button_to_idx_map = {}
 
         group_buttons = []
         last_elem = None
@@ -265,7 +265,7 @@ class QPushButtonAdapted(qtw.QPushButton):
 
 class QAdaptiveScrollArea(qtw.QWidget):
     def __init__(self, buttons, no_scroll=False, parent=None):
-        super(QAdaptiveScrollArea, self).__init__(parent=parent)
+        super().__init__(parent=parent)
         self.buttons = buttons
         self.elements_per_row = 3
         self.no_scroll = no_scroll

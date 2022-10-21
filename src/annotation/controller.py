@@ -18,14 +18,14 @@ class AnnotationController(qtc.QObject):
     sync_position = qtc.pyqtSignal()
 
     def __init__(self, *args, **kwargs):
-        super(AnnotationController, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.controller: AnnotationBaseClass = None
         self.change_mode(AnnotationMode.MANUAL)
 
     # SLOTS
     @qtc.pyqtSlot(AnnotationMode)
     def change_mode(self, mode):
-        assert mode in [m for m in AnnotationMode]
+        assert mode in list(AnnotationMode)
 
         prev_controller = self.controller
         # only change if the selected mode differs from the current mode

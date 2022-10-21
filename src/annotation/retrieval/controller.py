@@ -28,7 +28,7 @@ class RetrievalAnnotation(AnnotationBaseClass):
     update_UI = qtc.pyqtSignal(Query, object)
 
     def __init__(self):
-        super(RetrievalAnnotation, self).__init__()
+        super().__init__()
 
         self.mode = AnnotationMode.RETRIEVAL
 
@@ -140,25 +140,14 @@ class RetrievalAnnotation(AnnotationBaseClass):
             # add to annotated_windows
             annotated_windows.append([w, tmp])
 
-        acc1 = 0
-        acc2 = 0
-
         # run over annotated windows and do majority-vote
         for w, annotation_list in annotated_windows:
-            t1 = time.perf_counter()
             anno = self.majority_vote(annotation_list)
-            t2 = time.perf_counter()
-            acc1 += t2 - t1
             if anno:
                 sample = Sample(w[0], w[1], anno)
-                t3 = time.perf_counter()
                 self.insert_sample(sample)
-                t4 = time.perf_counter()
-                acc2 += t4 - t3
         end = time.perf_counter()
-        logging.debug(
-            f"check_for_new_sample took {end - start}ms. {acc1 = }ms | {acc2 = }ms."
-        )
+        logging.debug(f"check_for_new_sample took {end - start}ms.")
 
     def majority_vote(self, annotation):
         if len(annotation) >= 0:
@@ -185,7 +174,6 @@ class RetrievalAnnotation(AnnotationBaseClass):
                 l, r = self.current_interval.start, self.current_interval.end
                 self.start_loop.emit(l, r)
         except StopIteration:
-            logging.debug("StopIteration reached")
             self.current_interval = None
         self.update_UI.emit(self.query, self.current_interval)
 
@@ -365,5 +353,4 @@ class RetrievalAnnotation(AnnotationBaseClass):
             1,
             min(int(self.interval_size * (1 - self.overlap)), self.interval_size),
         )
-        logging.info(f"{res = }")
         return res

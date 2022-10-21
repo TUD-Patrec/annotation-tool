@@ -31,16 +31,15 @@ def scale(N: int, M: int, x: int) -> Tuple[int, int]:
     if isinstance(N, int) and isinstance(M, int) and isinstance(x, int):
         if N == M:
             return x, x
-        elif N > M:
+        if N > M:
             return (x * M) // N, (x * M) // N
-        elif N < M:
+        if N < M:
             lo = (x * M) // N if (x * M) % N == 0 else (x * M) // N + 1
             hi = (
                 ((x + 1) * M) // N - 1 if ((x + 1) * M) % N == 0 else ((x + 1) * M) // N
             )
             return lo, hi
-    else:
-        raise ValueError
+    raise ValueError
 
 
 def scale_functions(N: int, M: int, last_to_last: bool = False):
@@ -70,7 +69,7 @@ def ms_to_time_string(ms: int) -> str:
         ms (int): Milliseconds.
 
     Returns:
-        str: String representation formatted as mm:ss:mm.
+        str: String representation formatted as mm:ss:mmm.
     """
     mins = ms // (60 * 1000)
     ms %= 60 * 1000
@@ -156,8 +155,7 @@ class FrameTimeMapper:
         if self.use_time:
             millisecs = self._frame_to_ms(frame)[0]
             return ms_to_time_string(millisecs)
-        else:
-            return str(frame)
+        return str(frame)
 
     def frame_to_ms(self, frame: int) -> int:
         """Map frame-position to time-position.
