@@ -103,7 +103,7 @@ build linux executable:
     - !reference [.version_from_tag, script]
     - /entrypoint.sh --onefile --noconsole --name annotation-tool main.py
     - mv "dist/linux/annotation-tool" "${CI_PROJECT_DIR}/annotation-tool-linux"
-    - 'if [[ ! -z "${OWNCLOUD_KEY}" ]]; then curl -k -T annotation-tool-linux -u "${OWNCLOUD_KEY}:${OWNCLOUD_PASSWORD}" -H "X-Requested-With: XMLHttpRequest" https://owncloud.cs.tu-dortmund.de/public.php/webdav/annotation-tool-linux; fi'
+    - 'if [[ ! -z "${OWNCLOUD_KEY}" ]]; then curl -k -T annotation-tool-linux -u "${SCIEBO_KEY}:${SCIEBO_PASSWORD}" -H "X-Requested-With: XMLHttpRequest" https://tu-dortmund.sciebo.de/public.php/webdav/annotation-tool-linux; fi'
   rules:
     - !reference [.default_rules, master-version]
     - !reference [.default_rules, manual-version]
@@ -121,7 +121,7 @@ build windows executable:
     - !reference [.version_from_tag_win, script]
     - /entrypoint.sh --onefile --noconsole --name annotation-tool main.py
     - mv "dist/windows/annotation-tool.exe" "${CI_PROJECT_DIR}/annotation-tool-windows.exe"
-    - 'if [[ ! -z "${OWNCLOUD_KEY}" ]]; then curl -k -T annotation-tool-windows.exe -u "${OWNCLOUD_KEY}:${OWNCLOUD_PASSWORD}" -H "X-Requested-With: XMLHttpRequest" https://owncloud.cs.tu-dortmund.de/public.php/webdav/annotation-tool-windows.exe; fi'
+    - 'if [[ ! -z "${OWNCLOUD_KEY}" ]]; then curl -k -T annotation-tool-windows.exe -u "${SCIEBO_KEY}:${SCIEBO_PASSWORD}" -H "X-Requested-With: XMLHttpRequest" https://tu-dortmund.sciebo.de/public.php/webdav/annotation-tool-windows.exe; fi'
   rules:
     - !reference [.default_rules, master-version]
     - !reference [.default_rules, manual-version]
