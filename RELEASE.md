@@ -57,12 +57,12 @@ The following ToDos need to be completed on a release branch. (see above)
 
 The CI/CD pipeline needs API keys to be able to upload the compiled package to PyPI/TestPyPI. These API keys can be changed/added under *Settings -> CI/CD -> Variables*. Currently we have the following variables defined:
 
-- `OWNCLOUD_KEY`: If you share a folder in owncloud you get a URL similar to `<owncloud server url>/index.php/s/<owncloud key>`. The part marked with `<owncloud key>` should be saved in `OWNCLOUD_KEY`.
-- `OWNCLOUD_PASSWORD`: You should also create a password for the shared URL. The very same password get's stored in this variable.
+- `SCIEBO_KEY`: If you share a folder in sciebo you get a URL similar to `<sciebo server url>/index.php/s/<sciebo key>`. The part marked with `<sciebo key>` should be saved in `SCIEBO_KEY`.
+- `SCIEBO_PASSWORD`: You should also create a password for the shared URL. The very same password get's stored in this variable.
 - `TESTPYPI_TOKEN`: This is the API token to upload the project to TestPyPI.
 - `PYPI_TOKEN`: This is the API token to upload the project to PyPI.
 
-Make sure to define these variables as **protected** and **masked**. If you generate an owncloud link, it should have permissions to upload **and** change files. The ability to change files is needed to overwrite the executables with new versions.
+Make sure to define these variables as **protected** and **masked**. If you generate an sciebo link, it should have permissions to upload **and** change files. The ability to change files is needed to overwrite the executables with new versions.
 
 [semver]: https://semver.org/ "Semantic Versioning"
 [gitflow]: https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow "Gitflow Workflow"
