@@ -25,11 +25,11 @@ image: python:3.9
 
 .version_from_tag:
   script:
-    - poetry version ${CI_COMMIT_TAG}
+    - poetry version $( echo ${CI_COMMIT_TAG} | sed "s/^v//g" )
 
 .version_from_tag_win:
   script:
-    - /usr/win64/bin/poetry version ${CI_COMMIT_TAG}
+    - /usr/win64/bin/poetry version $( echo ${CI_COMMIT_TAG} | sed "s/^v//g" )
 
 .setup_pypi:
   script:
