@@ -1,6 +1,9 @@
 <div align="center">
 
-![](https://img.shields.io/badge/license-MIT-green)
+![PyPI](https://img.shields.io/pypi/v/annotation-tool)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/annotation-tool)
+![PyPI - License](https://img.shields.io/pypi/l/annotation-tool?color=brightgreen)
+![PyPI - Wheel](https://img.shields.io/pypi/wheel/annotation-tool)
 
 </div>
 
