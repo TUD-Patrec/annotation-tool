@@ -8,6 +8,7 @@ version = "0.3.1"
 description = "Tool for annotating time series data from sources such as IMUs, MoCap, Videos and more."
 readme = "README.md"
 license = "MIT"
+homepage = "https://gitlab.com/wilfer9008/annotation-tool"
 authors = [
     "Fernando Moya Rueda <fernando.moya@cs.tu-dortmund.de>",
     "Erik Altermann <erik.altermann@tu-dortmund.de>",
