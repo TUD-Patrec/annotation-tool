@@ -7,30 +7,30 @@ import numpy as np
 matplotlib.use("Qt5Agg")
 
 
-class Histogram_Widget(qtw.QWidget):
+class HistogramWidget(qtw.QWidget):
     def __init__(self, *args, **kwargs):
-        super(Histogram_Widget, self).__init__(*args, **kwargs)
+        super(HistogramWidget, self).__init__(*args, **kwargs)
 
         self.position = 0
         self.data = None
+        self.current_color = None
 
-        # a figure instance to plot on
-        self.figure = plt.figure()
+        # figure to plot on
+        self.figure = plt.figure(figsize=(8, 6), dpi=80)
 
-        # this is the Canvas Widget that displays the `figure`
+        # canvas Widget that displays the fig
         self.canvas = FigureCanvas(self.figure)
 
-        # set the layout
-        layout = qtw.QVBoxLayout()
-        layout.addWidget(self.canvas)
-        self.setLayout(layout)
+        # layout
+        self.layout = qtw.QVBoxLayout(self)
+        self.layout.addWidget(self.canvas)
 
-        self.setFixedHeight(200)
+        self.setFixedHeight(175)
 
     def reset(self):
         self.position = 0
         self.data = None
-        self.figure.clear()
+        self.plot()
 
     def update_position(self, new_pos):
         self.position = new_pos
@@ -52,16 +52,21 @@ class Histogram_Widget(qtw.QWidget):
 
     def plot(self):
         self.figure.clear()
+        color = self.palette().window().color().name()
+        if self.current_color is None or color != self.current_color:
+            ax = plt.axes()
+            ax.set_facecolor(color)
+            self.figure.set_facecolor(color)
         if self.plot_possible():
             data = self.data
             position = self.position
 
             plt.axvline(x=position, color="r", label="")
-            # plt.hist(data, bins=25)
-            plt.hist(data, range=(0, np.max(data)), bins=25)
-            self.canvas.draw()
-
-    def norm_to_percentage(self, x):
-        lower, upper = np.min(self.data), np.max(self.data)
-        res = 100 * (x - lower) / (upper - lower)
-        return np.array(res, dtype=np.int64) if isinstance(x, np.ndarray) else int(res)
+            plt.hist(data, range=(0, 1), bins=25, density=True, facecolor="g")
+            plt.yticks([])
+            plt.xticks([0, 1], [0, 1])
+        else:
+            plt.yticks([])
+            plt.xticks([])
+        plt.box(False)
+        self.canvas.draw()

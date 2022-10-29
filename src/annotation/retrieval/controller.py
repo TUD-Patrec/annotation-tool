@@ -183,7 +183,9 @@ class RetrievalAnnotation(AnnotationBaseClass):
             self.query = Query(intervals)
             self.query.change_filter(self.filter_criterion)
             self.load_next()
-        except Exception:
+        except Exception as e:
+            logging.error(repr(e))
+
             msg = qtw.QMessageBox()
             msg.setIcon(qtw.QMessageBox.Critical)
             msg.setText("Running the network failed!")

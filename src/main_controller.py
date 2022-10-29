@@ -188,6 +188,14 @@ class MainApplication(qtw.QApplication):
 
         toggle_stylesheet(settings.darkmode)
 
+        # hack for updating color of histogram in retrieval-widget
+        from src.annotation.retrieval.controller import RetrievalAnnotation
+
+        if self.annotation_controller is not None and isinstance(
+            self.annotation_controller.controller, RetrievalAnnotation
+        ):
+            self.annotation_controller.controller.main_widget.histogram.plot()
+
 
 def toggle_stylesheet(darkmode):
     """
@@ -224,6 +232,7 @@ def main():
     app.setStyle("Fusion")
 
     settings = Settings.instance()
+
     custom_font = qtg.QFont()
     custom_font.setPointSize(settings.font)
     app.setFont(custom_font)

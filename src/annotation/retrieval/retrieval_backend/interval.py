@@ -18,14 +18,25 @@ class Interval:
         return Sample(self.start, self.end, self.annotation)
 
 
-def create_sub_intervals(intervals, stepsize, interval_size):
+def create_sub_intervals(intervals, step, interval_size):
     res = []
     for intrvl in intervals:
-        res += partition_interval(intrvl, stepsize, interval_size)
+        res += partition_interval(intrvl, step, interval_size)
     return res
 
 
-def partition_interval(interval, stepsize, interval_size):
+def partition_interval(interval, step, interval_size):
+    partitions = []
+    lo, hi = interval
+    while lo <= hi:
+        part = (lo, min(hi, lo + interval_size - 1))
+        partitions.append(part)
+        lo += step
+    return partitions
+
+
+# not used currently
+def partition_interval__(interval, step, interval_size):
     # ascending
     asc_partition = []
     lo, hi = interval
@@ -33,7 +44,7 @@ def partition_interval(interval, stepsize, interval_size):
     while lo + interval_size - 1 <= hi:
         upper = lo + interval_size - 1
         asc_partition.append((lo, upper))
-        lo = lo + stepsize
+        lo = lo + step
 
     # descending
     desc_partition = []
@@ -42,7 +53,7 @@ def partition_interval(interval, stepsize, interval_size):
     while lo + interval_size - 1 <= hi:
         lower = hi - interval_size + 1
         desc_partition.append((lower, hi))
-        hi = hi - stepsize
+        hi = hi - step
 
     # join both lists
     combined_partition = []
@@ -79,7 +90,7 @@ def create_smallest_description(intervals):
     return res
 
 
-def generate_intervals(ranges, stepsize, interval_size):
+def generate_intervals(ranges, step, interval_size):
     if len(ranges) == 0:
         return []
 
@@ -88,7 +99,7 @@ def generate_intervals(ranges, stepsize, interval_size):
     print(f"{ranges = }")
 
     # create sub_intervals inside each range
-    sub_intervals = create_sub_intervals(ranges, stepsize, interval_size)
+    sub_intervals = create_sub_intervals(ranges, step, interval_size)
     print(f"{sub_intervals = }")
 
     return sub_intervals

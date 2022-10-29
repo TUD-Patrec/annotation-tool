@@ -3,7 +3,7 @@ import PyQt5.QtWidgets as qtw
 
 from src.annotation.retrieval.retrieval_backend.query import Query
 from src.qt_helper_widgets.display_scheme import QShowAnnotation
-from src.qt_helper_widgets.histogram import Histogram_Widget
+from src.qt_helper_widgets.histogram import HistogramWidget
 from src.qt_helper_widgets.lines import QHLine
 from src.utility.decorators import accepts
 
@@ -37,7 +37,9 @@ class QRetrievalWidget(qtw.QWidget):
 
         self.main_widget = QShowAnnotation(self)
 
-        self.histogram = Histogram_Widget()
+        self.histogram = HistogramWidget()
+        self.histogram.ensurePolished()  # updates style of the widget before presenting
+        self.histogram.plot()
 
         self.button_group = qtw.QWidget()
         self.button_group.setLayout(qtw.QHBoxLayout())
@@ -54,16 +56,14 @@ class QRetrievalWidget(qtw.QWidget):
         self.reject_button.clicked.connect(lambda _: self.reject_interval.emit())
         self.button_group.layout().addWidget(self.reject_button)
 
-        self.similarity_label = qtw.QLabel(self)
+        # self.similarity_label = qtw.QLabel(self)
         self.progress_label = qtw.QLabel(format_progress(0, 0), self)
 
         self.footer_widget = qtw.QWidget()
-        self.footer_widget.setLayout(qtw.QGridLayout())
-        self.footer_widget.layout().addWidget(qtw.QLabel("Similarity", self), 0, 0)
-        self.footer_widget.layout().addWidget(self.similarity_label, 0, 1)
+        self.footer_widget.setLayout(qtw.QHBoxLayout())
 
-        self.footer_widget.layout().addWidget(qtw.QLabel("Progress:", self), 1, 0)
-        self.footer_widget.layout().addWidget(self.progress_label, 1, 1)
+        self.footer_widget.layout().addWidget(qtw.QLabel("Progress:", self))
+        self.footer_widget.layout().addWidget(self.progress_label)
 
         vbox = qtw.QVBoxLayout()
 
@@ -71,12 +71,16 @@ class QRetrievalWidget(qtw.QWidget):
         vbox.addWidget(QHLine())
         vbox.addWidget(self.main_widget, alignment=qtc.Qt.AlignCenter, stretch=1)
         vbox.addWidget(QHLine())
-        vbox.addWidget(self.histogram)
+
+        vbox.addWidget(self.histogram, alignment=qtc.Qt.AlignCenter)
         vbox.addWidget(QHLine())
         vbox.addWidget(self.button_group, alignment=qtc.Qt.AlignCenter)
         vbox.addWidget(QHLine())
         vbox.addWidget(self.footer_widget, alignment=qtc.Qt.AlignCenter)
         self.setLayout(vbox)
+
+        vbox.setContentsMargins(0, 0, 0, 0)
+
         self.setFixedWidth(400)
 
     # Display the current interval to the user:
@@ -116,7 +120,6 @@ class QRetrievalWidget(qtw.QWidget):
             sim = current_interval.similarity
 
         data = query.similarity_distribution()
-        self.similarity_label.setText(f"{sim :.3f}")
 
         if data.shape[0] > 0:
             self.histogram.plot_data(data, sim)
