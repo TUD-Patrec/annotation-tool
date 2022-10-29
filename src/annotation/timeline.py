@@ -120,7 +120,6 @@ class QTimeLine(qtw.QWidget):
 
     def paintEvent(self, event):
         # set some constants
-        N_TICKS = 15
         HEIGHT_SAMPLE = 70
         MARGIN_SAMPLE = 10
         WIDTH_TEXT = 100
@@ -130,7 +129,7 @@ class QTimeLine(qtw.QWidget):
         MARGIN_HORIZONTAL_LINES = 40
 
         # step_size between ticks
-        dist = self.width() / (N_TICKS + 1)
+        dist = 100
 
         qp = qtg.QPainter()
         qp.begin(self)
@@ -140,7 +139,7 @@ class QTimeLine(qtw.QWidget):
 
         # Draw time
         pos = dist
-        while pos < self.width() - int(dist):
+        while pos < self.width():
             frame_idx = self._pixel_to_frame(int(pos))[0]
 
             time_stamp = FrameTimeMapper.instance().frame_to_ms(frame_idx)

@@ -18,6 +18,7 @@ from src.annotation.retrieval.retrieval_backend.interval import (
     generate_intervals,
 )
 from src.annotation.retrieval.retrieval_backend.query import Query
+from src.annotation.retrieval.tool_widget import RetrievalTools
 from src.dataclasses import Annotation, Sample, Settings
 from src.dialogs.annotation_dialog import QAnnotationDialog
 from src.network.LARa.lara_specifics import get_annotation_vector
@@ -33,6 +34,13 @@ class RetrievalAnnotation(AnnotationBaseClass):
         self.mode = AnnotationMode.RETRIEVAL
 
         self.main_widget = QRetrievalWidget()
+
+        # tool widget
+        self.tool_widget = RetrievalTools()
+        self.tool_widget.accept_interval.connect(self.accept_interval)
+        self.tool_widget.modify_interval.connect(self.modify_interval)
+        self.tool_widget.reject_interval.connect(self.reject_interval)
+        self.tool_widget.change_filter.connect(self.change_filter)
 
         # Constants
         self.TRIES_PER_INTERVAL = math.inf

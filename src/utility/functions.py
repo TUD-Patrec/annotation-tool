@@ -34,10 +34,15 @@ def scale(N: int, M: int, x: int) -> Tuple[int, int]:
         if N > M:
             return (x * M) // N, (x * M) // N
         if N < M:
-            lo = (x * M) // N if (x * M) % N == 0 else (x * M) // N + 1
-            hi = (
-                ((x + 1) * M) // N - 1 if ((x + 1) * M) % N == 0 else ((x + 1) * M) // N
-            )
+            if N > 0:
+                lo = (x * M) // N if (x * M) % N == 0 else (x * M) // N + 1
+                hi = (
+                    ((x + 1) * M) // N - 1
+                    if ((x + 1) * M) % N == 0
+                    else ((x + 1) * M) // N
+                )
+            else:
+                lo, hi = 0, M - 1
             return lo, hi
     raise ValueError
 

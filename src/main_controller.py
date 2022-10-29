@@ -41,9 +41,9 @@ class MainApplication(qtw.QApplication):
         self.media_player = QMediaWidget()
         self.timeline = QTimeLine()
 
-        self.gui.set_widget(self.playback, LayoutPosition.LEFT)
+        self.gui.set_widget(self.playback, LayoutPosition.TOP_LEFT)
         self.gui.set_widget(self.media_player, LayoutPosition.MIDDLE)
-        self.gui.set_widget(self.timeline, LayoutPosition.BOTTOM_RIGHT)
+        self.gui.set_widget(self.timeline, LayoutPosition.BOTTOM_MIDDLE)
 
         # CONNECTIONS
         # from QPlaybackWidget

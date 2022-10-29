@@ -15,11 +15,6 @@ def format_progress(x, y):
 
 
 class QRetrievalWidget(qtw.QWidget):
-    change_filter = qtc.pyqtSignal()
-    accept_interval = qtc.pyqtSignal()
-    reject_interval = qtc.pyqtSignal()
-    modify_interval = qtc.pyqtSignal()
-
     def __init__(self, *args, **kwargs):
         super(QRetrievalWidget, self).__init__(*args, **kwargs)
         self.is_enabled = True
@@ -30,31 +25,13 @@ class QRetrievalWidget(qtw.QWidget):
         self.filter_widget.setLayout(qtw.QHBoxLayout())
         self.filter_widget.layout().addWidget(qtw.QLabel("Filter:"))
         self.filter_active = qtw.QLabel("Inactive")
-        self.modify_filter = qtw.QPushButton("Select Filter")
-        self.modify_filter.clicked.connect(lambda _: self.change_filter.emit())
         self.filter_widget.layout().addWidget(self.filter_active)
-        self.filter_widget.layout().addWidget(self.modify_filter)
 
         self.main_widget = QShowAnnotation(self)
 
         self.histogram = HistogramWidget()
         self.histogram.ensurePolished()  # updates style of the widget before presenting
         self.histogram.plot()
-
-        self.button_group = qtw.QWidget()
-        self.button_group.setLayout(qtw.QHBoxLayout())
-
-        self.accept_button = qtw.QPushButton("ACCEPT", self)
-        self.accept_button.clicked.connect(lambda _: self.accept_interval.emit())
-        self.button_group.layout().addWidget(self.accept_button)
-
-        self.modify_button = qtw.QPushButton("MODIFY", self)
-        self.modify_button.clicked.connect(lambda _: self.modify_interval.emit())
-        self.button_group.layout().addWidget(self.modify_button)
-
-        self.reject_button = qtw.QPushButton("REJECT", self)
-        self.reject_button.clicked.connect(lambda _: self.reject_interval.emit())
-        self.button_group.layout().addWidget(self.reject_button)
 
         # self.similarity_label = qtw.QLabel(self)
         self.progress_label = qtw.QLabel(format_progress(0, 0), self)
@@ -73,8 +50,6 @@ class QRetrievalWidget(qtw.QWidget):
         vbox.addWidget(QHLine())
 
         vbox.addWidget(self.histogram, alignment=qtc.Qt.AlignCenter)
-        vbox.addWidget(QHLine())
-        vbox.addWidget(self.button_group, alignment=qtc.Qt.AlignCenter)
         vbox.addWidget(QHLine())
         vbox.addWidget(self.footer_widget, alignment=qtc.Qt.AlignCenter)
         self.setLayout(vbox)

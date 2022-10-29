@@ -76,11 +76,11 @@ class QPlaybackWidget(qtw.QWidget):
 
         vbox = qtw.QVBoxLayout(self)
         vbox.addWidget(self.toolbar, stretch=1, alignment=qtc.Qt.AlignCenter)
-        vbox.addWidget(qtw.QLabel("Replay\nSpeed"))
-        vbox.addWidget(self.replay_speed_widget)
+        vbox.addWidget(qtw.QLabel("Replay\nSpeed"), alignment=qtc.Qt.AlignCenter)
+        vbox.addWidget(self.replay_speed_widget, alignment=qtc.Qt.AlignCenter)
         vbox.addWidget(QHLine())
-        vbox.addWidget(qtw.QLabel("Position"))
-        vbox.addWidget(self.lbl)
+        vbox.addWidget(qtw.QLabel("Position"), alignment=qtc.Qt.AlignCenter)
+        vbox.addWidget(self.lbl, alignment=qtc.Qt.AlignCenter)
         self.setLayout(vbox)
 
     @qtc.pyqtSlot(int)
