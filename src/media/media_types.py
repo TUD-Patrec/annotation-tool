@@ -9,7 +9,7 @@ import filetype
 class MediaType(enum.Enum):
     UNKNOWN = 0
     VIDEO = 1
-    LARA_MOCAP = 2
+    MOCAP = 2
 
 
 def is_video(path) -> bool:
@@ -50,7 +50,7 @@ def is_LARA_mocap(path) -> bool:
         return False
 
 
-selector_map = {MediaType.VIDEO: is_video, MediaType.LARA_MOCAP: is_LARA_mocap}
+selector_map = {MediaType.VIDEO: is_video, MediaType.MOCAP: is_LARA_mocap}
 
 
 __cached_media_types__ = {}

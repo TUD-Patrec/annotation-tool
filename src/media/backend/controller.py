@@ -65,7 +65,7 @@ class QMediaMainController(qtw.QWidget):
             media_type = media_type_of(path)
             if media_type == MediaType.VIDEO:
                 widget = VideoPlayer(is_main_widget, self)
-            if media_type == MediaType.LARA_MOCAP:
+            if media_type == MediaType.MOCAP:
                 widget = MocapPlayer(is_main_widget, self)
 
             if widget.is_main_replay_widget:

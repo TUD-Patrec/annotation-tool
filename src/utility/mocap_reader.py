@@ -22,7 +22,7 @@ def load_mocap(path: os.PathLike, normalize=False) -> np.ndarray:
     Returns:
         np.ndarray: Array containing the loaded motion-capture data.
     """
-    if media_type_of(path) == MediaType.LARA_MOCAP:
+    if media_type_of(path) == MediaType.MOCAP:
         try:
             return __load_lara_mocap__(path, normalize)
         except Exception:

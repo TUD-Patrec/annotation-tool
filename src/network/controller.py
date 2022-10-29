@@ -135,7 +135,7 @@ def __load_raw_data__(file: os.PathLike, media_type: MediaType = None) -> np.nda
     if media_type is None:
         media_type = media_type_of(file)
 
-    if media_type == MediaType.LARA_MOCAP:
+    if media_type == MediaType.MOCAP:
         data = load_mocap(file, normalize=False)
     elif media_type == MediaType.VIDEO:
         raise NotImplementedError
@@ -151,7 +151,7 @@ __cached_network__ = {}  # static variable for caching
 def __load_network__(media_type: MediaType) -> Tuple[Network, dict]:
     # find best fitting network
 
-    if media_type == MediaType.LARA_MOCAP:
+    if media_type == MediaType.MOCAP:
         path_networks = Paths.instance().networks
 
         # lara_path = "attrib_network.pt"
@@ -174,7 +174,7 @@ def __load_network__(media_type: MediaType) -> Tuple[Network, dict]:
         config = __cached_network__.get("config")
         return network, config
     else:
-        if media_type == MediaType.LARA_MOCAP:
+        if media_type == MediaType.MOCAP:
             return __load_lara_network__(network_path)
         elif media_type == MediaType.VIDEO:
             raise NotImplementedError
@@ -214,7 +214,7 @@ def __load_video_network(network_path: os.PathLike) -> Tuple[Network, dict]:
 
 
 def __preprocess__(data, media_type: MediaType) -> np.ndarray:
-    if media_type == MediaType.LARA_MOCAP:
+    if media_type == MediaType.MOCAP:
         data = __preprocess_lara__(data)
     elif media_type == MediaType.VIDEO:
         data = __preprocess_video__(data)
@@ -282,7 +282,7 @@ if __name__ == "__main__":
 
     # run_network(0, 1000)
 
-    network, cfg = __load_network__(MediaType.LARA_MOCAP)
+    network, cfg = __load_network__(MediaType.MOCAP)
 
     input_vec = torch.randn(1, 1, 200, 126)
     print("input_vec", input_vec)

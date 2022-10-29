@@ -151,30 +151,7 @@ def write_json(path: os.PathLike, data: dict) -> None:
         json.dump(data, f, indent=4)
 
 
-def read_csv(path: os.PathLike, data_type: np.dtype = np.float64) -> np.ndarray:
-    """Read csv-file to numpy array.
-
-    Args:
-        path (os.PathLike): Input-file.
-        data_type (np.dtype, optional): dtype for the created numpy array.
-        Defaults to np.float64.
-
-    Raises:
-        FileNotFoundError: Raised if no file could be read.
-
-    Returns:
-        np.ndarray: Array containing the raw data.
-    """
-    if is_non_zero_file(path):
-        has_header, delimiter = __sniff_csv__(path)
-        print(has_header, delimiter)
-        data = np.genfromtxt(path, delimiter=delimiter, skip_header=has_header)
-        return data.astype(data_type)
-    else:
-        raise FileNotFoundError(f"{path} does not hold a non-empty file.")
-
-
-def __sniff_csv__(path: os.PathLike) -> Tuple[bool, str]:
+def __sniff_csv__(path: os.PathLike) -> Tuple[int, str]:
     """Try to read some useful information about the given csv needed for loading
     the file.
 
@@ -182,40 +159,88 @@ def __sniff_csv__(path: os.PathLike) -> Tuple[bool, str]:
         path (os.PathLike): Path to csv.
 
     Returns:
-        Tuple[bool, str]: (has_header, delimiter).
+        Tuple[int, str]: (#Header_Rows, delimiter).
     """
     # grab first few rows from the csv-file
-    n_rows = 5
+    n_rows = 10
     with open(path, "r") as csvfile:
         lines = [csvfile.readline() for _ in range(n_rows)]
 
+    n_headers = 0
+
+    while __has_header__("".join(lines[n_headers:])):
+        n_headers += 1
+
     csv_test_bytes = "".join(lines)
 
-    # check header
+    # check delimiter
     try:
-        has_header = csv.Sniffer().has_header(
-            csv_test_bytes
-        )  # Check to see if there's a header in the file.
-
+        dialect = csv.Sniffer().sniff(csv_test_bytes, delimiters=",;")
+        delimiter = dialect.delimiter
     except Exception:
+        # defaults to ,
+        delimiter = ","
+
+    return n_headers, delimiter
+
+
+def __has_header__(csv_test_bytes: str) -> bool:
+    def __heuristic_header_check__(csv_test_bytes: str) -> bool:
         # heuristic approach -> check first line for non-algebraic characters
-        header_line = lines[0]
+        header_line = csv_test_bytes.split("\n")[0]
         header_chars = set(header_line)
         alg_chars = set(string.digits + "," + " " + "." + "_" + "e" + "-" + "+" + "\n")
         only_alg_chars = header_chars <= alg_chars
 
         # if first row is already data then there is no header
         has_header = not only_alg_chars
+        return has_header
 
-        # check delimiter
+    # check header
     try:
-        dialect = csv.Sniffer().sniff(csv_test_bytes)
-        delimiter = dialect.delimiter
+        has_header = csv.Sniffer().has_header(
+            csv_test_bytes
+        )  # Check to see if there's a header in the file.
+        return has_header or __heuristic_header_check__(csv_test_bytes)
     except Exception:
-        # default to ,
-        delimiter = ","
+        # only use __heuristic_header__check result
+        return __heuristic_header_check__(csv_test_bytes)
 
-    return has_header, delimiter
+
+def read_csv(
+    path: os.PathLike, data_type: np.dtype = np.float64, NaN_behavior: str = "remove"
+) -> np.ndarray:
+    """Read csv-file to numpy array.
+
+    Args:
+        path (os.PathLike): Input-file.
+        data_type (np.dtype, optional): dtype for the created numpy array.
+        Defaults to np.float64.
+        NaN_behavior (str, optional): behavior of how NaN-Rows should be treated.
+        Possible Values are "remove" -> removes row,
+        "keep" (Same as None) -> keeps NaN Values,
+        "zero" -> replaces each NaN by 0
+
+    Raises:
+        FileNotFoundError: Raised if no file could be read.
+
+    Returns:
+        np.ndarray: Array containing the raw data.
+    """
+    n_headers, delimiter = __sniff_csv__(path)
+    data = np.genfromtxt(path, delimiter=delimiter, skip_header=n_headers)
+
+    if NaN_behavior is None or NaN_behavior == "keep":
+        pass
+    elif NaN_behavior == "remove":
+        data = data[~np.isnan(data).any(axis=1)]
+    elif NaN_behavior == "zero":
+        data = np.nan_to_num(data)
+    else:
+        raise ValueError(f"NaN_behavior {NaN_behavior} is not a valid input!")
+
+    data = data.astype(data_type)
+    return data
 
 
 def write_csv(path, data: np.ndarray) -> None:
@@ -337,7 +362,7 @@ def meta_data(path: os.PathLike) -> Tuple[float, int, float]:
 @functools.lru_cache(256)
 def __meta_data__(path_and_footprint: Tuple[os.PathLike, str]):
     path, _ = path_and_footprint
-    if media_type_of(path) == MediaType.LARA_MOCAP:
+    if media_type_of(path) == MediaType.MOCAP:
         meta = __meta_data_of_mocap__(path)
     elif media_type_of(path) == MediaType.VIDEO:
         meta = __meta_data_of_video__(path)
