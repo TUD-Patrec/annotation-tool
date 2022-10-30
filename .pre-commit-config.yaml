@@ -4,8 +4,8 @@ repos:
     rev: v2.37.0
     hooks:
       - id: commitizen
-        stages:
-          - commit-msg
+      - id: commitizen-branch
+        stages: [push]
 
   - repo: local
     hooks:
