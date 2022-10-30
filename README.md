@@ -23,13 +23,22 @@ After installation the annotation tool can be run as simple as
 
 # Development
 
-For installing the requirements you can use [poetry](https://python-poetry.org/). After you installed poetry just run
+**Requirements:**
+- Python 3.8 or higher
+- [poetry](https://python-poetry.org/)
+- [make](https://www.gnu.org/software/make/)
 
-    poetry install
+For installing the development environment run
+
+```bash
+make setup
+```
 
 Building the executable requires [docker](https://www.docker.com/). After you installed docker on your system you can run one of
 
-    make build-linux
-    make build-windows
+```bash
+make build-linux
+make build-windows
+```
 
 to build the executables for linux or windows.
