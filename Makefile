@@ -11,9 +11,17 @@ pre-commit: install
 	poetry run pre-commit install
 	poetry run pre-commit autoupdate
 
-changelog:
-	@echo "Updating incremental changelog..."
-	poetry run cz changelog --incremental
+bump:
+	@echo "Bumping version..."
+	poetry run cz bump
+
+bump-alpha:
+	@echo "Bumping alpha pre-release version"
+	poetry run cz bump --prerelease alpha
+
+bump-beta:
+	@echo "Bumping beta pre-release version"
+	poetry run cz bump --prerelease beta
 
 test-all: test-black test-flake8 test-isort
 
