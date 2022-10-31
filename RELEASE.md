@@ -4,15 +4,17 @@ Before you start, make yourself familiar with the [Semantic Versioning][semver] 
 
 If you plan on releasing a new version follow these steps:
 
-1. Create a new branch off of `dev` called `release/<version_of_the_release>`.
-2. On the new release branch you perform all release related tasks. No new features should be implemented on this branch, "only bug fixes, documentation generation, and other release-oriented tasks should go in this branch" (see the mentioned [page about Gitflow Workflow][2]). Also have a look at the [Release Checklist](#release-checklist).
-3. Once ready, merge the release branch into `main`. Also merge the release branch back into `dev`.
-4. Afterwards run `cz bump` (or `make bump`) **on the `master` branch** to bump the version number, update the changelog and create a version tag automatically.
-5. Now you can delete the release branch. The GitLab CI/CD should take care of compiling and uploading the package to PyPI/TestPyPI.
+1. Merge the `dev` branch into `main`.
+2. Afterwards run `cz bump` (or `make bump`) **on the `master` branch** to bump the version number, update the changelog and create a version tag automatically. Then push everything by running
+   ```
+   git push
+   git push --tags
+   ```
+   The GitLab CI/CD should take care of compiling and uploading the package to PyPI/TestPyPI.
 
 ### Alpha and beta versions
 
-Alpha and beta versions life on `dev` and `release/*` respectively. If you want to publish a pre-release, follow step 4 above and add `--prerelease [alpha,beta]` to the `cz` command (or run `make bump-alpha`/`make bump-beta`).
+Alpha and beta versions life on `dev`. If you want to publish a pre-release, follow step 2 above (**on the `dev` branch**) and add `--prerelease [alpha,beta]` to the `cz` command (or run `make bump-alpha`/`make bump-beta`).
 
 ## Notes
 
