@@ -4,54 +4,17 @@ Before you start, make yourself familiar with the [Semantic Versioning][semver] 
 
 If you plan on releasing a new version follow these steps:
 
-1. Create a new branch off of `dev` called `release/<version_of_the_release>`.
-2. On the new release branch you perform all release related tasks, such as bumping the version number in the `pyproject.toml` (Note: The offical version number in `pyproject.toml` should not start with a 'v' as in the tags). No new features should be implemented on this branch, "only bug fixes, documentation generation, and other release-oriented tasks should go in this branch" (see the mentioned [page about Gitflow Workflow][2]). Also have a look at the [Release Checklist](#release-checklist).
-3. Once ready, merge the release branch into `main` and tag the merge commit with the version number. Make sure that you actually create a merge commit by specifiying `--no-ff` if you use git on the command line.
-4. Also merge the branch back into `dev`.
-5. Now you can delete the release branch. The GitLab CI/CD should take care of compiling and uploading the package to PyPI/TestPyPI.
+1. Merge the `dev` branch into `main`.
+2. Afterwards run `cz bump` (or `make bump`) **on the `master` branch** to bump the version number, update the changelog and create a version tag automatically. Then push everything by running
+   ```
+   git push
+   git push --tags
+   ```
+   The GitLab CI/CD should take care of compiling and uploading the package to PyPI/TestPyPI.
 
-## Release Checklist
+### Alpha and beta versions
 
-The following ToDos need to be completed on a release branch. (see above)
-
-- [ ] Bump the version number in `pyproject.toml`. It should adhere to [semver][semver]. Do not prepend the version with 'v'. This should only be done for the git tags.
-- [ ] Update `Changelog.md`. Make sure to leave a blank line between bullet points and headers.
-    - [ ] Move changes from section `[Unreleased]` to it's own version section (see template below).
-    - [ ] Add link to diff to the previous version as a [reference style link][reference-style] at the bottom of the page (`[<new version>]: <gitlab_url>/-/compare/<previous version>...<new version>`).
-    - [ ] Update the reference style link of `unreleased` to `<gitlab_url>/-/compare/<new version>...dev`.
-
-
-## Changelog Version Template
-
-```markdown
-## [Unreleased]
-
-### Added
-
-- 
-
-### Changed
-
-- 
-
-### Deprecated
-
-- 
-
-### Removed
-
-- 
-
-### Fixed
-
-- 
-
-### Security
-
-- 
-
-## [<new version>] - yyyy-mm-dd
-```
+Alpha and beta versions life on `dev`. If you want to publish a pre-release, follow step 2 above (**on the `dev` branch**) and add `--prerelease [alpha,beta]` to the `cz` command (or run `make bump-alpha`/`make bump-beta`).
 
 ## Notes
 
