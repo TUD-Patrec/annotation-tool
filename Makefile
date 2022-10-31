@@ -1,4 +1,4 @@
-.PHONY: pre-commit install all test-all format clean build-linux build-windows
+.PHONY: pre-commit install all test format clean build-linux build-windows
 
 setup: install pre-commit
 
@@ -9,7 +9,6 @@ install:
 pre-commit: install
 	@echo "Setting up pre-commit..."
 	poetry run pre-commit install
-	poetry run pre-commit autoupdate
 
 bump:
 	@echo "Bumping version..."
@@ -23,7 +22,7 @@ bump-beta:
 	@echo "Bumping beta pre-release version"
 	poetry run cz bump --prerelease beta
 
-test-all: test-black test-flake8 test-isort
+test: test-black test-flake8 test-isort
 
 test-black:
 	@echo "Checking format with black..."
