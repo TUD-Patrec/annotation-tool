@@ -42,7 +42,7 @@ format:
 	poetry run isort --settings-path pyproject.toml src main.py
 
 clean:
-	rm -rf build dist __pycache__ __local__storage__
+	rm -rf build dist __pycache__
 
 build-linux:
 	docker run --rm -e "PLATFORMS=linux" -v $(shell pwd):/src --entrypoint='/bin/sh' fydeinc/pyinstaller -c 'pip install --upgrade pip && pip install poetry && poetry config virtualenvs.create false && poetry install && /entrypoint.sh --onefile --noconsole --name annotation-tool /src/main.py'
