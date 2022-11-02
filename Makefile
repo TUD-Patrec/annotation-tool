@@ -8,7 +8,7 @@ install:
 
 pre-commit: install
 	@echo "Setting up pre-commit..."
-	poetry run pre-commit install
+	poetry run pre-commit install --hook-type commit-msg
 
 bump:
 	@echo "Bumping version..."
