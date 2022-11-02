@@ -35,7 +35,7 @@ class ManualAnnotation(AnnotationBaseClass):
 
     def load_subclass(self):
         # Nothing to add here
-        pass
+        self.setEnabled(True)
 
     def redo(self):
         if len(self.redo_stack) >= 1:

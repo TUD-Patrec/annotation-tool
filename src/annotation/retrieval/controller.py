@@ -55,10 +55,6 @@ class RetrievalAnnotation(AnnotationBaseClass):
         # GUI widget
         self.main_widget = QRetrievalWidget()
         self.update_UI.connect(self.main_widget.update_UI)
-        self.main_widget.change_filter.connect(self.change_filter)
-        self.main_widget.accept_interval.connect(self.accept_interval)
-        self.main_widget.reject_interval.connect(self.reject_interval)
-        self.main_widget.modify_interval.connect(self.modify_interval)
 
     # Slots
     @qtc.pyqtSlot()
@@ -191,6 +187,7 @@ class RetrievalAnnotation(AnnotationBaseClass):
             self.query = Query(intervals)
             self.query.change_filter(self.filter_criterion)
             self.load_next()
+            self.setEnabled(True)
         except Exception as e:
             logging.error(repr(e))
 

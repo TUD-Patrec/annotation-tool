@@ -5,7 +5,6 @@ from src.annotation.retrieval.retrieval_backend.query import Query
 from src.qt_helper_widgets.display_scheme import QShowAnnotation
 from src.qt_helper_widgets.histogram import HistogramWidget
 from src.qt_helper_widgets.lines import QHLine
-from src.utility.decorators import accepts
 
 
 def format_progress(x, y):
@@ -17,7 +16,6 @@ def format_progress(x, y):
 class QRetrievalWidget(qtw.QWidget):
     def __init__(self, *args, **kwargs):
         super(QRetrievalWidget, self).__init__(*args, **kwargs)
-        self.is_enabled = True
         self.init_UI()
 
     def init_UI(self):
@@ -100,11 +98,3 @@ class QRetrievalWidget(qtw.QWidget):
             self.histogram.plot_data(data, sim)
         else:
             self.histogram.reset()
-
-    @accepts(object, bool)
-    def setEnabled(self, enabled: bool) -> None:
-        self.is_enabled = enabled
-        self.accept_button.setEnabled(enabled)
-        self.modify_button.setEnabled(enabled)
-        self.modify_filter.setEnabled(enabled)
-        self.reject_button.setEnabled(enabled)

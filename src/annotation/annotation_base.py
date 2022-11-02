@@ -47,7 +47,6 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
         self.clear_undo_redo()
         self.check_for_selected_sample(force_update=True)
         self.load_subclass()
-        self.enabled = True
 
     @qtc.pyqtSlot(int)
     def setPosition(self, x):
