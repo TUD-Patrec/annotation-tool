@@ -45,6 +45,7 @@ isort = "^5"
 pyinstaller = "*"
 toml = "*"
 pre-commit = "^2.20.0"
+commitizen = "^2.37.0"
 cz-conventional-commits-ronmckay = "<1"
 pylint = "^2.15.5"
 
