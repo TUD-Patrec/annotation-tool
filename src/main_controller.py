@@ -1,6 +1,7 @@
 import logging
 import logging.config
 import sys
+import time
 
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
@@ -115,7 +116,9 @@ class MainApplication(qtw.QApplication):
     @qtc.pyqtSlot(GlobalState)
     def load_state(self, state):
         if state is not None:
+            start = time.perf_counter()
             duration, n_frames, fps = filehandler.meta_data(state.input_file)
+            logging.info(f"Duration: {time.perf_counter() - start:.4f}s")
             FrameTimeMapper.instance().update(n_frames=n_frames, millisecs=duration)
 
             # load media

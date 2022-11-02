@@ -1,4 +1,4 @@
-import logging
+from functools import lru_cache
 import os
 
 import numpy as np
@@ -7,7 +7,8 @@ from src.media.media_types import MediaType, media_type_of
 from src.utility import filehandler
 
 
-def load_mocap(path: os.PathLike, normalize=False) -> np.ndarray:
+@lru_cache(maxsize=1)
+def load_mocap(path: os.PathLike) -> np.ndarray:
     """Load Motion-capture data from file to numpy array.
 
     Args:
@@ -24,26 +25,141 @@ def load_mocap(path: os.PathLike, normalize=False) -> np.ndarray:
     """
     if media_type_of(path) == MediaType.MOCAP:
         try:
-            return __load_lara_mocap__(path, normalize)
+            array = __load_lara_mocap__(path)
+            return array
         except Exception:
             raise RuntimeError(f"Reading mocap-data from {path} failed.")
     else:
         raise TypeError
 
 
-def __load_lara_mocap__(path: os.PathLike, normalize: bool) -> np.ndarray:
+def __load_lara_mocap__(path: os.PathLike) -> np.ndarray:
     try:
-        array = filehandler.read_csv(path)
-        array = array[:, 2:]
-        logging.info(f"{normalize = }")
-        if normalize:
-            normalizing_vector = array[:, 66:72]  # 66:72 are the columns for lowerback
-            for _ in range(21):
-                normalizing_vector = np.hstack((normalizing_vector, array[:, 66:72]))
-            array = np.subtract(array, normalizing_vector)
-        return array
+        array = filehandler.read_csv(path, data_type=np.float32)
+        return array[:, 2:]
     except Exception as e:
         raise e
+
+
+class MocapReader:
+    """Class for reading mocap data from a file.
+
+    Attributes:
+        path (os.PathLike): Path to the mocap file.
+        normalize (bool): Whether to normalize the skeleton.
+    """
+
+    def __init__(self, path: os.PathLike, normalize: bool = False) -> None:
+        self._path: os.PathLike = path
+        self._footprint: str = filehandler.footprint_of_file(path)
+        self._data: np.ndarray = load_mocap(path)
+        self._normalize: bool = normalize
+        self._fps: int = filehandler.meta_data(path)[2]
+
+    def __getitem__(self, idx):
+        """Returns the skeleton at the given frame index.
+
+        Args:
+            idx (int): Frame index.
+
+        Returns:
+            np.ndarray: Skeleton at the given frame index.
+        """
+        return self.calculate_skeleton(self.data[idx])
+
+    def __len__(self):
+        return self.data.shape[0]
+
+    def calculate_skeleton(self, frame) -> np.ndarray:
+        """Calculate the skeleton from the given frame.
+        args:
+            frame (np.ndarray): Frame to calculate the skeleton from.
+        returns:
+            np.ndarray: Skeleton calculated from the given frame.
+        """
+
+        if self.normalize:
+            frame = self.normalize_frame(frame)
+
+        skeleton = __calculate_skeleton__(frame)
+
+        skeleton = self.centralize_skeleton(skeleton)
+
+        return skeleton
+
+    def centralize_skeleton(self, skeleton: np.ndarray) -> np.ndarray:
+        """Centralize the skeleton to stay in the center of the coordinate system.
+
+        Args:
+            skeleton (np.ndarray): Skeleton to centralize.
+
+        Returns:
+            np.ndarray: Centralized skeleton.
+        """
+        segments = [
+            body_segments_reversed[i] for i in ["L toe", "R toe", "L foot", "R foot"]
+        ]
+        height = min(skeleton[segment * 2, 2] for segment in segments)
+        skeleton[:, 2] -= height
+        return skeleton
+
+    def normalize_frame(self, skeleton: np.ndarray) -> np.ndarray:
+        """Normalize the skeleton to stay in the center of the coordinate system.
+
+        Args:
+            skeleton (np.ndarray): Skeleton to normalize.
+
+        Returns:
+            np.ndarray: Normalized skeleton.
+        """
+        normalizing_vector = skeleton[66:72]  # 66:72 are the columns for lowerback
+        return (
+            skeleton
+            - np.repeat(normalizing_vector.reshape(1, -1), 22, axis=0).flatten()
+        )
+
+    @property
+    def data(self) -> np.ndarray:
+        """Returns the mocap data.
+
+        Returns:
+            np.ndarray: Mocap data.
+        """
+        return self._data
+
+    @property
+    def normalize(self) -> bool:
+        return self._normalize
+
+    @property
+    def footprint(self) -> str:
+        return self._footprint
+
+    @property
+    def fps(self) -> int:
+        return self._fps
+
+    @normalize.setter
+    def normalize(self, value: bool) -> None:
+        self._normalize = value
+
+    @property
+    def skeleton_colors(self):
+        return skeleton_colors
+
+
+def get_reader(path: os.PathLike, normalize: bool = False) -> MocapReader:
+    """Returns a mocap reader for the given path.
+
+    Args:
+        path (os.PathLike): Path to the mocap file.
+        normalize (bool, optional): Whether to normalize the skeleton.
+            Defaults to False.
+
+    Returns:
+        MocapReader: Mocap reader for the given path.
+    """
+    return MocapReader(path, normalize)
 
 
 body_segments = {
@@ -126,7 +242,7 @@ skeleton_colors = (
 )
 
 
-def calculate_skeleton(frame: np.array) -> np.array:
+def __calculate_skeleton__(frame: np.array) -> np.array:
     """Calculates the lines indicating positions of bodysegments at a single timestep
 
     Arguments:

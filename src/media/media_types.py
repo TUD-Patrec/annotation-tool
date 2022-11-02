@@ -1,9 +1,12 @@
 import enum
+import functools
 import logging
 import os.path
 
 import cv2
 import filetype
+
+from src.utility import filehandler
 
 
 class MediaType(enum.Enum):
@@ -12,7 +15,23 @@ class MediaType(enum.Enum):
     MOCAP = 2
 
 
-def is_video(path) -> bool:
+def media_type_of(path: os.PathLike) -> MediaType:
+    footprint = filehandler.footprint_of_file(path)
+    return __media_type_of__(path, footprint)
+
+
+@functools.lru_cache(maxsize=100)
+def __media_type_of__(path, _) -> MediaType:
+    if not os.path.isfile(path):
+        return MediaType.UNKNOWN
+    for media_type, selector in __selector_map__.items():
+        if selector(path):
+            return media_type
+    else:
+        return MediaType.UNKNOWN
+
+
+def __is_video__(path) -> bool:
     if not os.path.isfile(path):
         return False
     try:
@@ -35,9 +54,7 @@ def is_video(path) -> bool:
         return False
 
 
-def is_LARA_mocap(path) -> bool:
-    import src.utility.filehandler as filehandler
-
+def __is_mocap__(path) -> bool:
     if not os.path.isfile(path):
         return False
     try:
@@ -50,29 +67,4 @@ def is_LARA_mocap(path) -> bool:
         return False
 
 
-selector_map = {MediaType.VIDEO: is_video, MediaType.MOCAP: is_LARA_mocap}
-
-
-__cached_media_types__ = {}
-
-
-def media_type_of(path, use_cache=True) -> MediaType:
-    if not os.path.isfile(path):
-        raise FileNotFoundError(f"{path} was not found on the system.")
-
-    if use_cache:
-        media_type = __cached_media_types__.get(path)
-        if media_type:
-            return media_type
-    for x in MediaType:
-        if x == MediaType.UNKNOWN:
-            continue
-        else:
-            test_media_type = selector_map[x]
-            if test_media_type(path):
-                __cached_media_types__[path] = x
-                return x
-
-    unknown_media_type = MediaType.UNKNOWN
-    __cached_media_types__[path] = unknown_media_type
-    return unknown_media_type
+__selector_map__ = {MediaType.VIDEO: __is_video__, MediaType.MOCAP: __is_mocap__}

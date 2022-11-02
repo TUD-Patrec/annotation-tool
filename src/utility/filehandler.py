@@ -16,6 +16,7 @@ import numpy as np
 from src.dataclasses.settings import Settings
 from src.media.media_types import MediaType, media_type_of
 from src.utility.decorators import Singleton
+from src.utility.mocap_reader import load_mocap
 
 
 @Singleton
@@ -345,23 +346,22 @@ def meta_data(path: os.PathLike) -> Tuple[float, int, float]:
 
     Raises:
         FileNotFoundError: Raised if the given path does
-        not lead to a non-zero file.
+            not lead to a non-zero file.
 
     Returns:
         Tuple[float, int, float]: Length of the media in seconds,
-        Total number of frames,
-        Framerate aka. sampling-rate.
+            Total number of frames,
+            Framerate aka. sampling-rate.
     """
     if is_non_zero_file(path):
         footprint = footprint_of_file(path)
-        return __meta_data__((path, footprint))
+        return __meta_data__(path, footprint)
     else:
         raise FileNotFoundError
 
 
 @functools.lru_cache(256)
-def __meta_data__(path_and_footprint: Tuple[os.PathLike, str]):
-    path, _ = path_and_footprint
+def __meta_data__(path: os.PathLike, _: str):
     if media_type_of(path) == MediaType.MOCAP:
         meta = __meta_data_of_mocap__(path)
     elif media_type_of(path) == MediaType.VIDEO:
@@ -372,7 +372,7 @@ def __meta_data__(path_and_footprint: Tuple[os.PathLike, str]):
 
 
 def __meta_data_of_mocap__(path: os.PathLike) -> Tuple[int, int, float]:
-    mocap = read_csv(path)
+    mocap = load_mocap(path)
     frame_count = mocap.shape[0]
     fps = Settings.instance().refresh_rate
     return 1000 * int(frame_count / fps), frame_count, fps
