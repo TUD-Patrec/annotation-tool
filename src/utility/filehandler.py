@@ -93,7 +93,7 @@ def footprint_of_file(path: os.PathLike, fast_hash: bool = False) -> Union[str, 
 
 
 @functools.lru_cache(maxsize=256)
-def __footprint_of_file(path: os.PathLike, fast_hash: bool = False) -> str:
+def __footprint_of_file(path: os.PathLike, fast_hash: bool = True) -> str:
     if fast_hash:
         return __fast_footprint__(path)
     else:

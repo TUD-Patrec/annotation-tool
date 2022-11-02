@@ -118,6 +118,9 @@ class MainApplication(qtw.QApplication):
             duration, n_frames, fps = filehandler.meta_data(state.input_file)
             FrameTimeMapper.instance().update(n_frames=n_frames, millisecs=duration)
 
+            # load media
+            self.media_player.load(state.input_file)
+
             # update network module
             network.update_file(state.input_file)
 
@@ -146,8 +149,6 @@ class MainApplication(qtw.QApplication):
                 state.dataset.dependencies,
                 n_frames,
             )
-
-            self.media_player.load(state.input_file)
 
             self.mediator.set_position(0)
 
