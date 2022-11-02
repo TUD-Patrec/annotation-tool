@@ -124,7 +124,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "cz-conventional-commits-ronmckay"
-version = "0.3.2"
+version = "0.3.3"
 description = ""
 category = "dev"
 optional = false
@@ -850,8 +850,8 @@ cycler = [
     {file = "cycler-0.11.0.tar.gz", hash = "sha256:9c87405839a19696e837b3b818fed3f5f69f16f1eec1a1ad77e043dcea9c772f"},
 ]
 cz-conventional-commits-ronmckay = [
-    {file = "cz_conventional_commits_ronmckay-0.3.2-py3-none-any.whl", hash = "sha256:09f47d1a3e4317bf3c026a4290b13206dd8f6a3d88da65434bbdf1cfaaaa1d41"},
-    {file = "cz_conventional_commits_ronmckay-0.3.2.tar.gz", hash = "sha256:f86e610ee915dff91d0c976ee312b4d0ee253ee4a5ed5ebe81fdc2603db4e435"},
+    {file = "cz_conventional_commits_ronmckay-0.3.3-py3-none-any.whl", hash = "sha256:60768226b05159ac8b0d7a3b98225cf9986f4fc9af30008bec786510ea7f6dbf"},
+    {file = "cz_conventional_commits_ronmckay-0.3.3.tar.gz", hash = "sha256:627fdee6428673355e2b815fe963bf683d4367baddb39c83b98c807d072372d7"},
 ]
 decli = [
     {file = "decli-0.5.2-py3-none-any.whl", hash = "sha256:d3207bc02d0169bf6ed74ccca09ce62edca0eb25b0ebf8bf4ae3fb8333e15ca0"},
