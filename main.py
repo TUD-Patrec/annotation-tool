@@ -8,7 +8,6 @@ import warnings
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
-from src.__version__ import __version__  # noqa: F401
 from src.main_controller import main
 from src.utility import filehandler
 
