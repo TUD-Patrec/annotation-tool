@@ -14,8 +14,8 @@ def scale(N: int, M: int, x: int) -> Tuple[int, int]:
     """Scaling function that scales some point x within a range
     of N elements to another range of M elements while keeping its
     relative position inside that range.
-    Scaling from some smaller range to a bigger one ends maps one point
-    into a interval of possibly multiple-points.
+    Scaling from some smaller range to a bigger one maps one point
+    into an interval of possibly multiple-points.
     Args:
         N (int): Size of the initial range.
         M (int): Size of the new range.
