@@ -1,7 +1,7 @@
 fail_fast: true
 repos:
   - repo: https://github.com/RonMcKay/cz_conventional_commits_ronmckay.git
-    rev: v0.3.2
+    rev: v0.3.3
     hooks:
       - id: commitizen
 
