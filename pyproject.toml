@@ -47,6 +47,7 @@ toml = "*"
 commitizen = "^2.37.0"
 pre-commit = "^2.20.0"
 cz-conventional-commits-ronmckay = "<1"
+pylint = "^2.15.5"
 
 [tool.poetry.scripts]
 annotation-tool = 'main:start'
