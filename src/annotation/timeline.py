@@ -12,7 +12,7 @@ class QTimeLine(qtw.QWidget):
 
     def __init__(self):
         super(qtw.QWidget, self).__init__()
-        self.pointer_position = 0
+        self.frame_position = 0
         self.pos = None  # Dont remove
         self.n_frames = self.width()
 
@@ -48,8 +48,7 @@ class QTimeLine(qtw.QWidget):
     @qtc.pyqtSlot(int)
     def set_position(self, pos):
         assert 0 <= pos < self.n_frames
-        pixel_pos, _ = self._frame_to_pixel(pos)
-        self.pointer_position = pixel_pos
+        self.frame_position = pos
         self.update()
 
     @qtc.pyqtSlot(list, Sample)
@@ -67,18 +66,16 @@ class QTimeLine(qtw.QWidget):
             x = max(0, x)
             x = min(x, self.width() - 1)
 
-            self.pointer_position = x
-            frame_position = self._pixel_to_frame(x)[0]
-            self.position_changed.emit(frame_position)
+            self.frame_position = self._pixel_to_frame(x)[0]
+            self.position_changed.emit(self.frame_position)
 
         self.update()
 
     def mousePressEvent(self, e):
         if e.button() == qtc.Qt.LeftButton:
             x = e.pos().x()
-            self.pointer_position = x
-            frame_position = self._pixel_to_frame(x)[0]
-            self.position_changed.emit(frame_position)
+            self.frame_position = self._pixel_to_frame(x)[0]
+            self.position_changed.emit(self.frame_position)
 
             self.clicking = True  # Set clicking check to true
 
@@ -99,22 +96,9 @@ class QTimeLine(qtw.QWidget):
         qtw.QWidget.resizeEvent(self, event)
         super().resizeEvent(event)
 
-        # adjust pointer_position -> first map to frame-space
-        # by averaging both bounds of the mapping we get the 'best' conversion
-        pointer_pos = (
-            self._pixel_to_frame(self.pointer_position)[0]
-            + self._pixel_to_frame(self.pointer_position)[1]
-        ) // 2
-
         self._frame_to_pixel, self._pixel_to_frame = functions.scale_functions(
             N=self.n_frames, M=event.size().width(), last_to_last=True
         )
-
-        # adjust pointer_position -> after updating the size: map back to pixel-space
-        # by averaging both bounds of the mapping we get the 'best' conversion
-        self.pointer_position = (
-            self._frame_to_pixel(pointer_pos)[0] + self._frame_to_pixel(pointer_pos)[1]
-        ) // 2
 
         self.update()
 
@@ -206,8 +190,8 @@ class QTimeLine(qtw.QWidget):
             qp.drawLine(self.pos.x(), 0, self.pos.x(), line_height + HEIGHT_LINE)
 
         # Draw pointer_position
-        if self.pointer_position is not None:
-            pos = self.pointer_position
+        if self.frame_position is not None:
+            pos = self._frame_to_pixel(self.frame_position)[0]
 
             line_height = 2 * MARGIN_SAMPLE + HEIGHT_SAMPLE
             line = qtc.QLine(
