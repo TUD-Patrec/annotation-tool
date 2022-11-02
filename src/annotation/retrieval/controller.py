@@ -4,6 +4,7 @@ import math
 import time
 
 import PyQt5.QtCore as qtc
+import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 import numpy as np
 from scipy import spatial
@@ -182,92 +183,40 @@ class RetrievalAnnotation(AnnotationBaseClass):
         self.update_UI.emit(self.query, self.current_interval)
 
     def load_subclass(self):
-        try:
-            intervals = self.load_intervals()
-            self.query = Query(intervals)
-            self.query.change_filter(self.filter_criterion)
-            self.load_next()
-            self.setEnabled(True)
-        except Exception as e:
-            logging.error(repr(e))
+        self.loading_thread = IntervalLoader(self)
+        self.loading_thread.query_loaded.connect(self.query_loaded)
+        self.loading_thread.error.connect(self.error_encountered)
+        self.loading_thread.start()
 
-            msg = qtw.QMessageBox()
-            msg.setIcon(qtw.QMessageBox.Critical)
-            msg.setText("Running the network failed!")
-            txt = "Retrieval Mode could not be loaded.\nCheck if the network is actually loaded and reload after!"  # noqa: E501
-            msg.setInformativeText(txt)
-            msg.setWindowTitle("Error")
-            msg.exec_()
+        self.progress_dialog = qtw.QProgressDialog(self.main_widget)
+        # remove cancel button of progress_dialog
+        self.progress_dialog.setCancelButton(None)
+        self.progress_dialog.setWindowFlag(qtc.Qt.WindowCloseButtonHint, False)
+        self.progress_dialog.setWindowFlag(qtc.Qt.WindowContextHelpButtonHint, False)
+        self.progress_dialog.setLabelText("Loading intervals...")
+        self.progress_dialog.setWindowTitle("Loading")
+        self.progress_dialog.setForegroundRole(qtg.QPalette.Highlight)
+        self.loading_thread.progress.connect(self.progress_dialog.setValue)
+        self.progress_dialog.open()
+        self.loading_thread.finished.connect(self.progress_dialog.close)
 
-    def load_intervals(self):
-        # collect all bounds of unannotated samples
-        bounds = [
-            (s.start_position, s.end_position)
-            for s in self.samples
-            if s.annotation.is_empty()
-        ]
+    def error_encountered(self, e):
+        logging.error(repr(e))
 
-        sub_intervals = generate_intervals(bounds, self.stepsize(), self.interval_size)
+        msg = qtw.QMessageBox()
+        msg.setIcon(qtw.QMessageBox.Critical)
+        msg.setText("Running the network failed!")
+        txt = "Retrieval Mode could not be loaded.\nCheck if the network is actually loaded and reload after!"  # noqa: E501
+        msg.setInformativeText(txt)
+        msg.setWindowTitle("Error")
+        msg.exec_()
 
-        intervals = []
+        self.setEnabled(False)
 
-        for lo, hi in sub_intervals:
-            for pred in self.get_predictions(lo, hi):
-                intervals.append(pred)
-
-        return intervals
-
-    def get_predictions(self, lower, upper):
-        network_output = self.run_network(lower, upper)  # 1D array, x \in [0,1]^N
-        success, combinations = self.get_combinations()
-        if success:
-            network_output = network_output.reshape(1, -1)
-
-            logging.info(f"{network_output.shape = }, {combinations.shape = }")
-
-            # TODO LARa-special treatment, needs to be redone later
-            if combinations.shape[1] == 27:
-                n_classes = 8
-                dist = spatial.distance.cdist(
-                    combinations[:, n_classes:], network_output, "cosine"
-                )
-            else:
-                dist = spatial.distance.cdist(combinations, network_output, "cosine")
-            dist = dist.flatten()
-
-            indices = np.argsort(dist)
-
-            n_tries = min(len(combinations), self.TRIES_PER_INTERVAL)
-
-            for idx in indices[:n_tries]:
-                proposed_classification = combinations[idx]
-                similarity = 1 - dist[idx]
-
-                anno = Annotation(self.scheme, proposed_classification)
-
-                yield Interval(lower, upper, anno, similarity)
-        else:
-            # Rounding the output to nearest integers and computing the distance to that
-            network_output = network_output.flatten()  # check if actually needed
-            logging.debug(f"{network_output = }")
-            proposed_classification = np.round(network_output).astype(np.int8)
-
-            similarity = 1 - spatial.distance.cosine(
-                network_output, proposed_classification
-            )
-
-            # TODO LARa-special treatment -> needs to be redone later
-            if proposed_classification.shape[0] == 19:
-                proposed_classification = get_annotation_vector(proposed_classification)
-
-            anno = Annotation(self.scheme, proposed_classification)
-            yield Interval(lower, upper, anno, similarity)
-
-    def get_combinations(self):
-        if self.dependencies is not None:
-            return True, np.array(self.dependencies)
-        else:
-            return False, None
+    def query_loaded(self, query):
+        self.query = query
+        self.load_next()
+        self.setEnabled(True)
 
     def insert_sample(self, new_sample):
         assert len(self.samples) > 0
@@ -347,11 +296,6 @@ class RetrievalAnnotation(AnnotationBaseClass):
         # update samples and notify timeline etc.
         self.check_for_selected_sample(force_update=True)
 
-    def run_network(self, lower, upper):
-        # [lower, upper) is expected to be a range instead of a closed interval
-        # -> add 1 to right interval border
-        return network.run_network(lower, upper + 1)
-
     def interval_changed(self):
         self.update_UI.emit(self.query, self.current_interval)
 
@@ -361,3 +305,102 @@ class RetrievalAnnotation(AnnotationBaseClass):
             min(int(self.interval_size * (1 - self.overlap)), self.interval_size),
         )
         return res
+
+
+class IntervalLoader(qtc.QThread):
+    query_loaded = qtc.pyqtSignal(Query)
+    error = qtc.pyqtSignal(Exception)
+    progress = qtc.pyqtSignal(int)
+
+    def __init__(self, controller, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.controller = controller
+
+    def run(self):
+        try:
+            intervals = self.load_intervals()
+            q = Query(intervals)
+            q.change_filter(self.controller.filter_criterion)
+            self.query_loaded.emit(q)
+        except Exception as e:
+            self.error.emit(e)
+
+    def load_intervals(self):
+        # collect all bounds of unannotated samples
+        bounds = [
+            (s.start_position, s.end_position)
+            for s in self.controller.samples
+            if s.annotation.is_empty()
+        ]
+
+        sub_intervals = generate_intervals(
+            bounds, self.controller.stepsize(), self.controller.interval_size
+        )
+
+        intervals = []
+
+        n = len(sub_intervals)
+
+        for idx, (lo, hi) in enumerate(sub_intervals):
+            self.progress.emit(idx * 100 / n)
+            for pred in self.get_predictions(lo, hi):
+                intervals.append(pred)
+
+        return intervals
+
+    def get_predictions(self, lower, upper):
+        network_output = self.run_network(lower, upper)  # 1D array, x \in [0,1]^N
+        success, combinations = self.get_combinations()
+        if success:
+            network_output = network_output.reshape(1, -1)
+
+            logging.info(f"{network_output.shape = }, {combinations.shape = }")
+
+            # TODO LARa-special treatment, needs to be redone later
+            if combinations.shape[1] == 27:
+                n_classes = 8
+                dist = spatial.distance.cdist(
+                    combinations[:, n_classes:], network_output, "cosine"
+                )
+            else:
+                dist = spatial.distance.cdist(combinations, network_output, "cosine")
+            dist = dist.flatten()
+
+            indices = np.argsort(dist)
+
+            n_tries = min(len(combinations), self.controller.TRIES_PER_INTERVAL)
+
+            for idx in indices[:n_tries]:
+                proposed_classification = combinations[idx]
+                similarity = 1 - dist[idx]
+
+                anno = Annotation(self.controller.scheme, proposed_classification)
+
+                yield Interval(lower, upper, anno, similarity)
+        else:
+            # Rounding the output to nearest integers and computing the distance to that
+            network_output = network_output.flatten()  # check if actually needed
+            logging.debug(f"{network_output = }")
+            proposed_classification = np.round(network_output).astype(np.int8)
+
+            similarity = 1 - spatial.distance.cosine(
+                network_output, proposed_classification
+            )
+
+            # TODO LARa-special treatment -> needs to be redone later
+            if proposed_classification.shape[0] == 19:
+                proposed_classification = get_annotation_vector(proposed_classification)
+
+            anno = Annotation(self.controller.scheme, proposed_classification)
+            yield Interval(lower, upper, anno, similarity)
+
+    def get_combinations(self):
+        if self.controller.dependencies is not None:
+            return True, np.array(self.controller.dependencies)
+        else:
+            return False, None
+
+    def run_network(self, lower, upper):
+        # [lower, upper) is expected to be a range instead of a closed interval
+        # -> add 1 to right interval border
+        return network.run_network(lower, upper + 1)

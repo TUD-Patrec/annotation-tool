@@ -7,6 +7,7 @@ import PyQt5.QtWidgets as qtw
 
 from src.dataclasses.settings import Settings
 
+from . import __version__
 from .dataclasses.globalstate import GlobalState
 from .dialogs.dialog_manager import DialogManager
 from .dialogs.edit_datasets import QEditDatasets
@@ -53,7 +54,7 @@ class GUI(qtw.QMainWindow, DialogManager):
 
         self.resize(settings.window_x, settings.window_y)
         logging.info(self.size())
-        self.setWindowTitle("Annotation Tool")
+        self.setWindowTitle("Annotation Tool v{}".format(__version__))
         # self.setWindowIcon()
 
         self.main_widget = qtw.QWidget()
