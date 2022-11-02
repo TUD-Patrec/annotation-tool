@@ -108,25 +108,25 @@ class GUI(qtw.QMainWindow, DialogManager):
         )
 
         video_menu.addAction(
-            "Skip-Forward",
+            "Skip forward",
             lambda: self.skip_frames.emit(True, False),
             qtg.QKeySequence(qtc.Qt.Key_Right),
         )
 
         video_menu.addAction(
-            "Skip-Backward",
+            "Skip backward",
             lambda: self.skip_frames.emit(False, False),
             qtg.QKeySequence(qtc.Qt.Key_Left),
         )
 
         video_menu.addAction(
-            "Skip-Forward Fast",
+            "Skip forward (fast)",
             lambda: self.skip_frames.emit(True, True),
             qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_Right),
         )
 
         video_menu.addAction(
-            "Skip-Backward Fast",
+            "Skip backward (fast)",
             lambda: self.skip_frames.emit(False, True),
             qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_Left),
         )
