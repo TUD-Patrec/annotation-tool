@@ -93,7 +93,7 @@ class SettingsDialog(qtw.QDialog):
         self.setLayout(form)
         self.load_layout()
         self.adjustSize()
-        self.setFixedSize(self.size())
+        self.setMinimumSize(self.size())
 
     def load_layout(self):
         settings = Settings.instance()
@@ -141,7 +141,7 @@ class SettingsDialog(qtw.QDialog):
         )
         self.small_skip_display.setText("{} [frames]".format(settings.small_skip))
         self.small_skip_display.setAlignment(qtc.Qt.AlignRight)
-        self.small_skip_display.setFixedWidth(75)
+        self.small_skip_display.setFixedWidth(100)
 
         self.debugging_mode.setChecked(settings.debugging_mode)
 
@@ -155,7 +155,7 @@ class SettingsDialog(qtw.QDialog):
         )
         self.big_skip_display.setText("{} [frames]".format(settings.big_skip))
         self.big_skip_display.setAlignment(qtc.Qt.AlignRight)
-        self.big_skip_display.setFixedWidth(75)
+        self.big_skip_display.setFixedWidth(100)
 
         segment_validator = qtg.QIntValidator(100, 10000, self)
         self.retrieval_segment_size.setValidator(segment_validator)

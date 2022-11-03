@@ -62,8 +62,7 @@ class QNewAnnotationDialog(qtw.QDialog):
         filename, _ = qtw.QFileDialog.getOpenFileName(
             directory="", filter="Video MoCap (*.mp4 *.avi *.csv)"
         )
-        if filehandler.is_non_zero_file(filename):
-            self.line_edit.setText(filename)
+        self.line_edit.setText(filename)
 
     def check_enabled(self):
         enabled = True
@@ -94,6 +93,26 @@ class QNewAnnotationDialog(qtw.QDialog):
                 self.line_edit.setText("")
                 self.check_enabled()
                 return
+
+            try:
+                _, n, _ = filehandler.meta_data(self.line_edit.text())
+                if n < 1000:
+                    msg = qtw.QMessageBox(self)
+                    msg.setIcon(qtw.QMessageBox.Critical)
+                    msg.setText("Media too short.")
+                    msg.setInformativeText(
+                        "The selected media's length [={}] is too small.\nIt should at least consist of 1000 frames!".format(
+                            n
+                        )
+                    )
+                    msg.setWindowTitle("Error")
+                    msg.exec_()
+                    self.line_edit.setText("")
+                    self.check_enabled()
+                    return
+
+            except FileNotFoundError:
+                pass
 
             idx = self.combobox.currentIndex()
 

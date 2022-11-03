@@ -107,7 +107,7 @@ class QExportAnnotationDialog(qtw.QDialog):
         del folder
 
         # Export main annotation-file
-        array = annotation.load_mocap()
+        array = annotation.to_numpy()
         filehandler.write_csv(
             os.path.join(exportation_directory, "annotation.csv"), array
         )
