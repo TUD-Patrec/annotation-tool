@@ -23,24 +23,14 @@ image: python:3.9
     - /usr/win64/bin/python -m poetry config virtualenvs.create false
     - /usr/win64/bin/python -m poetry install
 
-.version_from_tag:
-  script:
-    - poetry version $( echo ${CI_COMMIT_TAG} | sed "s/^v//g" )
-
-.version_from_tag_win:
-  script:
-    - /usr/win64/bin/poetry version $( echo ${CI_COMMIT_TAG} | sed "s/^v//g" )
-
 .setup_pypi:
   script:
     - poetry config pypi-token.pypi ${PYPI_TOKEN}
-    - !reference [.version_from_tag, script]
 
 .setup_testpypi:
   script:
     - poetry config repositories.testpypi https://test.pypi.org/legacy/
     - poetry config pypi-token.testpypi ${TESTPYPI_TOKEN}
-    - !reference [.version_from_tag, script]
 
 before_script:
   - python --version  # For debugging
@@ -100,7 +90,6 @@ build linux executable:
     entrypoint: ["/bin/sh", "-l", "-c"]
   script:
     - !reference [.setup, script]
-    - !reference [.version_from_tag, script]
     - /entrypoint.sh --onefile --noconsole --name annotation-tool main.py
     - mv "dist/linux/annotation-tool" "${CI_PROJECT_DIR}/annotation-tool-linux"
     - 'if [[ ! -z "${OWNCLOUD_KEY}" ]]; then curl -k -T annotation-tool-linux -u "${SCIEBO_KEY}:${SCIEBO_PASSWORD}" -H "X-Requested-With: XMLHttpRequest" https://tu-dortmund.sciebo.de/public.php/webdav/annotation-tool-linux; fi'
@@ -118,7 +107,6 @@ build windows executable:
     entrypoint: ["/bin/sh", "-l", "-c"]
   script:
     - !reference [.setup_win, script]
-    - !reference [.version_from_tag_win, script]
     - /entrypoint.sh --onefile --noconsole --name annotation-tool main.py
     - mv "dist/windows/annotation-tool.exe" "${CI_PROJECT_DIR}/annotation-tool-windows.exe"
     - 'if [[ ! -z "${OWNCLOUD_KEY}" ]]; then curl -k -T annotation-tool-windows.exe -u "${SCIEBO_KEY}:${SCIEBO_PASSWORD}" -H "X-Requested-With: XMLHttpRequest" https://tu-dortmund.sciebo.de/public.php/webdav/annotation-tool-windows.exe; fi'
