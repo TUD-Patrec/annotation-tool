@@ -15,7 +15,7 @@ class Settings:
     _dark_mode: bool = field(init=False, default=False)
     _font: int = field(init=False, default=10)
     _refresh_rate: int = field(init=False, default=200)
-    _show_millisecs: bool = field(init=False, default=False)
+    _centralized_skeleton: bool = field(init=True, default=True)
     _retrieval_segment_size: int = field(init=False, default=200)
     _retrieval_segment_overlap: float = field(init=False, default=0)
     _small_skip: int = field(init=False, default=1)
@@ -116,13 +116,13 @@ class Settings:
         self._refresh_rate = min(max(1, value), 500)
 
     @property
-    def show_millisecs(self):
-        return self._show_millisecs
+    def centralized_skeleton(self):
+        return self._centralized_skeleton
 
-    @show_millisecs.setter
+    @centralized_skeleton.setter
     @accepts_m(bool)
-    def show_millisecs(self, value):
-        self._show_millisecs = value
+    def centralized_skeleton(self, x: bool):
+        self._centralized_skeleton = x
 
     @property
     def small_skip(self):

@@ -4,6 +4,7 @@ import PyQt5.QtCore as qtc
 import numpy as np
 import pyqtgraph.opengl as gl
 
+from src.dataclasses import Settings
 from src.media.backend.player import (
     AbstractMediaLoader,
     AbstractMediaPlayer,
@@ -19,7 +20,7 @@ class MocapLoader(AbstractMediaLoader):
 
     def load(self):
         try:
-            self.media = mocap_reader.get_reader(self.path, normalize=True)
+            self.media = mocap_reader.get_reader(self.path)
         except Exception as e:
             raise e
 
@@ -94,6 +95,8 @@ class MocapBackend(gl.GLViewWidget):
     @qtc.pyqtSlot(int)
     def set_position(self, new_pos):
         self.position = new_pos  # update position
+
+        self.media.normalize = Settings.instance().centralized_skeleton
         skeleton = self.media[self.position]
         skeleton_colors = self.media.skeleton_colors
         self.current_skeleton.setData(

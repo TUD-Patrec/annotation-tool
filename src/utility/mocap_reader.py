@@ -104,7 +104,7 @@ class MocapReader:
         return skeleton
 
     def normalize_frame(self, skeleton: np.ndarray) -> np.ndarray:
-        """Normalize the skeleton to stay in the center of the coordinate system.
+        """Normalize the skeletons height relative to the ground.
 
         Args:
             skeleton (np.ndarray): Skeleton to normalize.

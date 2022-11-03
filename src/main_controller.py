@@ -119,7 +119,7 @@ class MainApplication(qtw.QApplication):
             start = time.perf_counter()
             duration, n_frames, fps = filehandler.meta_data(state.input_file)
             logging.info(f"Duration: {time.perf_counter() - start:.4f}s")
-            FrameTimeMapper.instance().update(n_frames=n_frames, millisecs=duration)
+            FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
 
             # load media
             self.media_player.load(state.input_file)
@@ -182,8 +182,6 @@ class MainApplication(qtw.QApplication):
         custom_font = qtg.QFont()
         custom_font.setPointSize(settings.font)
         app.setFont(custom_font)
-
-        FrameTimeMapper.instance().update()
 
         log_config_dict = filehandler.logging_config()
         log_config_dict["handlers"]["screen_handler"]["level"] = (

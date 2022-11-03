@@ -2,11 +2,9 @@ import functools
 import os
 from typing import Tuple
 
-from src.dataclasses.settings import Settings
-
 from ..dataclasses.datasets import DatasetDescription
 from ..dataclasses.globalstate import GlobalState
-from .decorators import Singleton
+from .decorators import Singleton, accepts_m
 from .filehandler import Paths, is_non_zero_file
 
 
@@ -123,12 +121,12 @@ class FrameTimeMapper:
     """
 
     def __init__(self) -> None:
-        self.use_time = Settings.instance().show_millisecs
         self.n_frames = 1
         self.millisecs = 1
         self._frame_to_ms, self._ms_to_frame = scale_functions(1, 1, True)
 
-    def update(self, n_frames: int = None, millisecs: int = None) -> None:
+    @accepts_m(int, int)
+    def update(self, n_frames: int, millis: int) -> None:
         """Update the state of the Mapper. Changes the two ranges and updates
         the mapping functions.
 
@@ -138,29 +136,12 @@ class FrameTimeMapper:
             millisecs (int, optional): Duration of the media in milliseconds.
             Defaults to None.
         """
-        if n_frames:
-            self.n_frames = n_frames
-        if millisecs:
-            self.millisecs = millisecs
-        self.use_time = Settings.instance().show_millisecs
+        self.n_frames = n_frames
+        self.millisecs = millis
 
         self._frame_to_ms, self._ms_to_frame = scale_functions(
             self.n_frames, self.millisecs, True
         )
-
-    def frame_repr(self, frame: int) -> str:
-        """Get representation of current frame-position.
-
-        Args:
-            frame (int): Current frame position.
-
-        Returns:
-            str: Readable representation of the current position.
-        """
-        if self.use_time:
-            millisecs = self._frame_to_ms(frame)[0]
-            return ms_to_time_string(millisecs)
-        return str(frame)
 
     def frame_to_ms(self, frame: int) -> int:
         """Map frame-position to time-position.

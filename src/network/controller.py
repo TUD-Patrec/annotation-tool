@@ -136,7 +136,7 @@ def __load_raw_data__(file: os.PathLike, media_type: MediaType = None) -> np.nda
         media_type = media_type_of(file)
 
     if media_type == MediaType.MOCAP:
-        data = load_mocap(file, normalize=False)
+        data = load_mocap(file)
     elif media_type == MediaType.VIDEO:
         raise NotImplementedError
     else:
@@ -154,9 +154,9 @@ def __load_network__(media_type: MediaType) -> Tuple[Network, dict]:
     if media_type == MediaType.MOCAP:
         path_networks = Paths.instance().networks
 
-        # lara_path = "attrib_network.pt"
+        lara_path = "attrib_network.pt"
         # lara_path = "cnn_imu_attrib_network.pt"
-        lara_path = "cnn_attrib_network.pt"
+        # lara_path = "cnn_attrib_network.pt"
 
         network_path = os.path.join(path_networks, lara_path)
 

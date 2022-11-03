@@ -4,7 +4,6 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
 from .qt_helper_widgets.lines import QHLine
-from .utility.functions import FrameTimeMapper
 
 
 class QPlaybackWidget(qtw.QWidget):
@@ -88,10 +87,8 @@ class QPlaybackWidget(qtw.QWidget):
         self.update_label(x, self.n_frames)
 
     def update_label(self, pos, limit):
-        frame_time_mapper = FrameTimeMapper.instance()
-        position = frame_time_mapper.frame_repr(pos)
-        limit = frame_time_mapper.frame_repr(max(0, limit - 1))
-        self.lbl.setText("{}\n{}".format(position, limit))
+        limit = max(0, limit - 1)
+        self.lbl.setText("{}\n{}".format(pos, limit))
 
     def play_stop_clicked(self):
         playing = self.play_stop_button.isChecked()
