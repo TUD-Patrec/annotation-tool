@@ -1,29 +1,23 @@
 from copy import deepcopy
 import logging
-import math
-import time
+from typing import List, Tuple
 
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 import numpy as np
-from scipy import spatial
 
 from src.annotation.annotation_base import AnnotationBaseClass
 from src.annotation.modes import AnnotationMode
 from src.annotation.retrieval.main_widget import QRetrievalWidget
-from src.annotation.retrieval.retrieval_backend.filter import FilterCriteria
+from src.annotation.retrieval.retrieval_backend.element import RetrievalElement
+from src.annotation.retrieval.retrieval_backend.filter import FilterCriterion
 from src.annotation.retrieval.retrieval_backend.filter_dialog import QRetrievalFilter
-from src.annotation.retrieval.retrieval_backend.interval import (
-    Interval,
-    generate_intervals,
-)
+from src.annotation.retrieval.retrieval_backend.loader import RetrievalLoader
 from src.annotation.retrieval.retrieval_backend.query import Query
 from src.annotation.retrieval.tool_widget import RetrievalTools
-from src.dataclasses import Annotation, Sample, Settings
+from src.dataclasses import Sample, Settings
 from src.dialogs.annotation_dialog import QAnnotationDialog
-from src.network.LARa.lara_specifics import get_annotation_vector
-import src.network.controller as network
 
 
 class RetrievalAnnotation(AnnotationBaseClass):
@@ -38,154 +32,31 @@ class RetrievalAnnotation(AnnotationBaseClass):
 
         # tool widget
         self.tool_widget = RetrievalTools()
-        self.tool_widget.accept_interval.connect(self.accept_interval)
-        self.tool_widget.modify_interval.connect(self.modify_interval)
-        self.tool_widget.reject_interval.connect(self.reject_interval)
-        self.tool_widget.change_filter.connect(self.change_filter)
+        self.tool_widget.accept_interval.connect(self.accept)
+        self.tool_widget.modify_interval.connect(self.modify)
+        self.tool_widget.reject_interval.connect(self.reject)
+        self.tool_widget.change_filter.connect(self.select_filter)
 
         # Constants
-        self.TRIES_PER_INTERVAL = math.inf
         self.interval_size: int = Settings.instance().retrieval_segment_size
         self.overlap: float = Settings.instance().retrieval_segment_overlap
 
-        # Controll Attributes
-        self.query = None
-        self.filter_criterion = FilterCriteria()  # empty filter
-        self.current_interval = None
+        # Control Attributes
+        self.filter_criterion: FilterCriterion = FilterCriterion()  # empty filter
+        self.classifications: List[np.ndarray] = None  # maybe needed later
+        self.intervals: List[Tuple[int, int]] = None  # maybe needed later
+        self.query: Query = None
+        self.current_element: RetrievalElement = None
 
         # GUI widget
         self.main_widget = QRetrievalWidget()
         self.update_UI.connect(self.main_widget.update_UI)
 
-    # Slots
-    @qtc.pyqtSlot()
-    def change_filter(self):
-        if self.enabled:
-            if self.scheme:
-                dialog = QRetrievalFilter(self.filter_criterion, self.scheme)
-                dialog.filter_changed.connect(self.new_filter)
-                self.open_dialog(dialog)
-
-    @qtc.pyqtSlot()
-    def modify_interval(self):
-        if self.enabled:
-            if self.current_interval:
-                dialog = QAnnotationDialog(
-                    self.current_interval.as_sample(), self.scheme, self.dependencies
-                )
-                dialog.finished.connect(lambda _: self.interval_changed())
-                self.open_dialog(dialog)
-            else:
-                self.update_UI.emit(self.query, self.current_interval)
-
-    @qtc.pyqtSlot()
-    def accept_interval(self):
-        if self.enabled:
-            if self.current_interval:
-                assert self.query is not None
-                self.query.accept_interval(self.current_interval)
-                self.check_for_new_sample(self.current_interval)
-                self.load_next()
-            else:
-                self.update_UI.emit(self.query, self.current_interval)
-
-    @qtc.pyqtSlot()
-    def reject_interval(self):
-        if self.enabled:
-            if self.current_interval:
-                assert self.query is not None
-                self.query.reject_interval(self.current_interval)
-                self.load_next()
-            else:
-                self.update_UI.emit(self.query, self.current_interval)
-
-    # Class methods
-    def new_filter(self, filter_criterion):
-        if self.query is not None:
-            self.query.change_filter(filter_criterion)
-            self.load_next()
-        self.filter_criterion = filter_criterion
-
-    def check_for_new_sample(self, interval):
-        assert self.query is not None
-        start = time.perf_counter()
-
-        # Load intervals
-        intervals = sorted(self.query._accepted_intervals)
-
-        # get start and end frame-positions
-        windows = []
-        for idx, intvl in enumerate(intervals):
-            if idx == len(intervals) - 1:
-                windows.append([intvl.start, intvl.end])
-            else:
-                next_interval = intervals[idx + 1]
-                windows.append([intvl.start, min(intvl.end, next_interval.start)])
-
-        # filter for windows that have at least one common frame with the interval
-        windows = list(
-            filter(lambda x: x[0] <= interval.end and x[1] >= interval.start, windows)
-        )
-
-        annotated_windows = []
-        for w in windows:
-            # filter all intervals that have at least one common frame
-            # with one of the windows
-            intervals_in_window = filter(
-                lambda x: x.start <= w[0] <= x.end or x.start <= w[1] <= x.end,
-                intervals,
-            )
-
-            # for each window: store all annotation that were submitted for it
-            # this allows for majority-voting
-            tmp = []
-            for i in intervals_in_window:
-                tmp.append(i.annotation)
-
-            # add to annotated_windows
-            annotated_windows.append([w, tmp])
-
-        # run over annotated windows and do majority-vote
-        for w, annotation_list in annotated_windows:
-            anno = self.majority_vote(annotation_list)
-            if anno:
-                sample = Sample(w[0], w[1], anno)
-                self.insert_sample(sample)
-        end = time.perf_counter()
-        logging.debug(f"check_for_new_sample took {end - start}ms.")
-
-    def majority_vote(self, annotation):
-        if len(annotation) >= 0:
-            votes_table = {}
-            for anno in annotation:
-                if anno.binary_str in votes_table:
-                    votes_table[anno.binary_str][1] += 1
-                else:
-                    votes_table[anno.binary_str] = [anno, 1]
-            max_key = max(votes_table, key=lambda x: votes_table.get(x)[1])
-            return votes_table[max_key][0]
-        else:
-            return None
-
-    def load_next(self):
-        assert self.query is not None
-        try:
-            old_interval = self.current_interval
-            self.current_interval = next(self.query)
-            if old_interval != self.current_interval:
-                # only emit new loop if the interval has changed
-                # remember that for each interval there might be
-                # multiple predictions that get tested one after another
-                l, r = self.current_interval.start, self.current_interval.end
-                self.start_loop.emit(l, r)
-        except StopIteration:
-            self.current_interval = None
-        self.update_UI.emit(self.query, self.current_interval)
-
     def load_subclass(self):
-        self.loading_thread = IntervalLoader(self)
-        self.loading_thread.query_loaded.connect(self.query_loaded)
-        self.loading_thread.error.connect(self.error_encountered)
+        """Load the data for the retrieval mode."""
+        self.loading_thread = RetrievalLoader(self)
+        self.loading_thread.success.connect(self.loading_success)
+        self.loading_thread.error.connect(self.loading_error)
         self.loading_thread.start()
 
         self.progress_dialog = qtw.QProgressDialog(self.main_widget)
@@ -200,7 +71,8 @@ class RetrievalAnnotation(AnnotationBaseClass):
         self.progress_dialog.open()
         self.loading_thread.finished.connect(self.progress_dialog.close)
 
-    def error_encountered(self, e):
+    def loading_error(self, e: Exception):
+        """This method is called when the loading thread has failed loading the data."""
         logging.error(repr(e))
 
         msg = qtw.QMessageBox()
@@ -213,12 +85,149 @@ class RetrievalAnnotation(AnnotationBaseClass):
 
         self.setEnabled(False)
 
-    def query_loaded(self, query):
-        self.query = query
+    def loading_success(
+        self,
+        intervals: List[Tuple],
+        classifications: List[np.ndarray],
+        retrieval_elements: List[RetrievalElement],
+    ):
+        """This method is called when the loading thread has finished loading the data."""
+        self.intervals = intervals
+        self.classifications = classifications
+        self.query = Query(retrieval_elements)
+
         self.load_next()
         self.setEnabled(True)
 
-    def insert_sample(self, new_sample):
+    def load_next(self):
+        """Load the next element in the query."""
+        if self.query:
+            self.current_element = next(self.query)
+            if self.current_element is not None:
+                i = self.current_element.i  # index of the element
+                l, r = self.intervals[i]
+                self.start_loop.emit(l, r)  # start the loop
+        self.update_UI.emit(self.query, self.current_element)
+
+    # Slots
+    @qtc.pyqtSlot()
+    def select_filter(self):
+        if self.enabled and self.scheme:
+            dialog = QRetrievalFilter(self.filter_criterion, self.scheme)
+            dialog.filter_changed.connect(self.new_filter)
+            self.open_dialog(dialog)
+
+    @qtc.pyqtSlot()
+    def modify(self):
+        if self.enabled:
+            if self.current_element:
+                dialog = QAnnotationDialog(
+                    self.current_element.as_sample(), self.scheme, self.dependencies
+                )
+                dialog.finished.connect(lambda _: self.element_changed())
+                self.open_dialog(dialog)
+            else:
+                self.update_UI.emit(self.query, self.current_element)
+
+    @qtc.pyqtSlot()
+    def accept(self):
+        if self.enabled:
+            if self.current_element:
+                self.query.accept(self.current_element)
+                self.add_new_element(self.query.accepted_elements, self.current_element)
+                self.load_next()
+            else:
+                self.update_UI.emit(self.query, self.current_element)
+
+    @qtc.pyqtSlot()
+    def reject(self):
+        if self.enabled:
+            if self.current_element:
+                self.query.reject(self.current_element)
+                self.load_next()
+            else:
+                self.update_UI.emit(self.query, self.current_element)
+
+    # Class methods
+    def new_filter(self, filter_criterion: FilterCriterion):
+        if self.query is not None:
+            self.query.set_filter(filter_criterion)
+            self.load_next()
+        self.filter_criterion = filter_criterion
+
+    def add_new_element(
+        self, accepted_elements: List[RetrievalElement], new_element: RetrievalElement
+    ):
+        """
+        Adds the new_element to the samples.
+        In case of overlapping segments this method will also perform some partitioning and
+        majority-voting to produce the desired updated version of the samples list.
+
+        Args:
+            accepted_elements: The list of already accepted RetrievalElements.
+            new_element: The new RetrievalElement to be added.
+        """
+
+        # grab elements with overlapping intervals
+        relevant_elements = filter(
+            lambda x: x.interval[0] <= new_element.interval[1]
+            and x.interval[1] >= new_element.interval[0],
+            accepted_elements,
+        )
+        relevant_elements = list(relevant_elements)  # cast to list
+        relevant_intervals = [
+            x.interval for x in relevant_elements
+        ]  # get intervals of relevant elements
+
+        # segment those intervals into the smallest partitions that are inside the new interval
+        set1 = {
+            i[0] for i in relevant_intervals if i[0] >= new_element.interval[0]
+        }  # left borders
+        set2 = {
+            i[1] for i in relevant_intervals if i[1] <= new_element.interval[1]
+        }  # right borders
+        set3 = {
+            new_element.interval[0],
+            new_element.interval[1],
+        }  # borders of new interval  -> actually not needed but for completeness (new_element \in accepted_elements)  # noqa: E501
+        all_points = set1.union(set2).union(set3)  # combine all points
+        all_points = sorted(all_points)  # sort the points
+
+        partition = [
+            (
+                all_points[i],
+                all_points[i + 1] - 1,
+            )  # if not last part decrease right border by 1
+            if i < len(all_points) - 2
+            else (
+                all_points[i],
+                all_points[i + 1],
+            )  # if last part keep right border
+            for i in range(len(all_points) - 1)
+        ]  # -> non overlapping partition of the new interval
+
+        for part in partition:
+            overlapping_elements = filter(
+                lambda x: x.interval[0] <= part[1] and x.interval[1] >= part[0],
+                accepted_elements,
+            )  # get all objects that overlap with the part
+
+            overlapping_elements = list(overlapping_elements)  # cast to list
+
+            annotations = [
+                x.annotation for x in overlapping_elements
+            ]  # get the annotations of the overlapping objects
+
+            annotation = max(
+                set(annotations), key=annotations.count
+            )  # most common annotation (majority vote)
+
+            sample = Sample(*part, annotation)  # create the sample
+
+            self.insert_sample(sample)  # insert the sample
+
+    def insert_sample(self, new_sample: Sample):
+        """Inserts the new sample into the samples list."""
         assert len(self.samples) > 0
 
         indexed_samples = list(zip(self.samples, range(len(self.samples))))
@@ -238,8 +247,6 @@ class RetrievalAnnotation(AnnotationBaseClass):
         ]
         assert len(samples_to_the_right) == 1
         right_sample, right_idx = samples_to_the_right[0]
-
-        print(f"{left_idx = }, {right_idx = }")
 
         # remove
         del self.samples[left_idx : right_idx + 1]
@@ -296,111 +303,12 @@ class RetrievalAnnotation(AnnotationBaseClass):
         # update samples and notify timeline etc.
         self.check_for_selected_sample(force_update=True)
 
-    def interval_changed(self):
-        self.update_UI.emit(self.query, self.current_interval)
+    def element_changed(self):
+        self.update_UI.emit(self.query, self.current_element)
 
-    def stepsize(self):
+    def step_size(self):
         res = max(
             1,
             min(int(self.interval_size * (1 - self.overlap)), self.interval_size),
         )
         return res
-
-
-class IntervalLoader(qtc.QThread):
-    query_loaded = qtc.pyqtSignal(Query)
-    error = qtc.pyqtSignal(Exception)
-    progress = qtc.pyqtSignal(int)
-
-    def __init__(self, controller, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.controller = controller
-
-    def run(self):
-        try:
-            intervals = self.load_intervals()
-            q = Query(intervals)
-            q.change_filter(self.controller.filter_criterion)
-            self.query_loaded.emit(q)
-        except Exception as e:
-            self.error.emit(e)
-
-    def load_intervals(self):
-        # collect all bounds of unannotated samples
-        bounds = [
-            (s.start_position, s.end_position)
-            for s in self.controller.samples
-            if s.annotation.is_empty()
-        ]
-
-        sub_intervals = generate_intervals(
-            bounds, self.controller.stepsize(), self.controller.interval_size
-        )
-
-        intervals = []
-
-        n = len(sub_intervals)
-
-        for idx, (lo, hi) in enumerate(sub_intervals):
-            self.progress.emit(idx * 100 / n)
-            for pred in self.get_predictions(lo, hi):
-                intervals.append(pred)
-
-        return intervals
-
-    def get_predictions(self, lower, upper):
-        network_output = self.run_network(lower, upper)  # 1D array, x \in [0,1]^N
-        success, combinations = self.get_combinations()
-        if success:
-            network_output = network_output.reshape(1, -1)
-
-            logging.info(f"{network_output.shape = }, {combinations.shape = }")
-
-            # TODO LARa-special treatment, needs to be redone later
-            if combinations.shape[1] == 27:
-                n_classes = 8
-                dist = spatial.distance.cdist(
-                    combinations[:, n_classes:], network_output, "cosine"
-                )
-            else:
-                dist = spatial.distance.cdist(combinations, network_output, "cosine")
-            dist = dist.flatten()
-
-            indices = np.argsort(dist)
-
-            n_tries = min(len(combinations), self.controller.TRIES_PER_INTERVAL)
-
-            for idx in indices[:n_tries]:
-                proposed_classification = combinations[idx]
-                similarity = 1 - dist[idx]
-
-                anno = Annotation(self.controller.scheme, proposed_classification)
-
-                yield Interval(lower, upper, anno, similarity)
-        else:
-            # Rounding the output to nearest integers and computing the distance to that
-            network_output = network_output.flatten()  # check if actually needed
-            logging.debug(f"{network_output = }")
-            proposed_classification = np.round(network_output).astype(np.int8)
-
-            similarity = 1 - spatial.distance.cosine(
-                network_output, proposed_classification
-            )
-
-            # TODO LARa-special treatment -> needs to be redone later
-            if proposed_classification.shape[0] == 19:
-                proposed_classification = get_annotation_vector(proposed_classification)
-
-            anno = Annotation(self.controller.scheme, proposed_classification)
-            yield Interval(lower, upper, anno, similarity)
-
-    def get_combinations(self):
-        if self.controller.dependencies is not None:
-            return True, np.array(self.controller.dependencies)
-        else:
-            return False, None
-
-    def run_network(self, lower, upper):
-        # [lower, upper) is expected to be a range instead of a closed interval
-        # -> add 1 to right interval border
-        return network.run_network(lower, upper + 1)

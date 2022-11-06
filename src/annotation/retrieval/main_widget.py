@@ -56,10 +56,11 @@ class QRetrievalWidget(qtw.QWidget):
 
         self.setFixedWidth(400)
 
-    # Display the current interval to the user:
-    # Show him the Interval boundaries and the predicted annotation
+    # Display the current element to the user:
+    # Show him the NetworkPrediction boundaries and the predicted annotation
     @qtc.pyqtSlot(Query, object)
-    def update_UI(self, query, current_interval):
+    def update_UI(self, query, retrieval_element):
+
         if query is None:
             self.progress_label.setText("_/_")
             self.histogram.reset()
@@ -77,22 +78,22 @@ class QRetrievalWidget(qtw.QWidget):
             sim = 0
 
         # Case 2: We're finished -> End of query reached
-        elif current_interval is None:
+        elif retrieval_element is None:
             txt = format_progress(len(query) - 1, len(query))
             self.progress_label.setText(txt)
             sim = 0
 
         # Case 3: Default - we're somewhere in the middle of the query
         else:
-            txt = format_progress(query.idx, len(query))
+            txt = format_progress(query.current_index, len(query))
             self.progress_label.setText(txt)
 
-            proposed_annotation = current_interval.annotation
+            sim = retrieval_element.similarity
+
+            proposed_annotation = retrieval_element.annotation
             self.main_widget.show_annotation(proposed_annotation)
 
-            sim = current_interval.similarity
-
-        data = query.similarity_distribution()
+        data = query.similarity_distribution
 
         if data.shape[0] > 0:
             self.histogram.plot_data(data, sim)

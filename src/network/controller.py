@@ -1,5 +1,4 @@
 import enum
-import logging
 import os
 from typing import List, Tuple
 
@@ -7,7 +6,6 @@ import numpy as np
 import torch
 
 from src.media.media_types import MediaType, media_type_of
-import src.network.LARa.lara_specifics as lara_util
 from src.network.network import Network
 from src.utility.filehandler import Paths
 from src.utility.mocap_reader import load_mocap
@@ -67,22 +65,22 @@ def __run_network__(file: os.PathLike, start: int = 0, end: int = -1) -> np.ndar
     # load data
     data, media_type = __get_data__(file)
 
-    logging.info(f"{media_type = }, {data.shape = }")
+    # logging.info(f"{media_type = }, {data.shape = }")
 
     # select compatible networks
     network, config = __load_network__(media_type)
-    logging.info(f"{config = }")
+    # logging.info(f"{config = }")
 
     # for segmentation
     segment_size = config.get("sliding_window_length")
     assert isinstance(segment_size, int) and segment_size > 0
-    logging.info(f"{segment_size = }")
+    # logging.info(f"{segment_size = }")
 
     assert (
         segment_size <= data.shape[0]
     ), f"{segment_size = } is bigger than {data.shape[0] = }"
 
-    # filter interval if specified
+    # filter element if specified
     if end >= 0:
         assert start <= end
 
@@ -110,18 +108,17 @@ def __run_network__(file: os.PathLike, start: int = 0, end: int = -1) -> np.ndar
 
         data = data[start:end]
 
-        # select data in the specified interval
-        logging.info(f"After data filter {start = }, {end = }: {data.shape = }")
+        # select data in the specified element
+        # logging.info(f"After data filter {start = }, {end = }: {data.shape = }")
 
     # input-frame is too large
     # -> pick the most middle segment as a representation of the whole frame
     if data.shape[0] > segment_size:
-        logging.info(
-            f"{data.shape = } is too large for the network -> reduction needed"
-        )
+        # logging.info(
+        #     f"{data.shape = } is too large for the network -> reduction needed"
+        # )
         mid = data.shape[0] // 2
         lo = mid - segment_size // 2
-        logging.debug(f"{lo = }, {mid = }, {lo + segment_size = }")
         data = data[lo : lo + segment_size]
 
     assert data.shape[0] == segment_size, f"{data.shape = }, {segment_size = }"
@@ -154,9 +151,9 @@ def __load_network__(media_type: MediaType) -> Tuple[Network, dict]:
     if media_type == MediaType.MOCAP:
         path_networks = Paths.instance().networks
 
-        lara_path = "attrib_network.pt"
+        # lara_path = "attrib_network.pt"
         # lara_path = "cnn_imu_attrib_network.pt"
-        # lara_path = "cnn_attrib_network.pt"
+        lara_path = "cnn_attrib_network.pt"
 
         network_path = os.path.join(path_networks, lara_path)
 
@@ -226,7 +223,7 @@ def __preprocess__(data, media_type: MediaType) -> np.ndarray:
 def __preprocess_lara__(data) -> np.ndarray:
     data = np.delete(data, range(66, 72), 1)
 
-    data = lara_util.normalize(data)
+    # data = lara_util.normalize(data)
     return data
 
 
@@ -272,26 +269,3 @@ def __forward__(data_segment: np.ndarray, network: Network) -> np.ndarray:
     output_tensor: torch.Tensor = network(input_tensor)
     output_array = output_tensor.detach().numpy()
     return output_array.flatten()
-
-
-if __name__ == "__main__":
-    data_path = r"C:\Users\Raphael\Desktop\L01_S14_R01.csv"
-    # data_path = r"C:\Users\Raphael\Desktop\L01_S01_R01_norm_data.csv"
-
-    update_file(data_path)
-
-    # run_network(0, 1000)
-
-    network, cfg = __load_network__(MediaType.MOCAP)
-
-    input_vec = torch.randn(1, 1, 200, 126)
-    print("input_vec", input_vec)
-
-    out = network(input_vec)
-    print(out)
-
-    print()
-
-    print("input_vec", input_vec)
-    out = network(input_vec)
-    print(out)

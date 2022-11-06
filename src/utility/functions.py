@@ -13,7 +13,7 @@ def scale(N: int, M: int, x: int) -> Tuple[int, int]:
     of N elements to another range of M elements while keeping its
     relative position inside that range.
     Scaling from some smaller range to a bigger one maps one point
-    into an interval of possibly multiple-points.
+    into an element of possibly multiple-points.
     Args:
         N (int): Size of the initial range.
         M (int): Size of the new range.
@@ -23,7 +23,7 @@ def scale(N: int, M: int, x: int) -> Tuple[int, int]:
         ValueError: Raised if any of the input-values is not an integer.
 
     Returns:
-        Tuple[int, int]: Closed interval in the new range where the
+        Tuple[int, int]: Closed element in the new range where the
         initial point is mapped onto.
     """
     if isinstance(N, int) and isinstance(M, int) and isinstance(x, int):
