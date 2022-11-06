@@ -4,6 +4,51 @@ import numpy as np
 
 from src.annotation.retrieval.retrieval_backend.element import RetrievalElement
 from src.annotation.retrieval.retrieval_backend.filter import FilterCriterion
+from src.dataclasses.priority_queue import PrioritizedItem, PriorityQueue
+
+
+class RetrievalQueue(PriorityQueue):
+    def __init__(self):
+        super().__init__()
+
+        self.lookup_dict = {}
+        self.queues: List[PriorityQueue] = []
+
+    def __len__(self):
+        return sum(len(x) for x in self.queues)
+
+    def push(self, element: RetrievalElement):
+        key = element.interval_index
+        new_item = PrioritizedItem(element.similarity, element)
+        queue_item: PrioritizedItem = self.lookup_dict.get(key)
+        if queue_item is not None:
+            queue_key = queue_item.priority
+            queue = queue_item.item
+            queue.push(new_item)
+
+            if element.similarity <= queue_key:
+                self.remove(queue_item)
+                queue_item.priority = element.similarity
+                self.__push__(queue_item)
+        else:
+            new_queue = PriorityQueue()
+            new_queue.push(new_item)
+            new_queue_item = PrioritizedItem(element.similarity, new_queue)
+            self.lookup_dict[key] = new_queue_item
+            self.__push__(new_queue_item)
+
+    def pop(self) -> Tuple[RetrievalElement, None]:
+        if len(self) == 0:
+            return None
+        queue_item = self.__pop__()
+        queue = queue_item.item
+        elem = queue.pop().item
+        if len(queue) > 0:
+            queue_item.priority = queue.peek().item.similarity
+            self.push(queue_item)
+        else:
+            del self.lookup_dict[elem.interval_index]
+        return elem
 
 
 class Query:
