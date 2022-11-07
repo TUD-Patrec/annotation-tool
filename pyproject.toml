@@ -37,6 +37,7 @@ PyQt5 = [
 pyqtgraph = "0.11.0"
 scipy = "*"
 torch = "~1.12.0"
+sortedcontainers = "^2.4.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "*"

@@ -100,7 +100,7 @@ class Mediator(qtc.QObject):
     @qtc.pyqtSlot(int, int)
     def start_loop(self, lower, upper):
         assert 0 <= lower
-        assert lower < upper
+        assert lower <= upper
         assert upper < self.n_frames
         self.lower = lower
         self.upper = upper
