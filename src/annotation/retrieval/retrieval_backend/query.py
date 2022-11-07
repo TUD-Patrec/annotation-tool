@@ -1,54 +1,104 @@
-from typing import List, Set, Tuple, Union
+from typing import Dict, List, Set, Tuple, Union
 
 import numpy as np
+from sortedcontainers import SortedList
 
 from src.annotation.retrieval.retrieval_backend.element import RetrievalElement
 from src.annotation.retrieval.retrieval_backend.filter import FilterCriterion
-from src.dataclasses.priority_queue import PrioritizedItem, PriorityQueue
+from src.dataclasses.priority_queue import PriorityQueue, QueueItem
 
 
-class RetrievalQueue(PriorityQueue):
+class RetrievalQueue:
     def __init__(self):
         super().__init__()
+        self._subqueues: SortedList[QueueItem] = SortedList()
+        self._interval_to_queue: Dict[int, QueueItem] = {}
 
-        self.lookup_dict = {}
-        self.queues: List[PriorityQueue] = []
+    def __len__(self) -> int:
+        """Return the number of subqueues in the queue."""
+        return len(self._subqueues)
 
-    def __len__(self):
-        return sum(len(x) for x in self.queues)
-
-    def push(self, element: RetrievalElement):
-        key = element.interval_index
-        new_item = PrioritizedItem(element.similarity, element)
-        queue_item: PrioritizedItem = self.lookup_dict.get(key)
-        if queue_item is not None:
-            queue_key = queue_item.priority
-            queue = queue_item.item
-            queue.push(new_item)
-
-            if element.similarity <= queue_key:
-                self.remove(queue_item)
-                queue_item.priority = element.similarity
-                self.__push__(queue_item)
+    def add_element(self, element: RetrievalElement) -> None:
+        """Add an element to the queue."""
+        i = element.interval_index
+        if i not in self._interval_to_queue:
+            # create a new subqueue
+            queue_item = QueueItem(element.similarity, PriorityQueue())
         else:
-            new_queue = PriorityQueue()
-            new_queue.push(new_item)
-            new_queue_item = PrioritizedItem(element.similarity, new_queue)
-            self.lookup_dict[key] = new_queue_item
-            self.__push__(new_queue_item)
+            queue_item = self._interval_to_queue[i]
+            self._subqueues.remove(queue_item)
 
-    def pop(self) -> Tuple[RetrievalElement, None]:
-        if len(self) == 0:
-            return None
-        queue_item = self.__pop__()
         queue = queue_item.item
-        elem = queue.pop().item
+        queue.push(element)
+
+        queue_item.priority = queue.peek().similarity
+
+        self._subqueues.add(queue_item)
+
+    def remove_element(self, element: RetrievalElement) -> None:
+        """Remove an element from the queue."""
+        i = element.interval_index
+        if i not in self._interval_to_queue:
+            return
+
+        queue_item = self._interval_to_queue[i]
+        self._subqueues.remove(queue_item)
+
+        queue = queue_item.item
+        queue.remove(element)
+
         if len(queue) > 0:
-            queue_item.priority = queue.peek().item.similarity
-            self.push(queue_item)
+            queue_item.priority = queue.peek().similarity
+            self._subqueues.add(queue_item)
         else:
-            del self.lookup_dict[elem.interval_index]
-        return elem
+            del self._interval_to_queue[i]
+
+    def pop(self) -> Union[RetrievalElement, None]:
+        """Return the next element in the queue and remove it."""
+        if len(self._subqueues) == 0:
+            return None
+
+        queue_item = self._subqueues.pop(0)
+        queue = queue_item.item
+        element = queue.pop()
+
+        if len(queue) > 0:
+            queue_item.priority = queue.peek().similarity
+            self._subqueues.add(queue_item)
+        else:
+            del self._interval_to_queue[element.interval_index]
+
+        return element
+
+    def peek(self) -> Union[RetrievalElement, None]:
+        """Return the next element in the queue without removing it."""
+        if len(self._subqueues) == 0:
+            return None
+
+        queue_item = self._subqueues[0]
+        queue = queue_item.item
+        element = queue.peek()
+
+        return element
+
+    def total_length(self) -> int:
+        """Return the total number of elements in the queue."""
+        return sum([len(queue.item) for queue in self._subqueues])
+
+    def __contains__(self, element: RetrievalElement) -> bool:
+        """Check if the queue contains an element."""
+        i = element.interval_index
+        if i not in self._interval_to_queue:
+            return False
+
+        queue_item = self._interval_to_queue[i]
+        queue = queue_item.item
+        return element in queue
+
+    def to_list(self) -> List[RetrievalElement]:
+        """Return the queue as a list."""
+        ls = [element for queue in self._subqueues for element in queue.item.to_list()]
+        return ls
 
 
 class Query:
@@ -61,6 +111,7 @@ class Query:
         self._filter_criterion: FilterCriterion = FilterCriterion()  # filter criterion
 
         # gaining some efficiency by caching the results
+        self._open_elements: RetrievalQueue = None
 
     @property
     def similarity_distribution(self) -> np.ndarray:
@@ -100,15 +151,23 @@ class Query:
     def open_elements(self) -> List[RetrievalElement]:
         """Returns the open elements that match the filter criterion.
         Keeps the order of the retrieval list."""
+        if self._open_elements is None:
 
-        def _check(x):
-            return (
-                x.interval_index not in self.accepted_intervals
-                and self._filter_criterion.matches(x)
-                and x not in self.rejected_elements
-            )
+            def _check(x):
+                return (
+                    x.interval_index not in self.accepted_intervals
+                    and self._filter_criterion.matches(x)
+                    and x not in self.rejected_elements
+                )
 
-        return [x for x in self._retrieval_list if _check(x)]
+            open_elements = [x for x in self._retrieval_list if _check(x)]
+
+            self._open_elements = RetrievalQueue()
+
+            for elem in open_elements:
+                self._open_elements.add_element(elem)
+
+        return self._open_elements.to_list()
 
     @property
     def processed_elements(self) -> Set[RetrievalElement]:
@@ -145,13 +204,14 @@ class Query:
     def __next__(self) -> Union[Tuple, None]:
         """Returns the next retrieval element."""
         if self.open_elements:
-            return self.open_elements.pop()  # pop rightmost element
+            return self.open_elements.pop(0)  # pop leftmost element
         else:
             return None
 
     def set_filter(self, new_filter: FilterCriterion) -> None:
         """Sets the filter set."""
         self._filter_criterion = new_filter
+        self._open_elements = None
 
     def accept(self, element: RetrievalElement) -> None:
         """Accepts the element."""
@@ -177,3 +237,4 @@ class Query:
     def reset_rejected(self) -> None:
         """Resets the rejected elements."""
         self.rejected_elements = set()
+        self._open_elements = None
