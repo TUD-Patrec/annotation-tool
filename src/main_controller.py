@@ -118,7 +118,7 @@ class MainApplication(qtw.QApplication):
         if state is not None:
             start = time.perf_counter()
             duration, n_frames, fps = filehandler.meta_data(state.input_file)
-            logging.info(f"Duration: {time.perf_counter() - start:.4f}s")
+            logging.info(f"Loading meta_data took: {time.perf_counter() - start:.4f}s")
             FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
 
             # load media

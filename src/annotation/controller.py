@@ -1,3 +1,5 @@
+from typing import List
+
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 import numpy as np
@@ -24,8 +26,14 @@ class AnnotationController(qtc.QObject):
 
     # SLOTS
     @qtc.pyqtSlot(AnnotationMode)
-    def change_mode(self, mode):
-        assert mode in list(AnnotationMode)
+    def change_mode(self, mode: AnnotationMode) -> None:
+        """
+        Change the annotation mode.
+
+        Args:
+            mode: The new annotation mode.
+        """
+        assert mode in list(AnnotationMode), "Invalid annotation mode."
 
         prev_controller = self.controller
         # only change if the selected mode differs from the current mode
@@ -61,7 +69,22 @@ class AnnotationController(qtc.QObject):
 
     # ALl below slots need to be forwarded
     @qtc.pyqtSlot(list, AnnotationScheme, np.ndarray, int)
-    def load(self, samples, scheme, dependencies, n_frames):
+    def load(
+        self,
+        samples: List[Sample],
+        scheme: AnnotationScheme,
+        dependencies: List[np.ndarray],
+        n_frames: int,
+    ) -> None:
+        """
+        Load the annotation controller with the given data.
+
+        Args:
+            samples: The samples to annotate.
+            scheme: The annotation scheme.
+            dependencies: The dependencies between the samples.
+            n_frames: The number of frames in the video/mocap.
+        """
         assert isinstance(samples, list)
         assert isinstance(scheme, AnnotationScheme)
         assert isinstance(dependencies, np.ndarray) or dependencies is None
@@ -70,45 +93,93 @@ class AnnotationController(qtc.QObject):
             self.controller.load(samples, scheme, dependencies, n_frames)
 
     @qtc.pyqtSlot(int)
-    def setPosition(self, x):
+    def setPosition(self, x: int) -> None:
+        """
+        Set the current position of the annotation controller.
+
+        Args:
+            x: The new position.
+        """
         self.controller.setPosition(x)
 
     @qtc.pyqtSlot(int)
-    def set_position(self, x):
+    def set_position(self, x: int) -> None:
+        """
+        Set the current position of the annotation controller.
+
+        Args:
+            x: The new position.
+        """
         self.setPosition(x)
 
     @qtc.pyqtSlot(bool)
-    def setEnabled(self, x):
+    def setEnabled(self, x: bool) -> None:
+        """
+        Set the enabled state of the annotation controller.
+
+        Args:
+            x: The new enabled state.
+        """
         self.controller.setEnabled(x)
 
     @qtc.pyqtSlot()
-    def undo(self):
+    def undo(self) -> None:
+        """
+        Undo the last action.
+        """
         self.controller.undo()
 
     @qtc.pyqtSlot()
-    def redo(self):
+    def redo(self) -> None:
+        """
+        Redo the last action.
+        """
         self.controller.redo()
 
     @qtc.pyqtSlot()
-    def clear_undo_redo(self):
+    def clear_undo_redo(self) -> None:
+        """
+        Clear the undo/redo stack.
+        """
         self.controller.clear_undo_redo()
 
     @qtc.pyqtSlot()
-    def annotate(self):
+    def annotate(self) -> None:
+        """
+        Annotate the current sample.
+        """
         self.controller.annotate()
 
     @qtc.pyqtSlot()
-    def cut(self):
+    def cut(self) -> None:
+        """
+        Cut the current sample.
+        """
         self.controller.cut()
 
     @qtc.pyqtSlot()
-    def cut_and_annotate(self):
+    def cut_and_annotate(self) -> None:
+        """
+        Cut and annotate the current sample.
+        """
         self.controller.cut_and_annotate()
 
     @qtc.pyqtSlot(bool)
-    def merge(self, left):
+    def merge(self, left: bool) -> None:
+        """
+        Merge the current sample with the previous/next sample.
+
+        Args:
+            left: Whether to merge with the previous sample.
+        """
         self.controller.merge(left)
 
     @qtc.pyqtSlot(Sample)
-    def insert_sample(self, sample):
+    def insert_sample(self, sample: Sample) -> None:
+        """
+        Insert a sample.
+
+        Args:
+            sample: The sample to insert.
+        """
         self.controller.insert_sample(sample)

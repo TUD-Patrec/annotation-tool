@@ -30,7 +30,10 @@ class Query:
         return n_processed_intervals + n_open_intervals
 
     def __next__(self) -> Union[RetrievalElement, None]:
-        """Returns the next RetrievalElement."""
+        """
+        Returns the next RetrievalElement.
+        If there is no next element, None is returned.
+        """
         if self.open_elements:
             self.__check_consistency__()  # check integrity of query before processing next element
             return self.open_elements.pop()
@@ -40,7 +43,7 @@ class Query:
     def __build_queue__(self) -> None:
         """Builds the queue from scratch."""
         start = time.perf_counter()
-        open_elements = self.__compute_open_elements()  # compute open elements
+        open_elements = self.__compute_open_elements__()  # compute open elements
         self._retrieval_queue = RetrievalQueue()  # create new queue
 
         for elem in open_elements:
@@ -58,7 +61,6 @@ class Query:
 
     def __check_consistency__(self):
         """Checks the consistency of the query."""
-
         start = time.perf_counter()
 
         fst = self.open_elements.pop()
@@ -67,7 +69,7 @@ class Query:
             fst == self.open_elements.peek()
         ), "Queue does not return correct element."
 
-        xs = self.__compute_open_elements()
+        xs = self.__compute_open_elements__()
 
         assert (
             len(xs) == self._retrieval_queue.total_length()
@@ -113,21 +115,25 @@ class Query:
             return False
         return True
 
-    def __compute_open_elements(self) -> List[RetrievalElement]:
+    def __compute_open_elements__(self) -> List[RetrievalElement]:
         """Computes the open elements that match the filter criterion."""
         return [x for x in self._retrieval_list if self.__is_open_element__(x)]
 
     @property
     def open_elements(self) -> RetrievalQueue:
-        """Returns the open elements that match the filter criterion.
-        Keeps the order of the retrieval list."""
+        """
+        Returns the open elements that match the filter criterion.
+        Keeps the order of the retrieval list.
+        """
         assert self._retrieval_queue is not None, "Queue is not initialized."
         return self._retrieval_queue
 
     @property
     def open_intervals(self) -> List[int]:
-        """Returns the open intervals.
-        same as np.unique([elem.interval_index for elem in self.open_elements]) but faster."""
+        """
+        Returns the open intervals.
+        Same as np.unique([elem.interval_index for elem in self.open_elements]) but faster.
+        """
         assert self._retrieval_queue is not None, "Queue is not initialized."
         return self._retrieval_queue.intervals
 
@@ -146,8 +152,10 @@ class Query:
 
     @property
     def current_index(self) -> int:
-        """Returns the current index of the query.
-        The current index is the index of the last accepted element."""
+        """
+        Returns the current index of the query.
+        The current index is the index of the last accepted element.
+        """
         return len(self.accepted_elements)
 
     @property
@@ -158,7 +166,6 @@ class Query:
     @property
     def similarity_distribution(self) -> np.ndarray:
         """Returns the distance distribution of the query."""
-
         start = time.perf_counter()
 
         accepted_similarities = np.array(
@@ -176,20 +183,35 @@ class Query:
         )
 
         end = time.perf_counter()
-        logging.info(
+        logging.debug(
             f"Computing the similarity_distribution took {(end - start):.3f} seconds in total."
         )
 
         return similarity_distribution
 
-    def set_filter(self, new_filter: FilterCriterion) -> None:
-        """Sets the filter set."""
+    def set_filter(self, new_filter: FilterCriterion = None) -> None:
+        """Sets the filter set.
+        If the filter is set to None, the filter is removed.
+
+        Args:
+            new_filter: The new filter criterion.
+        """
+        if new_filter is None:
+            new_filter = FilterCriterion()
         if self._filter_criterion != new_filter:
             self._filter_criterion = new_filter
             self.__build_queue__()  # build queue from scratch
 
     def accept(self, element: RetrievalElement) -> None:
-        """Accepts the element."""
+        """Accepts the element.
+        The element is added to the accepted elements and removed from the open elements.
+
+        Args:
+            element: The element to accept.
+        """
+        assert isinstance(
+            element, RetrievalElement
+        ), "Element is not of type RetrievalElement."
         assert not self.__is_processed__(element), "Element is already processed."
         assert (
             element.interval_index not in self.accepted_intervals
@@ -201,7 +223,15 @@ class Query:
             )  # remove interval from queue
 
     def reject(self, element: RetrievalElement) -> None:
-        """Rejects the element."""
+        """Rejects the element.
+        The element is added to the rejected elements and removed from the open elements.
+
+        Args:
+            element: The element to reject.
+        """
+        assert isinstance(
+            element, RetrievalElement
+        ), "Element is not of type RetrievalElement."
         assert not self.__is_processed__(element), "Element is already processed."
         self.rejected_elements.add(element)
 
@@ -215,7 +245,10 @@ class Query:
         self.__build_queue__()  # build queue from scratch
 
     def reset(self) -> None:
-        """Resets the query."""
+        """
+        Resets the query.
+        Resets the accepted and rejected elements and the filter.
+        """
         self.accepted_elements = set()
         self.rejected_elements = set()
         self._filter_criterion = FilterCriterion()
