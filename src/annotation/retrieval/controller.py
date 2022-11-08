@@ -11,10 +11,10 @@ from src.annotation.annotation_base import AnnotationBaseClass
 from src.annotation.modes import AnnotationMode
 from src.annotation.retrieval.main_widget import QRetrievalWidget
 from src.annotation.retrieval.retrieval_backend.element import RetrievalElement
+from src.annotation.retrieval.retrieval_backend.filter import FilterCriterion
 from src.annotation.retrieval.retrieval_backend.filter_dialog import QRetrievalFilter
 from src.annotation.retrieval.retrieval_backend.loader import RetrievalLoader
 from src.annotation.retrieval.retrieval_backend.query import Query
-from src.annotation.retrieval.retrieval_backend.query_filter import FilterCriterion
 from src.annotation.retrieval.tool_widget import RetrievalTools
 from src.dataclasses import Sample, Settings
 from src.dialogs.annotation_dialog import QAnnotationDialog
@@ -122,7 +122,7 @@ class RetrievalAnnotation(AnnotationBaseClass):
         if self.enabled:
             if self.current_element:
                 dialog = QAnnotationDialog(
-                    self.current_element.as_sample(), self.scheme, self.dependencies
+                    self.current_element, self.scheme, self.dependencies
                 )
                 dialog.finished.connect(lambda _: self.element_changed())
                 self.open_dialog(dialog)

@@ -2,7 +2,7 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 import numpy as np
 
-from src.annotation.retrieval.retrieval_backend.query_filter import FilterCriterion
+from src.annotation.retrieval.retrieval_backend.filter import FilterCriterion
 from src.qt_helper_widgets.checkable_combobox import CheckableComboBox
 
 

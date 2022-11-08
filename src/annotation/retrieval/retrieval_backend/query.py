@@ -1,11 +1,11 @@
 import logging
 import time
-from typing import Iterable, List, Set, Union
+from typing import List, Set, Union
 
 import numpy as np
 
 from src.annotation.retrieval.retrieval_backend.element import RetrievalElement
-from src.annotation.retrieval.retrieval_backend.query_filter import FilterCriterion
+from src.annotation.retrieval.retrieval_backend.filter import FilterCriterion
 from src.annotation.retrieval.retrieval_backend.queue import RetrievalQueue
 
 
@@ -32,7 +32,7 @@ class Query:
     def __next__(self) -> Union[RetrievalElement, None]:
         """Returns the next RetrievalElement."""
         if self.open_elements:
-            #  self.__check_consistency__()  # check integrity of query before processing next element
+            self.__check_consistency__()  # check integrity of query before processing next element
             return self.open_elements.pop()
         else:
             return None
@@ -56,19 +56,24 @@ class Query:
         end = time.perf_counter()
         logging.info(f"Computing open elements took {end - start} seconds.")
 
-    def __compute_open_elements(self) -> List[RetrievalElement]:
-        """Computes the open elements that match the filter criterion."""
-
-        def _check(x):
-            return not self.__is_processed__(x) and self._filter_criterion.matches(x)
-
-        return [x for x in self._retrieval_list if _check(x)]
-
     def __check_consistency__(self):
         """Checks the consistency of the query."""
 
         start = time.perf_counter()
+
+        fst = self.open_elements.pop()
+        self.open_elements.push(fst)
+        assert (
+            fst == self.open_elements.peek()
+        ), "Queue does not return correct element."
+
         xs = self.__compute_open_elements()
+
+        assert (
+            len(xs) == self._retrieval_queue.total_length()
+        ), "Queue size does not match number of open elements. {} vs {}".format(
+            len(xs), self._retrieval_queue.total_length()
+        )
 
         assert (
             xs[0] == self.open_elements.peek()
@@ -89,11 +94,31 @@ class Query:
         logging.info(f"check_consistency took {end - start} seconds.")
 
     def __is_processed__(self, elem: RetrievalElement) -> bool:
-        """Checks if the given element is processed."""
+        """Checks if the given element has already been accepted or rejected by the user."""
         return elem in self.accepted_elements or elem in self.rejected_elements
 
+    def __is_open_element__(self, element: RetrievalElement) -> bool:
+        """
+        Checks if the given element is open.
+        An element is open if:
+            1) it is not processed yet
+            2) it matches the filter criterion
+            3) its interval is not accepted yet (i.e. there is no accepted element in the interval).
+        """
+        if self.__is_processed__(element):
+            return False
+        if not self._filter_criterion.matches(element):
+            return False
+        if element.interval_index in self.accepted_intervals:
+            return False
+        return True
+
+    def __compute_open_elements(self) -> List[RetrievalElement]:
+        """Computes the open elements that match the filter criterion."""
+        return [x for x in self._retrieval_list if self.__is_open_element__(x)]
+
     @property
-    def open_elements(self) -> Iterable[RetrievalElement]:
+    def open_elements(self) -> RetrievalQueue:
         """Returns the open elements that match the filter criterion.
         Keeps the order of the retrieval list."""
         assert self._retrieval_queue is not None, "Queue is not initialized."
@@ -101,21 +126,18 @@ class Query:
 
     @property
     def open_intervals(self) -> List[int]:
-        """Returns the open intervals."""
-
-        # same as
-        # return np.unique([elem.interval_index for elem in self.open_elements])
-        # but alot faster
-
+        """Returns the open intervals.
+        same as np.unique([elem.interval_index for elem in self.open_elements]) but faster."""
         assert self._retrieval_queue is not None, "Queue is not initialized."
         return self._retrieval_queue.intervals
 
     @property
     def processed_elements(self) -> Set[RetrievalElement]:
-        """Returns the set of processed elements.
+        """
+        Returns the set of processed elements.
         Should be avoided, since it is not efficient.
         """
-        return self.accepted_elements | self.rejected_elements
+        return self.accepted_elements.union(self.rejected_elements)
 
     @property
     def accepted_intervals(self) -> Set[int]:

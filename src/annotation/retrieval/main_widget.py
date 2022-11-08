@@ -1,6 +1,9 @@
+from typing import Union
+
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
+from src.annotation.retrieval.retrieval_backend.element import RetrievalElement
 from src.annotation.retrieval.retrieval_backend.query import Query
 from src.qt_helper_widgets.display_scheme import QShowAnnotation
 from src.qt_helper_widgets.histogram import HistogramWidget
@@ -56,10 +59,17 @@ class QRetrievalWidget(qtw.QWidget):
 
         self.setFixedWidth(400)
 
-    # Display the current element to the user:
-    # Show him the NetworkPrediction boundaries and the predicted annotation
     @qtc.pyqtSlot(Query, object)
-    def update_UI(self, query, retrieval_element):
+    def update_UI(
+        self, query: Query, retrieval_element: Union[RetrievalElement, None]
+    ) -> None:
+        """
+        Update the UI with the current element.
+
+        Args:
+            query: The query that was used to retrieve the element.
+            retrieval_element: The element that was retrieved.
+        """
 
         if query is None:
             self.progress_label.setText("_/_")
@@ -75,13 +85,13 @@ class QRetrievalWidget(qtw.QWidget):
         if len(query) == 0:
             self.progress_label.setText("Empty query")
             self.main_widget.show_annotation(None)
-            sim = 0
+            sim = None
 
         # Case 2: We're finished -> End of query reached
         elif retrieval_element is None:
             txt = format_progress(len(query) - 1, len(query))
             self.progress_label.setText(txt)
-            sim = 0
+            sim = None
 
         # Case 3: Default - we're somewhere in the middle of the query
         else:
@@ -96,6 +106,6 @@ class QRetrievalWidget(qtw.QWidget):
         data = query.similarity_distribution
 
         if data.shape[0] > 0:
-            self.histogram.plot_data(data, sim)
+            self.histogram.plot(data, sim)
         else:
             self.histogram.reset()

@@ -27,46 +27,46 @@ class HistogramWidget(qtw.QWidget):
 
         self.setFixedHeight(175)
 
-    def reset(self):
-        self.position = 0
+    def reset(self) -> None:
+        """Reset the histogram."""
+        self.position = None
         self.data = None
-        self.plot()
+        self.__plot__()
 
-    def update_position(self, new_pos):
-        self.position = new_pos
-        self.plot()
-
-    def update_data(self, data):
-        self.data = data
-        self.plot()
-
-    def plot_data(self, data, position):
+    def plot(self, data: np.ndarray = None, position: float = None) -> None:
+        """Plot the data and the position on the histogram."""
         self.data = data
         self.position = position
-        self.plot()
+        self.__plot__()
 
-    def plot_possible(self):
-        return isinstance(self.data, np.ndarray) and isinstance(
-            self.position, (float, int)
-        )
-
-    def plot(self):
-        self.figure.clear()
-        color = self.palette().window().color().name()
-        if self.current_color is None or color != self.current_color:
+    def __plot__(self) -> None:
+        """Plot the data and the position on the histogram."""
+        self.figure.clear()  # clear the figure
+        color = (
+            self.palette().window().color().name()
+        )  # get the background color of the widget
+        if (
+            self.current_color is None or color != self.current_color
+        ):  # if the color has changed
             ax = plt.axes()
             ax.set_facecolor(color)
             self.figure.set_facecolor(color)
-        if self.plot_possible():
-            data = self.data
-            position = self.position
+        if self.data is not None:  # if data is available
+            if self.position is not None:  # if position is available
+                plt.axvline(x=self.position, color="r", label="")
 
-            plt.axvline(x=position, color="r", label="")
-            plt.hist(data, range=(0, 1), bins=25, density=True, facecolor="g")
+            plt.hist(self.data, range=(0, 1), bins=25, density=True, facecolor="g")
             plt.yticks([])
             plt.xticks([0, 1], [0, 1])
         else:
+            plt.text(
+                0.5,
+                0.5,
+                "No data available",
+                horizontalalignment="center",
+                verticalalignment="center",
+            )
             plt.yticks([])
             plt.xticks([])
-        plt.box(False)
-        self.canvas.draw()
+        plt.box(False)  # remove the box around the plot
+        self.canvas.draw()  # draw the plot
