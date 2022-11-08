@@ -88,7 +88,7 @@ class QRetrievalWidget(qtw.QWidget):
             txt = format_progress(query.current_index, len(query))
             self.progress_label.setText(txt)
 
-            sim = retrieval_element.similarity
+            sim = retrieval_element._similarity
 
             proposed_annotation = retrieval_element.annotation
             self.main_widget.show_annotation(proposed_annotation)

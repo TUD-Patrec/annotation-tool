@@ -10,7 +10,7 @@ from src.dataclasses.priority_queue import PriorityQueue
 
 @dataclass(order=True)
 class RetrievalQueueWrapper:
-    similarity: Union[int, float] = field(compare=True)
+    distance: Union[int, float] = field(compare=True)
     interval: int = field(compare=True)
     item: PriorityQueue = field(compare=False)
 
@@ -25,6 +25,44 @@ class RetrievalQueue:
         """Return the number of subqueues."""
         return len(self._q_wrappers)
 
+    def __contains__(self, element: RetrievalElement) -> bool:
+        """Check if the queue contains an element."""
+        i = element.interval_index
+        if i not in self._interval_to_q_wrapper:
+            return False
+
+        queue_wrapper = self._interval_to_q_wrapper[i]
+        queue = queue_wrapper.item
+        return element in queue
+
+    def __iter__(self):
+        """Return an iterator over the queue."""
+        return iter(self.to_list())
+
+    @property
+    def intervals(self) -> List[int]:
+        """Return a list of interval-indices belonging to intervals
+        that are managed inside this queue."""
+        return list(self._interval_to_q_wrapper.keys())
+
+    def peek_into_interval(self, i) -> Union[RetrievalElement, None]:
+        """Return the element with the smallest distance (= the biggest similarity)
+        to its attribute-representation inside the given interval.
+
+        Args:
+            i: The interval index.
+        """
+        if i not in self._interval_to_q_wrapper:
+            return None
+
+        queue_wrapper = self._interval_to_q_wrapper[i]
+        queue = queue_wrapper.item
+
+        element = queue.peek()
+        assert element is not None, "Element is None."
+        assert element.distance == queue_wrapper.distance, "Distance mismatch."
+        return element
+
     def push(self, element: RetrievalElement) -> None:
         """Add an element to the queue."""
 
@@ -32,20 +70,18 @@ class RetrievalQueue:
         if i not in self._interval_to_q_wrapper:
             # create a new subqueue
             new_queue = PriorityQueue()
-            queue_wrapper = RetrievalQueueWrapper(element.similarity, i, new_queue)
+            queue_wrapper = RetrievalQueueWrapper(element.distance, i, new_queue)
             self._interval_to_q_wrapper[
                 i
             ] = queue_wrapper  # add to interval to queue mapping
             self._q_wrappers.add(queue_wrapper)  # add to sorted list of queues
-            print("Added new queue for interval %d" % i)
-            print(queue_wrapper)
-            print()
         else:
             queue_wrapper = self._interval_to_q_wrapper[i]
 
         queue = queue_wrapper.item  # get the queue
         size_before = len(queue)
-        queue.push(element, key=1 - element.similarity)  # add the element to the queue
+        # add the element to the queue, using distance and interval_idx as priority  -> max heap
+        queue.push(element, key=(element.distance, element.i, element.j))
         size_after = len(queue)
         assert (
             size_after == size_before + 1
@@ -54,10 +90,11 @@ class RetrievalQueue:
         )
 
         s1 = len(queue)
-        if element.similarity > queue_wrapper.similarity:
-            # update the similarity of the queue item if necessary
+        if element.distance < queue_wrapper.distance:
+            # update the distance of the queue item if necessary
             self._q_wrappers.remove(queue_wrapper)  # => O(log n)
-            queue_wrapper.similarity = element.similarity
+            assert element.distance == queue.peek().distance, "Distance mismatch."
+            queue_wrapper.distance = element.distance
             self._q_wrappers.add(queue_wrapper)  # => O(log n)
         s2 = len(queue)
         assert s1 == s2, "Queue size changed. {} != {}".format(s1, s2)
@@ -80,7 +117,7 @@ class RetrievalQueue:
         ), "Queue size did not decrease by 1. {} != {}".format(old_size, new_size + 1)
 
         if len(queue) > 0:
-            queue_wrapper.similarity = queue.peek().similarity
+            queue_wrapper.distance = queue.peek().distance
             self._q_wrappers.add(queue_wrapper)
         else:
             del self._interval_to_q_wrapper[i]
@@ -90,7 +127,7 @@ class RetrievalQueue:
         if len(self._q_wrappers) == 0:
             return None
 
-        queue_wrapper = self._q_wrappers.pop()
+        queue_wrapper = self._q_wrappers.pop(0)  # pop left
         queue = queue_wrapper.item
         old_size = len(queue)
         element = queue.pop()
@@ -102,7 +139,7 @@ class RetrievalQueue:
         assert element is not None, "Element is None."
 
         if len(queue) > 0:
-            queue_wrapper.similarity = queue.peek().similarity
+            queue_wrapper.distance = queue.peek().distance
             self._q_wrappers.add(queue_wrapper)
         else:
             del self._interval_to_q_wrapper[element.interval_index]
@@ -132,26 +169,12 @@ class RetrievalQueue:
         """Return the total number of elements in the queue."""
         return sum([len(queue.item) for queue in self._q_wrappers])
 
-    def __contains__(self, element: RetrievalElement) -> bool:
-        """Check if the queue contains an element."""
-        i = element.interval_index
-        if i not in self._interval_to_q_wrapper:
-            return False
-
-        queue_wrapper = self._interval_to_q_wrapper[i]
-        queue = queue_wrapper.item
-        return element in queue
-
-    def __iter__(self):
-        """Return an iterator over the queue."""
-        return iter(self.to_list())
-
     def to_list(self) -> List[RetrievalElement]:
         """Return the queue as a list."""
         queues = [queue_wrapper.item for queue_wrapper in self._q_wrappers]
         # grab all elements
         elements = [element for queue in queues for element in queue]
-        elements.sort(key=lambda x: x.similarity, reverse=True)
+        elements.sort(key=lambda x: (x.distance, x.interval_index))
         return elements
 
     def remove_interval(self, i: int) -> None:

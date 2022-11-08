@@ -9,14 +9,15 @@ from src.annotation.retrieval.retrieval_backend.element import RetrievalElement
 class FilterCriterion:
     filter_array: np.ndarray = field(init=True, default=None)
 
-    # test whether a given element matches the criterion
     def matches(self, retrieval_element: RetrievalElement) -> bool:
         """
         Tests whether the given retrieval element matches the filter criterion.
         """
         if self.is_empty():
+            # If the filter criterion is empty, it matches everything.
             return True
-        comp_array = retrieval_element.annotation.annotation_vector
+
+        comp_array: np.ndarray = retrieval_element.annotation.annotation_vector
 
         tmp = np.logical_and(comp_array, self.filter_array)
         res = np.array_equal(self.filter_array, tmp)
@@ -40,5 +41,5 @@ class FilterCriterion:
         )
         return FilterCriterion(tmp)
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         return self.filter_array is None or np.sum(self.filter_array) == 0

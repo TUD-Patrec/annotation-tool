@@ -52,14 +52,16 @@ class RetrievalLoader(qtc.QThread):
                     # TODO: LAra specific -> remove later
                     if attr_repr.shape[0] == 27:
                         # Attributes begin at the 8th index of the attribute representation
-                        sim = similarity(classifications[i], attr_repr[8:])
+                        dist = spatial.distance.cosine(
+                            classifications[i], attr_repr[8:]
+                        )
                     else:
-                        sim = similarity(classifications[i], attr_repr)
+                        dist = spatial.distance.cosine(classifications[i], attr_repr)
                     annotation = Annotation(self.controller.scheme, np.copy(attr_repr))
 
                     # RetrievalElements are just wrapped tuples more or less (for convenience)
                     # (see src/annotation/retrieval/retrieval_backend/element.py)
-                    elem = RetrievalElement(annotation, interval, sim, i, j)
+                    elem = RetrievalElement(annotation, interval, dist, i, j)
                     retrieval_elements.append(elem)
         else:
             # This case applies if the loaded dateset does not have any dependencies.
@@ -67,27 +69,16 @@ class RetrievalLoader(qtc.QThread):
             # we can only compare it to its rounded binarized version (each attribute is rounded to 0 or 1).
             for i, interval in enumerate(intervals):
                 attr_repr = np.round(classifications[i])
-                sim = similarity(classifications[i], attr_repr)
+                dist = spatial.distance.cosine(classifications[i], attr_repr)
                 annotation = Annotation(self.controller.scheme, np.copy(attr_repr))
                 elem = RetrievalElement(
-                    annotation, interval, sim, i, None
+                    annotation, interval, dist, i, None
                 )  # j is None here, because there are no dependencies.
                 retrieval_elements.append(elem)
 
-        retrieval_elements.sort(
-            key=lambda x: x.similarity, reverse=True
-        )  # sort by similarity
+        retrieval_elements.sort(key=lambda x: x.distance)  # sort by distance
 
         return intervals, classifications, retrieval_elements
-
-
-def similarity(x, y, metric="cosine") -> float:
-    """Calculates the similarity between two vectors x and y using the given metric."""
-    if metric == "cosine":
-        dist = spatial.distance.cosine(x, y)
-        return 1 - dist
-    else:
-        raise NotImplementedError
 
 
 def get_classifications(intervals, progress_callback=None):

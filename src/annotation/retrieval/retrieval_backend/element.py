@@ -8,7 +8,7 @@ from src.dataclasses import Annotation, Sample
 class RetrievalElement:
     annotation: Annotation = field(init=True, hash=False)
     interval: Tuple[int, int] = field(init=True, hash=False)
-    similarity: float = field(init=True, hash=True)
+    distance: float = field(init=True, hash=True)
     i: int = field(init=True, hash=True)  # element index
     j: Union[int, None] = field(init=True, hash=True)  # attribute representation index
 
@@ -23,3 +23,7 @@ class RetrievalElement:
     @property
     def attribute_representation_index(self):
         return self.j
+
+    @property
+    def _similarity(self):
+        return 1 - self.distance

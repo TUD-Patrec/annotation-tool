@@ -1,105 +1,121 @@
+import logging
+import time
 from typing import Iterable, List, Set, Union
 
 import numpy as np
 
 from src.annotation.retrieval.retrieval_backend.element import RetrievalElement
-from src.annotation.retrieval.retrieval_backend.filter import FilterCriterion
+from src.annotation.retrieval.retrieval_backend.query_filter import FilterCriterion
 from src.annotation.retrieval.retrieval_backend.queue import RetrievalQueue
 
 
 class Query:
     def __init__(self, retrieval_list: List[RetrievalElement]) -> None:
         self._retrieval_list: List[RetrievalElement] = sorted(
-            retrieval_list, key=lambda x: x.similarity, reverse=True
+            retrieval_list, key=lambda x: (x.distance, x.i, x.j)
         )  # list of all retrieval elements, must never be changed!
         self.accepted_elements: Set[RetrievalElement] = set()  # accepted elements
         self.rejected_elements: Set[RetrievalElement] = set()  # rejected elements
         self._filter_criterion: FilterCriterion = FilterCriterion()  # filter criterion
 
         # gaining some efficiency by caching and smarter datastructures
-        self._retrieval_queue: RetrievalQueue = None
+        self._retrieval_queue: RetrievalQueue = None  # queue of open elements
+        self.__build_queue__()  # build queue
 
-    @property
-    def similarity_distribution(self) -> np.ndarray:
-        """Returns the similarity distribution of the query."""
+    def __len__(self) -> int:
+        """Returns the number of elements in the query."""
+        # number of processed intervals = number of accepted elements
+        n_processed_intervals = len(self.accepted_elements)
+        n_open_intervals = len(self.open_intervals)
+        return n_processed_intervals + n_open_intervals
 
-        accepted_similarities = np.array(
-            [elem.similarity for elem in self.accepted_elements]
-        )
+    def __next__(self) -> Union[RetrievalElement, None]:
+        """Returns the next RetrievalElement."""
+        if self.open_elements:
+            #  self.__check_consistency__()  # check integrity of query before processing next element
+            return self.open_elements.pop()
+        else:
+            return None
 
-        # get similarities of open intervals
-        open_intervals_with_similarities = np.array(
-            [[elem.interval_index, elem.similarity] for elem in self.open_elements]
-        )
+    def __build_queue__(self) -> None:
+        """Builds the queue from scratch."""
+        start = time.perf_counter()
+        open_elements = self.__compute_open_elements()  # compute open elements
+        self._retrieval_queue = RetrievalQueue()  # create new queue
 
-        # group similarities by interval index
-        grouped_similarities = [
-            open_intervals_with_similarities[
-                open_intervals_with_similarities[:, 0] == i
-            ][:, 1]
-            for i in self.open_intervals
-        ]
+        for elem in open_elements:
+            old_size = self._retrieval_queue.total_length()
+            self._retrieval_queue.push(elem)
+            new_size = self._retrieval_queue.total_length()
+            assert new_size - old_size == 1, "Queue size did not increase by 1."
 
-        # compute max similarity for each interval
-        max_similarities = np.array(
-            [np.max(similarities) for similarities in grouped_similarities]
-        )
+        assert (
+            len(open_elements) == self._retrieval_queue.total_length()
+        ), "Queue size does not match number of open elements."
 
-        # get similarity distribution
-        similarity_distribution = np.concatenate(
-            (accepted_similarities, max_similarities)
-        )
-        similarity_distribution = np.sort(similarity_distribution)
+        end = time.perf_counter()
+        logging.info(f"Computing open elements took {end - start} seconds.")
 
-        return similarity_distribution
+    def __compute_open_elements(self) -> List[RetrievalElement]:
+        """Computes the open elements that match the filter criterion."""
+
+        def _check(x):
+            return not self.__is_processed__(x) and self._filter_criterion.matches(x)
+
+        return [x for x in self._retrieval_list if _check(x)]
+
+    def __check_consistency__(self):
+        """Checks the consistency of the query."""
+
+        start = time.perf_counter()
+        xs = self.__compute_open_elements()
+
+        assert (
+            xs[0] == self.open_elements.peek()
+        ), "First element of open elements does not match first element of retrieval list."
+
+        ys = list(self._retrieval_queue)
+
+        assert len(xs) == len(
+            ys
+        ), "Number of open elements does not match number of elements in queue."
+
+        for idx, (x, y) in enumerate(zip(xs, ys)):
+            assert (
+                x == y
+            ), f"{idx}: Element {x} of open elements does not match element {y} of queue."
+
+        end = time.perf_counter()
+        logging.info(f"check_consistency took {end - start} seconds.")
+
+    def __is_processed__(self, elem: RetrievalElement) -> bool:
+        """Checks if the given element is processed."""
+        return elem in self.accepted_elements or elem in self.rejected_elements
 
     @property
     def open_elements(self) -> Iterable[RetrievalElement]:
         """Returns the open elements that match the filter criterion.
         Keeps the order of the retrieval list."""
-        if self._retrieval_queue is None:
-
-            def _check(x):
-                return (
-                    x.interval_index not in self.accepted_intervals
-                    and self._filter_criterion.matches(x)
-                    and x not in self.rejected_elements
-                )
-
-            open_elements = [x for x in self._retrieval_list if _check(x)]
-
-            self._retrieval_queue = RetrievalQueue()
-
-            intvls = set()
-
-            for elem in open_elements:
-                intvls.add(elem.interval_index)
-                old_size = self._retrieval_queue.total_length()
-                self._retrieval_queue.push(elem)
-                new_size = self._retrieval_queue.total_length()
-                assert new_size - old_size == 1, "Queue size did not increase by 1."
-
-            print(f"Open intervals: {intvls}")
-            print(f"len(_retrieval_queue): {len(self._retrieval_queue)}")
-            print(
-                f"total_length(_retrieval_queue): {self._retrieval_queue.total_length()}"
-            )
-
-            assert (
-                len(open_elements) == self._retrieval_queue.total_length()
-            ), "Queue size does not match number of open elements."
-
+        assert self._retrieval_queue is not None, "Queue is not initialized."
         return self._retrieval_queue
-
-    @property
-    def processed_elements(self) -> Set[RetrievalElement]:
-        """Returns the set of processed elements."""
-        return self.accepted_elements | self.rejected_elements
 
     @property
     def open_intervals(self) -> List[int]:
         """Returns the open intervals."""
-        return sorted(np.unique([elem.interval_index for elem in self.open_elements]))
+
+        # same as
+        # return np.unique([elem.interval_index for elem in self.open_elements])
+        # but alot faster
+
+        assert self._retrieval_queue is not None, "Queue is not initialized."
+        return self._retrieval_queue.intervals
+
+    @property
+    def processed_elements(self) -> Set[RetrievalElement]:
+        """Returns the set of processed elements.
+        Should be avoided, since it is not efficient.
+        """
+        return self.accepted_elements | self.rejected_elements
 
     @property
     def accepted_intervals(self) -> Set[int]:
@@ -117,29 +133,45 @@ class Query:
         """Returns the filter criterion."""
         return self._filter_criterion
 
-    def __len__(self) -> int:
-        """Returns the number of elements in the query."""
-        # number of processed intervals = number of accepted elements
-        n_processed_intervals = len(self.accepted_elements)
-        n_open_intervals = len(self.open_intervals)
-        return n_processed_intervals + n_open_intervals
+    @property
+    def similarity_distribution(self) -> np.ndarray:
+        """Returns the distance distribution of the query."""
 
-    def __next__(self) -> Union[RetrievalElement, None]:
-        """Returns the next RetrievalElement."""
-        if self.open_elements:
-            return self.open_elements.pop()
-        else:
-            return None
+        start = time.perf_counter()
+
+        accepted_similarities = np.array(
+            [elem._similarity for elem in self.accepted_elements]
+        )
+
+        open_similarities = [
+            self._retrieval_queue.peek_into_interval(i)._similarity
+            for i in self.open_intervals
+        ]
+
+        # get similarity distribution
+        similarity_distribution = np.concatenate(
+            (accepted_similarities, open_similarities)
+        )
+
+        end = time.perf_counter()
+        logging.info(
+            f"Computing the similarity_distribution took {(end - start):.3f} seconds in total."
+        )
+
+        return similarity_distribution
 
     def set_filter(self, new_filter: FilterCriterion) -> None:
         """Sets the filter set."""
-        self._filter_criterion = new_filter
-        self._retrieval_queue = None
+        if self._filter_criterion != new_filter:
+            self._filter_criterion = new_filter
+            self.__build_queue__()  # build queue from scratch
 
     def accept(self, element: RetrievalElement) -> None:
         """Accepts the element."""
-        assert element not in self.processed_elements  # element must not be processed
-        assert element.interval_index not in self.accepted_intervals
+        assert not self.__is_processed__(element), "Element is already processed."
+        assert (
+            element.interval_index not in self.accepted_intervals
+        ), "Interval is already accepted."
         self.accepted_elements.add(element)
         if self.open_elements:
             self.open_elements.remove_interval(
@@ -148,14 +180,8 @@ class Query:
 
     def reject(self, element: RetrievalElement) -> None:
         """Rejects the element."""
-        assert element not in self.processed_elements  # element must not be processed
+        assert not self.__is_processed__(element), "Element is already processed."
         self.rejected_elements.add(element)
-
-    def reset(self) -> None:
-        """Resets the query."""
-        self.accepted_elements = set()
-        self.rejected_elements = set()
-        self.reset_filter()
 
     def reset_filter(self) -> None:
         """Resets the filter."""
@@ -164,4 +190,11 @@ class Query:
     def reset_rejected(self) -> None:
         """Resets the rejected elements."""
         self.rejected_elements = set()
-        self._retrieval_queue = None
+        self.__build_queue__()  # build queue from scratch
+
+    def reset(self) -> None:
+        """Resets the query."""
+        self.accepted_elements = set()
+        self.rejected_elements = set()
+        self._filter_criterion = FilterCriterion()
+        self.__build_queue__()  # build queue from scratch

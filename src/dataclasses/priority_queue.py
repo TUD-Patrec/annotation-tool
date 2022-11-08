@@ -49,7 +49,7 @@ class PriorityQueue:
         return self.__pop__()
 
     def __push__(
-        self, item: Any, key: Union[Callable, Union[int, float]] = None
+        self, item: Any, key: Union[Callable, Union[int, float, tuple]] = None
     ) -> None:
         """Push an item into the queue.
 
@@ -62,10 +62,12 @@ class PriorityQueue:
             def key(x):
                 return x  # default key is the item itself
 
-        if isinstance(key, float):
-            priority = key  # if key is a float, use it as priority
-        else:
+        if isinstance(key, (float, int, tuple)):
+            priority = key  # if key is comparable, use it as priority
+        elif callable(key):
             priority = key(item)  # get the priority of the item
+        else:
+            raise TypeError("key must be a callable or comparable")
         queue_item = QueueItem(priority, item)
         heapq.heappush(self._pq, queue_item)
         self._lookup_dict[item] = queue_item
@@ -96,7 +98,7 @@ class PriorityQueue:
     def to_list(self) -> List[Any]:
         non_removed = [queue_item for queue_item in self._pq if not queue_item.removed]
         ls = sorted(
-            non_removed, key=lambda x: x.priority, reverse=True
+            non_removed, key=lambda x: x.priority
         )  # sort by priority in descending order
         return [queue_item.item for queue_item in ls]
 
