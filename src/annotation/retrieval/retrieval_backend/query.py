@@ -166,16 +166,26 @@ class Query:
         """
         start = time.perf_counter()
 
-        if self.__tmp__ is not None and self.processed_elements == self.__tmp__[0]:
-            # if the number of processed elements has not changed, we can reuse the cached result
-            ls = self.__tmp__[1]
-            end = time.perf_counter()
-            logging.debug(f"Computing open elements took {(end - start): .4f} seconds.")
-            return ls
+        if self.__tmp__ is not None:
+            if (
+                self.processed_elements == self.__tmp__[0]
+                and self.filter_criterion == self.__tmp__[1]
+            ):
+                # if the number of processed elements and the filter has not changed, we can reuse the cached result
+                ls = self.__tmp__[2]
+                end = time.perf_counter()
+                logging.debug(
+                    f"Computing open elements took {(end - start): .4f} seconds."
+                )
+                return ls
 
         ls = [x for x in self._retrieval_list if self.__is_open_element__(x)]
 
-        self.__tmp__ = (self.processed_elements, ls)
+        self.__tmp__ = (
+            self.processed_elements,
+            self.filter_criterion,
+            ls,
+        )  # cache result
         end = time.perf_counter()
         logging.debug(f"Computing open elements took {(end - start): .4f} seconds.")
         return ls
