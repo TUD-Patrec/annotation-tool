@@ -41,8 +41,13 @@ class RetrievalQueue:
 
     @property
     def intervals(self) -> List[int]:
-        """Return a list of interval-indices belonging to intervals
-        that are managed inside this queue."""
+        """
+        Return a list of interval-indices belonging to intervals
+        that are managed inside this queue.
+
+        Returns:
+            A list of interval-indices.
+        """
         return list(self._interval_to_q_wrapper.keys())
 
     def peek_into_interval(self, i) -> Union[RetrievalElement, None]:
@@ -51,6 +56,9 @@ class RetrievalQueue:
 
         Args:
             i: The interval index.
+
+        Returns:
+            The element with the smallest distance to its attribute-representation.
         """
         if i not in self._interval_to_q_wrapper:
             return None
@@ -64,7 +72,12 @@ class RetrievalQueue:
         return element
 
     def push(self, element: RetrievalElement) -> None:
-        """Add an element to the queue."""
+        """
+        Add an element to the queue.
+
+        Args:
+            element: The element to add.
+        """
 
         i = element.interval_index
         if i not in self._interval_to_q_wrapper:
@@ -100,7 +113,12 @@ class RetrievalQueue:
         assert s1 == s2, "Queue size changed. {} != {}".format(s1, s2)
 
     def remove(self, element: RetrievalElement) -> None:
-        """Remove an element from the queue."""
+        """
+        Remove an element from the queue.
+
+        Args:
+            element: The element to remove.
+        """
         i = element.interval_index
         if i not in self._interval_to_q_wrapper:
             return
@@ -123,7 +141,12 @@ class RetrievalQueue:
             del self._interval_to_q_wrapper[i]
 
     def pop(self) -> Union[RetrievalElement, None]:
-        """Return the next element in the queue and remove it."""
+        """
+        Return the next element in the queue and remove it.
+
+        Returns:
+            The next element in the queue.
+        """
         if len(self._q_wrappers) == 0:
             return None
 
@@ -147,7 +170,12 @@ class RetrievalQueue:
         return element
 
     def peek(self) -> Union[RetrievalElement, None]:
-        """Return the next element in the queue without removing it."""
+        """
+        Return the next element in the queue without removing it.
+
+        Returns:
+            The next element in the queue.
+        """
         if len(self._q_wrappers) == 0:
             return None
 
@@ -166,11 +194,21 @@ class RetrievalQueue:
         return element
 
     def total_length(self) -> int:
-        """Return the total number of elements in the queue."""
+        """
+        Return the total number of elements in the queue.
+
+        Returns:
+            The total number of elements in the queue.
+        """
         return sum([len(queue.item) for queue in self._q_wrappers])
 
     def to_list(self) -> List[RetrievalElement]:
-        """Return the queue as a list."""
+        """
+        Return the queue as a list.
+
+        Returns:
+            The queue as a list.
+        """
         queues = [queue_wrapper.item for queue_wrapper in self._q_wrappers]
         # grab all elements
         elements = [element for queue in queues for element in queue]
@@ -178,7 +216,12 @@ class RetrievalQueue:
         return elements
 
     def remove_interval(self, i: int) -> None:
-        """Remove all elements from the queue that belong to the given interval."""
+        """
+        Remove all elements from the queue that belong to the given interval.
+
+        Args:
+            i: The interval index.
+        """
         if i not in self._interval_to_q_wrapper:
             logging.warning("Interval %d not in queue.", i)
             return
@@ -206,6 +249,9 @@ class RetrievalQueue:
         queue.clear()  # remove all elements from the queue
         del self._interval_to_q_wrapper[i]
 
-    def clear(self):
+    def clear(self) -> None:
+        """
+        Clear the queue.
+        """
         self._q_wrappers.clear()
         self._interval_to_q_wrapper.clear()

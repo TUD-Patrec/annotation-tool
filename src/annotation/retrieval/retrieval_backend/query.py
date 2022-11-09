@@ -23,7 +23,20 @@ class Query:
         self.__build_queue__()  # build queue
 
     def __len__(self) -> int:
-        """Returns the number of elements in the query."""
+        """
+        Returns the length of the query.
+        The length is defined as the number of open intervals + the number of accepted intervals.
+
+        For example:
+            If there are 10 intervals in total and 5 of them have been accepted, and additionally
+            3 of the remaining 5 intervals are still open, the length of the query is 8.
+
+        Intervals that are not available (i.e. there is no fitting unprocessed element
+        [w.r.t to the filter] in that interval) are not counted.
+
+        Returns:
+            The length of the query.
+        """
         # number of processed intervals = number of accepted elements
         n_processed_intervals = len(self.accepted_elements)
         n_open_intervals = len(self.open_intervals)
@@ -33,6 +46,9 @@ class Query:
         """
         Returns the next RetrievalElement.
         If there is no next element, None is returned.
+
+        Returns:
+            The next RetrievalElement or None.
         """
         if self.open_elements:
             self.__check_consistency__()  # check integrity of query before processing next element
@@ -41,7 +57,9 @@ class Query:
             return None
 
     def __build_queue__(self) -> None:
-        """Builds the queue from scratch."""
+        """
+        Builds the queue from scratch using the current filter criterion and the retrieval list.
+        """
         start = time.perf_counter()
         open_elements = self.__compute_open_elements__()  # compute open elements
         self._retrieval_queue = RetrievalQueue()  # create new queue
@@ -96,7 +114,19 @@ class Query:
         logging.info(f"check_consistency took {end - start} seconds.")
 
     def __is_processed__(self, elem: RetrievalElement) -> bool:
-        """Checks if the given element has already been accepted or rejected by the user."""
+        """
+        Checks if the given element has already been accepted or rejected by the user.
+
+        An element is processed if:
+            1) it is in the set of accepted elements
+            2) it is in the set of rejected elements
+
+        Args:
+            elem: The element to check.
+
+        Returns:
+            True if the element has been processed, False otherwise.
+        """
         return elem in self.accepted_elements or elem in self.rejected_elements
 
     def __is_open_element__(self, element: RetrievalElement) -> bool:
@@ -106,6 +136,12 @@ class Query:
             1) it is not processed yet
             2) it matches the filter criterion
             3) its interval is not accepted yet (i.e. there is no accepted element in the interval).
+
+        Args:
+            element: The element to check.
+
+        Returns:
+            True if the element is open, False otherwise.
         """
         if self.__is_processed__(element):
             return False
@@ -116,7 +152,12 @@ class Query:
         return True
 
     def __compute_open_elements__(self) -> List[RetrievalElement]:
-        """Computes the open elements that match the filter criterion."""
+        """
+        Computes the open elements that match the filter criterion.
+
+        Returns:
+            A list of open elements.
+        """
         return [x for x in self._retrieval_list if self.__is_open_element__(x)]
 
     @property
@@ -124,6 +165,9 @@ class Query:
         """
         Returns the open elements that match the filter criterion.
         Keeps the order of the retrieval list.
+
+        Returns:
+            A queue of open elements.
         """
         assert self._retrieval_queue is not None, "Queue is not initialized."
         return self._retrieval_queue
@@ -133,6 +177,9 @@ class Query:
         """
         Returns the open intervals.
         Same as np.unique([elem.interval_index for elem in self.open_elements]) but faster.
+
+        Returns:
+            A list of open intervals.
         """
         assert self._retrieval_queue is not None, "Queue is not initialized."
         return self._retrieval_queue.intervals
@@ -142,12 +189,20 @@ class Query:
         """
         Returns the set of processed elements.
         Should be avoided, since it is not efficient.
+
+        Returns:
+            The set of processed elements.
         """
         return self.accepted_elements.union(self.rejected_elements)
 
     @property
     def accepted_intervals(self) -> Set[int]:
-        """Returns the set of accepted intervals."""
+        """
+        Returns the set of accepted intervals.
+
+        Returns:
+            The set of accepted intervals.
+        """
         return {elem.interval_index for elem in self.accepted_elements}
 
     @property
@@ -155,17 +210,30 @@ class Query:
         """
         Returns the current index of the query.
         The current index is the index of the last accepted element.
+
+        Returns:
+            The current index of the query.
         """
         return len(self.accepted_elements)
 
     @property
     def filter_criterion(self) -> FilterCriterion:
-        """Returns the filter criterion."""
+        """
+        Returns the filter criterion.
+
+        Returns:
+            The filter criterion.
+        """
         return self._filter_criterion
 
     @property
     def similarity_distribution(self) -> np.ndarray:
-        """Returns the distance distribution of the query."""
+        """
+        Returns the distance distribution of the query.
+
+        Returns:
+            The distance distribution of the query.
+        """
         start = time.perf_counter()
 
         accepted_similarities = np.array(
@@ -190,7 +258,8 @@ class Query:
         return similarity_distribution
 
     def set_filter(self, new_filter: FilterCriterion = None) -> None:
-        """Sets the filter set.
+        """
+        Sets the filter set.
         If the filter is set to None, the filter is removed.
 
         Args:
@@ -203,7 +272,8 @@ class Query:
             self.__build_queue__()  # build queue from scratch
 
     def accept(self, element: RetrievalElement) -> None:
-        """Accepts the element.
+        """
+        Accepts the element.
         The element is added to the accepted elements and removed from the open elements.
 
         Args:
@@ -223,7 +293,8 @@ class Query:
             )  # remove interval from queue
 
     def reject(self, element: RetrievalElement) -> None:
-        """Rejects the element.
+        """
+        Rejects the element.
         The element is added to the rejected elements and removed from the open elements.
 
         Args:
