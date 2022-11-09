@@ -43,7 +43,7 @@ class RetrievalAnnotation(AnnotationBaseClass):
 
         # Control Attributes
         self.filter_criterion: FilterCriterion = FilterCriterion()  # empty filter
-        self.classifications: List[np.ndarray] = None  # maybe needed later
+        self.classifications: np.ndarray = None  # maybe needed later
         self.intervals: List[Tuple[int, int]] = None  # maybe needed later
         self.query: Query = None
         self.current_element: RetrievalElement = None
@@ -71,6 +71,7 @@ class RetrievalAnnotation(AnnotationBaseClass):
         self.progress_dialog.open()
         self.loading_thread.finished.connect(self.progress_dialog.close)
 
+    @qtc.pyqtSlot(Exception)
     def loading_error(self, e: Exception):
         """This method is called when the loading thread has failed loading the data."""
         logging.error(repr(e))
@@ -85,10 +86,11 @@ class RetrievalAnnotation(AnnotationBaseClass):
 
         self.setEnabled(False)
 
+    @qtc.pyqtSlot(list, np.ndarray, list)
     def loading_success(
         self,
         intervals: List[Tuple],
-        classifications: List[np.ndarray],
+        classifications: np.ndarray,
         retrieval_elements: List[RetrievalElement],
     ):
         """This method is called when the loading thread has finished loading the data."""

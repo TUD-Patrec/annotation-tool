@@ -1,4 +1,5 @@
 import enum
+from functools import lru_cache
 import os
 from typing import List, Tuple
 
@@ -36,29 +37,17 @@ def run_network(lower, upper) -> np.ndarray:
     return __run_network__(path, lower, upper)
 
 
+@lru_cache(maxsize=1)
 def __get_data__(file: os.PathLike) -> Tuple[np.ndarray, MediaType]:
     media_type = media_type_of(file)
 
-    cached_media_type = __get_data__.__cached_data__.get("media_type")
-    if cached_media_type and cached_media_type == media_type:
-        # data already loaded
-        data = __get_data__.__cached_data__.get("data")
-        assert data is not None
-    else:
-        # load from disk
-        data = __load_raw_data__(file, media_type)
+    # load from disk
+    data = __load_raw_data__(file, media_type)
 
-        # preprocess
-        data = __preprocess__(data, media_type)
-
-        # cache data
-        __get_data__.__cached_data__["media_type"] = media_type
-        __get_data__.__cached_data__["data"] = data
+    # preprocess
+    data = __preprocess__(data, media_type)
 
     return data, media_type
-
-
-__get_data__.__cached_data__ = {}  # static variable for caching
 
 
 def __run_network__(file: os.PathLike, start: int = 0, end: int = -1) -> np.ndarray:
@@ -102,9 +91,11 @@ def __run_network__(file: os.PathLike, start: int = 0, end: int = -1) -> np.ndar
             start -= left_delta
             end += right_delta
 
-            # some consistency checks
-            assert 0 <= start <= end < data.shape[0], f"{start = }, {end = }"
-            assert end - start >= segment_size
+        # some consistency checks
+        assert (
+            0 <= start <= end <= data.shape[0]
+        ), f"{start = }, {end = }, {data.shape[0] = }"
+        assert end - start >= segment_size
 
         data = data[start:end]
 

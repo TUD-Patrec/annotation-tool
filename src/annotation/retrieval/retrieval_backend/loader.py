@@ -10,7 +10,7 @@ import src.network.controller as network
 
 
 class RetrievalLoader(qtc.QThread):
-    success = qtc.pyqtSignal(list, list, list)
+    success = qtc.pyqtSignal(list, np.ndarray, list)
     error = qtc.pyqtSignal(Exception)
     progress = qtc.pyqtSignal(int)
 
@@ -19,11 +19,13 @@ class RetrievalLoader(qtc.QThread):
         self.controller = controller
 
     def run(self):
-        try:
-            intervals, classifications, retrieval_elements = self.load()
-            self.success.emit(intervals, classifications, retrieval_elements)
-        except Exception as e:
-            self.error.emit(e)
+        intervals, classifications, retrieval_elements = self.load()
+        self.success.emit(intervals, classifications, retrieval_elements)
+        # try:
+        #    intervals, classifications, retrieval_elements = self.load()
+        #    self.success.emit(intervals, classifications, retrieval_elements)
+        # except Exception as e:
+        #    self.error.emit(e)
 
     def load(
         self,
@@ -47,16 +49,25 @@ class RetrievalLoader(qtc.QThread):
         attribute_representations = self.controller.dependencies
         if attribute_representations is not None and len(classifications) > 0:
             # Default case: We have attribute representations (="dependencies") and classifications.
+            attribute_representations = np.array(
+                attribute_representations
+            )  # cast to numpy array
+
+            # Compute the distance between each attribute-representation and each classification.
+            if attribute_representations.shape[1] == 27:
+                # TODO: LAra specific -> remove later
+                # Attributes begin at the 8th index of the attribute representation
+                dists = spatial.distance.cdist(
+                    classifications, attribute_representations[:, 8:], metric="cosine"
+                )
+            else:
+                dists = spatial.distance.cdist(
+                    classifications, attribute_representations, metric="cosine"
+                )
+
             for i, interval in enumerate(intervals):
                 for j, attr_repr in enumerate(attribute_representations):
-                    # TODO: LAra specific -> remove later
-                    if attr_repr.shape[0] == 27:
-                        # Attributes begin at the 8th index of the attribute representation
-                        dist = spatial.distance.cosine(
-                            classifications[i], attr_repr[8:]
-                        )
-                    else:
-                        dist = spatial.distance.cosine(classifications[i], attr_repr)
+                    dist = dists[i, j]
                     annotation = Annotation(self.controller.scheme, np.copy(attr_repr))
 
                     # RetrievalElements are just wrapped tuples more or less (for convenience)
@@ -76,18 +87,16 @@ class RetrievalLoader(qtc.QThread):
                 )  # j is None here, because there are no dependencies.
                 retrieval_elements.append(elem)
 
-        retrieval_elements.sort(key=lambda x: x.distance)  # sort by distance
-
         return intervals, classifications, retrieval_elements
 
 
-def get_classifications(intervals, progress_callback=None):
+def get_classifications(intervals, progress_callback=None) -> np.ndarray:
     c = []
     for idx, (lo, hi) in enumerate(intervals):
         if progress_callback:
             progress_callback.emit(idx * 100 / len(intervals))
         c.append(run_network(lo, hi))
-    return c
+    return np.array(c)
 
 
 def run_network(lower, upper):

@@ -19,6 +19,8 @@ class Query:
         self._filter_criterion: FilterCriterion = FilterCriterion()  # filter criterion
 
         # gaining some efficiency by caching and smarter datastructures
+        self.__tmp__ = None  # temporary variable for caching
+
         self._retrieval_queue: RetrievalQueue = None  # queue of open elements
         self.__build_queue__()  # build queue
 
@@ -59,23 +61,27 @@ class Query:
     def __build_queue__(self) -> None:
         """
         Builds the queue from scratch using the current filter criterion and the retrieval list.
+
+        Can be quite expensive, so only call if necessary.
         """
         start = time.perf_counter()
         open_elements = self.__compute_open_elements__()  # compute open elements
         self._retrieval_queue = RetrievalQueue()  # create new queue
 
         for elem in open_elements:
-            old_size = self._retrieval_queue.total_length()
             self._retrieval_queue.push(elem)
-            new_size = self._retrieval_queue.total_length()
-            assert new_size - old_size == 1, "Queue size did not increase by 1."
 
         assert (
             len(open_elements) == self._retrieval_queue.total_length()
         ), "Queue size does not match number of open elements."
 
+        if len(open_elements) > 0:
+            assert (
+                open_elements[0] == self.open_elements.peek()
+            ), "First element of open elements does not match first element of retrieval queue."
+
         end = time.perf_counter()
-        logging.info(f"Computing open elements took {end - start} seconds.")
+        logging.info(f"build_queue took {end - start: .4f} seconds.")
 
     def __check_consistency__(self):
         """Checks the consistency of the query."""
@@ -111,7 +117,7 @@ class Query:
             ), f"{idx}: Element {x} of open elements does not match element {y} of queue."
 
         end = time.perf_counter()
-        logging.info(f"check_consistency took {end - start} seconds.")
+        logging.info(f"check_consistency took {end - start: .4f} seconds.")
 
     def __is_processed__(self, elem: RetrievalElement) -> bool:
         """
@@ -158,7 +164,21 @@ class Query:
         Returns:
             A list of open elements.
         """
-        return [x for x in self._retrieval_list if self.__is_open_element__(x)]
+        start = time.perf_counter()
+
+        if self.__tmp__ is not None and self.processed_elements == self.__tmp__[0]:
+            # if the number of processed elements has not changed, we can reuse the cached result
+            ls = self.__tmp__[1]
+            end = time.perf_counter()
+            logging.debug(f"Computing open elements took {(end - start): .4f} seconds.")
+            return ls
+
+        ls = [x for x in self._retrieval_list if self.__is_open_element__(x)]
+
+        self.__tmp__ = (self.processed_elements, ls)
+        end = time.perf_counter()
+        logging.debug(f"Computing open elements took {(end - start): .4f} seconds.")
+        return ls
 
     @property
     def open_elements(self) -> RetrievalQueue:
@@ -268,6 +288,7 @@ class Query:
         if new_filter is None:
             new_filter = FilterCriterion()
         if self._filter_criterion != new_filter:
+            logging.debug("Setting new filter criterion.")
             self._filter_criterion = new_filter
             self.__build_queue__()  # build queue from scratch
 
