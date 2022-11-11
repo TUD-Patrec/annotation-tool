@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import List, Set, Union
+from typing import List, Optional, Set
 
 import numpy as np
 
@@ -44,7 +44,7 @@ class Query:
         n_open_intervals = len(self.open_intervals)
         return n_processed_intervals + n_open_intervals
 
-    def __next__(self) -> Union[RetrievalElement, None]:
+    def __next__(self) -> Optional[RetrievalElement]:
         """
         Returns the next RetrievalElement.
         If there is no next element, None is returned.
@@ -53,7 +53,7 @@ class Query:
             The next RetrievalElement or None.
         """
         if self.open_elements:
-            self.__check_consistency__()  # check integrity of query before processing next element
+            # self.__check_consistency__()  # check integrity of query before processing next element
             return self.open_elements.pop()
         else:
             return None

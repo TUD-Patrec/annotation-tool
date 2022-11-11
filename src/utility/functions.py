@@ -9,7 +9,8 @@ from .filehandler import Paths, is_non_zero_file
 
 
 def scale(N: int, M: int, x: int) -> Tuple[int, int]:
-    """Scaling function that scales some point x within a range
+    """
+    Scaling function that scales some point x within a range
     of N elements to another range of M elements while keeping its
     relative position inside that range.
     Scaling from some smaller range to a bigger one maps one point
@@ -46,7 +47,8 @@ def scale(N: int, M: int, x: int) -> Tuple[int, int]:
 
 
 def scale_functions(N: int, M: int, last_to_last: bool = False):
-    """Create scaling functions
+    """
+    Create scaling functions
 
     Args:
         N (int): Number of elements in the first range.
@@ -66,7 +68,8 @@ def scale_functions(N: int, M: int, last_to_last: bool = False):
 
 
 def ms_to_time_string(ms: int) -> str:
-    """Create a human readable representation for the given milliseconds.
+    """
+    Create a human readable representation for the given milliseconds.
 
     Args:
         ms (int): Milliseconds.
@@ -82,7 +85,8 @@ def ms_to_time_string(ms: int) -> str:
 
 
 def get_datasets() -> list:
-    """Read all stored datasets from disk.
+    """
+    Read all stored datasets from disk.
 
     Returns:
         list: List of datasets.
@@ -98,7 +102,8 @@ def get_datasets() -> list:
 
 
 def get_annotations() -> list:
-    """Read all annotation files from disk.
+    """
+    Read all annotation files from disk.
 
     Returns:
         list: List of annotations.
@@ -115,7 +120,8 @@ def get_annotations() -> list:
 
 @Singleton
 class FrameTimeMapper:
-    """Simple helper class to ease the use of the scaling functions for
+    """
+    Simple helper class to ease the use of the scaling functions for
     the specific case of mapping between frame-positions within some media
     and the corresponding timestamp.
     """
@@ -127,7 +133,8 @@ class FrameTimeMapper:
 
     @accepts_m(int, int)
     def update(self, n_frames: int, millis: int) -> None:
-        """Update the state of the Mapper. Changes the two ranges and updates
+        """
+        Update the state of the Mapper. Changes the two ranges and updates
         the mapping functions.
 
         Args:
@@ -144,7 +151,8 @@ class FrameTimeMapper:
         )
 
     def frame_to_ms(self, frame: int) -> int:
-        """Map frame-position to time-position.
+        """
+        Map frame-position to time-position.
 
         Args:
             frame (int): Index to current frame.
@@ -155,7 +163,8 @@ class FrameTimeMapper:
         return self._frame_to_ms(frame)[0]
 
     def ms_to_frame(self, ms: int) -> int:
-        """Map time-position to frame-position.
+        """
+        Map time-position to frame-position.
 
         Args:
             ms (int): Timestamp corresponding to current frame

@@ -7,7 +7,7 @@ from src.media.media_types import MediaType, media_type_of
 from src.utility import filehandler
 
 
-@lru_cache(maxsize=1)
+@lru_cache(maxsize=10)
 def load_mocap(path: os.PathLike) -> np.ndarray:
     """Load Motion-capture data from file to numpy array.
 
@@ -26,6 +26,8 @@ def load_mocap(path: os.PathLike) -> np.ndarray:
     if media_type_of(path) == MediaType.MOCAP:
         try:
             array = __load_lara_mocap__(path)
+            print("array.shape", array.shape)
+            print("memory size = ", array.nbytes / 1024 / 1024, "MB")
             return array
         except Exception:
             raise RuntimeError(f"Reading mocap-data from {path} failed.")
@@ -56,8 +58,9 @@ class MocapReader:
         self._normalize: bool = normalize
         self._fps: int = filehandler.meta_data(path)[2]
 
-    def __getitem__(self, idx):
-        """Returns the skeleton at the given frame index.
+    def __getitem__(self, idx: int) -> np.ndarray:
+        """
+        Returns the skeleton at the given frame index.
 
         Args:
             idx (int): Frame index.
@@ -67,14 +70,20 @@ class MocapReader:
         """
         return self.calculate_skeleton(self.data[idx])
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """
+        Returns the number of frames in the mocap file.
+        """
         return self.data.shape[0]
 
-    def calculate_skeleton(self, frame) -> np.ndarray:
-        """Calculate the skeleton from the given frame.
-        args:
+    def calculate_skeleton(self, frame: np.ndarray) -> np.ndarray:
+        """
+        Calculate the skeleton from the given frame.
+
+        Args:
             frame (np.ndarray): Frame to calculate the skeleton from.
-        returns:
+
+        Returns:
             np.ndarray: Skeleton calculated from the given frame.
         """
 
@@ -88,7 +97,8 @@ class MocapReader:
         return skeleton
 
     def centralize_skeleton(self, skeleton: np.ndarray) -> np.ndarray:
-        """Centralize the skeleton to stay in the center of the coordinate system.
+        """
+        Centralize the skeleton to stay in the center of the coordinate system.
 
         Args:
             skeleton (np.ndarray): Skeleton to centralize.

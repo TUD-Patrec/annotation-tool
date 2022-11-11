@@ -125,7 +125,7 @@ def read_json(path: os.PathLike) -> Union[dict, None]:
     """Try reading .json-file from the specified path.
 
     Args:
-        path (os.PathLike): Path to .json
+        path (os.PathLike): Path to the .json-file.
 
     Returns:
         Union[dict, None]: Dictionary containing the values
@@ -153,7 +153,8 @@ def write_json(path: os.PathLike, data: dict) -> None:
 
 
 def __sniff_csv__(path: os.PathLike) -> Tuple[int, str]:
-    """Try to read some useful information about the given csv needed for loading
+    """
+    Try to read some useful information about the given csv needed for loading
     the file.
 
     Args:
@@ -244,11 +245,11 @@ def read_csv(
     return data
 
 
-def write_csv(path, data: np.ndarray) -> None:
+def write_csv(path: os.PathLike, data: np.ndarray) -> None:
     """Write numpy-array to file.
 
     Args:
-        path (_type_): Output path.
+        path (os.PathLike): Output path.
         data (np.ndarray): Array containing the data.
     """
     if np.issubdtype(data.dtype, np.integer):
@@ -284,7 +285,7 @@ def read_pickle(path: os.PathLike) -> object:
 
 
 def create_dir(path: os.PathLike) -> os.PathLike:
-    """Create directory specififed by the path if it is not already
+    """Create directory specified by the path if it is not already
     existing.
 
     Args:
@@ -360,7 +361,7 @@ def meta_data(path: os.PathLike) -> Tuple[float, int, float]:
         raise FileNotFoundError
 
 
-@functools.lru_cache(256)
+@functools.lru_cache(maxsize=128)
 def __meta_data__(path: os.PathLike, _: str):
     if media_type_of(path) == MediaType.MOCAP:
         meta = __meta_data_of_mocap__(path)

@@ -126,14 +126,14 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
     @qtc.pyqtSlot()
     def cut(self) -> None:
         """
-        Cut the current sample.
+        Split the current sample at the current position.
         """
         pass
 
     @qtc.pyqtSlot()
     def cut_and_annotate(self) -> None:
         """
-        Cut the current sample and annotate it.
+        Split the current sample at the current position and annotate the new sample.
         """
         pass
 
@@ -190,7 +190,7 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
         Check if the current position is in a sample and if so, select it.
 
         Args:
-            force_update: Force an update checking for the selected sample.
+            force_update: Force updating the selected sample.
         """
         if len(self.samples) > 0:
             # binary search
