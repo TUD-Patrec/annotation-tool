@@ -1,11 +1,11 @@
 import enum
 import functools
-import logging
 import os.path
 
 import cv2
 import filetype
 
+from src.media.mocap_reading import load_mocap
 from src.utility import filehandler
 
 
@@ -20,7 +20,7 @@ def media_type_of(path: os.PathLike) -> MediaType:
     return __media_type_of__(path, footprint)
 
 
-@functools.lru_cache(maxsize=100)
+@functools.lru_cache(maxsize=128)
 def __media_type_of__(path, _) -> MediaType:
     if not os.path.isfile(path):
         return MediaType.UNKNOWN
@@ -58,12 +58,9 @@ def __is_mocap__(path) -> bool:
     if not os.path.isfile(path):
         return False
     try:
-        data = filehandler.read_csv(path)
-        return data.shape[0] > 0 and data.shape[1] == 134
-    except UserWarning:
-        return False
-    except Exception as e:
-        logging.error(f"{e}")
+        load_mocap(path)
+        return True
+    except TypeError:
         return False
 
 

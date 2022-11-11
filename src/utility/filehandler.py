@@ -15,8 +15,8 @@ import numpy as np
 
 from src.dataclasses.settings import Settings
 from src.media.media_types import MediaType, media_type_of
+from src.media.mocap_reading import load_mocap
 from src.utility.decorators import Singleton
-from src.utility.mocap_reader import load_mocap
 
 
 @Singleton

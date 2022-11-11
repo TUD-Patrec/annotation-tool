@@ -25,7 +25,7 @@ class MediaBase:
             raise FileNotFoundError(path)
         self._path = path
         self._id = filehandler.footprint_of_file(path)
-        self._duration, self.n_frames, self._fps = filehandler.meta_data(path)
+        self._duration, self._n_frames, self._fps = filehandler.meta_data(path)
 
     @property
     def path(self) -> os.PathLike:

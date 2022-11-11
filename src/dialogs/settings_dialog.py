@@ -39,9 +39,6 @@ class SettingsDialog(qtw.QDialog):
         self.refresh_rate = qtw.QLineEdit()
         form.addRow("MoCap FPS:", self.refresh_rate)
 
-        self.centralize_skeleton = qtw.QCheckBox()
-        form.addRow("Skeleton stays at origin:", self.centralize_skeleton)
-
         self.small_skip = qtw.QSlider(qtc.Qt.Horizontal)
         self.small_skip_display = qtw.QLabel()
         small_skip_widget = qtw.QWidget()
@@ -126,8 +123,6 @@ class SettingsDialog(qtw.QDialog):
         self.refresh_rate.setText(str(settings.refresh_rate))
         self.refresh_rate.setPlaceholderText(str(200))
 
-        self.centralize_skeleton.setChecked(settings.centralized_skeleton)
-
         self.small_skip.setRange(1, 10)
         self.small_skip.setTickInterval(1)
         self.small_skip.setSingleStep(1)
@@ -185,8 +180,6 @@ class SettingsDialog(qtw.QDialog):
         settings.refresh_rate = _read_from_txt(
             self.refresh_rate.text(), int, self.refresh_rate.placeholderText()
         )
-
-        settings.centralized_skeleton = self.centralize_skeleton.isChecked()
 
         settings.big_skip = self.big_skip.value()
         settings.retrieval_segment_size = _read_from_txt(
