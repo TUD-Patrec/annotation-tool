@@ -4,7 +4,7 @@ Before you start, make yourself familiar with the [Semantic Versioning][semver] 
 
 If you plan on releasing a new version follow these steps:
 
-1. Merge the `dev` branch into `main`.
+1. Merge the `dev` branch into `master`.
 2. Afterwards run `cz bump` (or `make bump`) **on the `master` branch** to bump the version number, update the changelog and create a version tag automatically. Then push everything by running
    ```
    git push
