@@ -131,5 +131,5 @@ class QLoadExistingAnnotationDialog(qtw.QDialog):
 
         annotation.input_file = self.line_edit.text()
 
-        self.load_annotation.emit(annotation)
         self.close()
+        self.load_annotation.emit(annotation)

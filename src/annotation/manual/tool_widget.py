@@ -49,6 +49,7 @@ class ManualAnnotationTools(qtw.QWidget):
         # layout
         vbox = qtw.QVBoxLayout(self)
         vbox.setContentsMargins(0, 0, 0, 0)
+        vbox.setSpacing(0)
 
         vbox.addWidget(self.annotate_btn)
         vbox.addWidget(self.cut_btn)

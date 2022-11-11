@@ -10,7 +10,7 @@ from src.dialogs.annotation_dialog import QAnnotationDialog
 
 class ManualAnnotation(AnnotationBaseClass):
     def __init__(self):
-        super(ManualAnnotation, self).__init__()
+        super().__init__()
 
         self.mode = AnnotationMode.MANUAL
 
@@ -35,7 +35,7 @@ class ManualAnnotation(AnnotationBaseClass):
 
     def load_subclass(self):
         # Nothing to add here
-        pass
+        self.setEnabled(True)
 
     def redo(self):
         if len(self.redo_stack) >= 1:

@@ -39,16 +39,13 @@ class SettingsDialog(qtw.QDialog):
         self.refresh_rate = qtw.QLineEdit()
         form.addRow("MoCap FPS:", self.refresh_rate)
 
-        self.frame_based = qtw.QComboBox()
-        form.addRow("Timeline Style:", self.frame_based)
-
         self.small_skip = qtw.QSlider(qtc.Qt.Horizontal)
         self.small_skip_display = qtw.QLabel()
         small_skip_widget = qtw.QWidget()
         small_skip_widget.setLayout(qtw.QHBoxLayout())
         small_skip_widget.layout().addWidget(self.small_skip, stretch=1)
         small_skip_widget.layout().addWidget(self.small_skip_display)
-        form.addRow("Distance small step:", small_skip_widget)
+        form.addRow("Skipping distance:", small_skip_widget)
 
         self.big_skip = qtw.QSlider(qtc.Qt.Horizontal)
         self.big_skip_display = qtw.QLabel()
@@ -56,10 +53,7 @@ class SettingsDialog(qtw.QDialog):
         big_skip_widget.setLayout(qtw.QHBoxLayout())
         big_skip_widget.layout().addWidget(self.big_skip, stretch=1)
         big_skip_widget.layout().addWidget(self.big_skip_display)
-        form.addRow("Distance big step:", big_skip_widget)
-
-        self.debugging_mode = qtw.QCheckBox()
-        form.addRow("Debugging-Mode:", self.debugging_mode)
+        form.addRow("Skipping distance (fast) :", big_skip_widget)
 
         self.retrieval_segment_size = qtw.QLineEdit()
         form.addRow("Segment size in retrieval-mode:", self.retrieval_segment_size)
@@ -68,6 +62,9 @@ class SettingsDialog(qtw.QDialog):
         form.addRow(
             "Segment overlap in retrieval-mode:", self.retrieval_segment_overlap
         )
+
+        self.debugging_mode = qtw.QCheckBox()
+        form.addRow("Debugging-Mode:", self.debugging_mode)
 
         self.save_button = qtw.QPushButton()
         self.save_button.setText("Save")
@@ -93,7 +90,7 @@ class SettingsDialog(qtw.QDialog):
         self.setLayout(form)
         self.load_layout()
         self.adjustSize()
-        self.setFixedSize(self.size())
+        self.setMinimumSize(self.size())
 
     def load_layout(self):
         settings = Settings.instance()
@@ -126,11 +123,6 @@ class SettingsDialog(qtw.QDialog):
         self.refresh_rate.setText(str(settings.refresh_rate))
         self.refresh_rate.setPlaceholderText(str(200))
 
-        show_millis = settings.show_millisecs
-        self.frame_based.addItem("Show frame numbers")
-        self.frame_based.addItem("Show timestamps")
-        self.frame_based.setCurrentIndex(int(show_millis))
-
         self.small_skip.setRange(1, 10)
         self.small_skip.setTickInterval(1)
         self.small_skip.setSingleStep(1)
@@ -141,7 +133,7 @@ class SettingsDialog(qtw.QDialog):
         )
         self.small_skip_display.setText("{} [frames]".format(settings.small_skip))
         self.small_skip_display.setAlignment(qtc.Qt.AlignRight)
-        self.small_skip_display.setFixedWidth(75)
+        self.small_skip_display.setFixedWidth(100)
 
         self.debugging_mode.setChecked(settings.debugging_mode)
 
@@ -155,7 +147,7 @@ class SettingsDialog(qtw.QDialog):
         )
         self.big_skip_display.setText("{} [frames]".format(settings.big_skip))
         self.big_skip_display.setAlignment(qtc.Qt.AlignRight)
-        self.big_skip_display.setFixedWidth(75)
+        self.big_skip_display.setFixedWidth(100)
 
         segment_validator = qtg.QIntValidator(100, 10000, self)
         self.retrieval_segment_size.setValidator(segment_validator)
@@ -184,11 +176,11 @@ class SettingsDialog(qtw.QDialog):
         )
         settings.font = int(self.font_size.currentText())
         settings.darkmode = self.darkmode.isChecked()
+
         settings.refresh_rate = _read_from_txt(
             self.refresh_rate.text(), int, self.refresh_rate.placeholderText()
         )
-        settings.show_millisecs = bool(self.frame_based.currentIndex())
-        settings.small_skip = self.small_skip.value()
+
         settings.big_skip = self.big_skip.value()
         settings.retrieval_segment_size = _read_from_txt(
             self.retrieval_segment_size.text(),

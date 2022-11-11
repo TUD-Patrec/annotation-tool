@@ -25,7 +25,7 @@ class QMediaMainController(qtw.QWidget):
     cleaned_up = qtc.pyqtSignal()
 
     def __init__(self, *args, **kwargs):
-        super(QMediaMainController, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.replay_widgets = []
 
         self.grid = qtw.QGridLayout(self)
@@ -56,7 +56,6 @@ class QMediaMainController(qtw.QWidget):
                 self.vbox.removeWidget(w)
             self.replay_widgets = []
 
-    # TODO VIDEO NEEDS TO BE ADDED
     def add_replay_widget(self, path):
         if len(self.replay_widgets) < self.MAX_WIDGETS:
             is_main_widget = len(self.replay_widgets) == 0
@@ -65,8 +64,10 @@ class QMediaMainController(qtw.QWidget):
             media_type = media_type_of(path)
             if media_type == MediaType.VIDEO:
                 widget = VideoPlayer(is_main_widget, self)
-            if media_type == MediaType.LARA_MOCAP:
+            elif media_type == MediaType.MOCAP:
                 widget = MocapPlayer(is_main_widget, self)
+            else:
+                raise NotImplementedError("Media type not supported")
 
             if widget.is_main_replay_widget:
                 widget.position_changed.connect(self.position_changed)

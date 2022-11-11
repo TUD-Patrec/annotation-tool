@@ -15,9 +15,9 @@ class QDisplaySample(qtw.QWidget):
         self.top_widget = qtw.QLabel("CURRENT SAMPLE", alignment=qtc.Qt.AlignCenter)
 
         self.start_label = qtw.QLabel("Start Frame:", alignment=qtc.Qt.AlignCenter)
-        self.start_value = qtw.QLabel("A", alignment=qtc.Qt.AlignCenter)
+        self.start_value = qtw.QLabel("", alignment=qtc.Qt.AlignCenter)
         self.end_label = qtw.QLabel("End Frame:", alignment=qtc.Qt.AlignCenter)
-        self.end_value = qtw.QLabel("B", alignment=qtc.Qt.AlignCenter)
+        self.end_value = qtw.QLabel("", alignment=qtc.Qt.AlignCenter)
 
         self.middle_widget = QShowAnnotation()
 
@@ -42,7 +42,7 @@ class QDisplaySample(qtw.QWidget):
         vbox.addWidget(self.bottom_widget, alignment=qtc.Qt.AlignCenter)
 
         self.setLayout(vbox)
-        self.setFixedWidth(300)
+        self.setFixedWidth(400)
 
     @qtc.pyqtSlot(list, Sample)
     def setSelected(self, _, sample):

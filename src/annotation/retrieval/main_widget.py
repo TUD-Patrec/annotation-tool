@@ -1,11 +1,13 @@
+from typing import Union
+
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
+from src.annotation.retrieval.retrieval_backend.element import RetrievalElement
 from src.annotation.retrieval.retrieval_backend.query import Query
 from src.qt_helper_widgets.display_scheme import QShowAnnotation
-from src.qt_helper_widgets.histogram import Histogram_Widget
+from src.qt_helper_widgets.histogram import HistogramWidget
 from src.qt_helper_widgets.lines import QHLine
-from src.utility.decorators import accepts
 
 
 def format_progress(x, y):
@@ -15,14 +17,8 @@ def format_progress(x, y):
 
 
 class QRetrievalWidget(qtw.QWidget):
-    change_filter = qtc.pyqtSignal()
-    accept_interval = qtc.pyqtSignal()
-    reject_interval = qtc.pyqtSignal()
-    modify_interval = qtc.pyqtSignal()
-
     def __init__(self, *args, **kwargs):
         super(QRetrievalWidget, self).__init__(*args, **kwargs)
-        self.is_enabled = True
         self.init_UI()
 
     def init_UI(self):
@@ -30,40 +26,22 @@ class QRetrievalWidget(qtw.QWidget):
         self.filter_widget.setLayout(qtw.QHBoxLayout())
         self.filter_widget.layout().addWidget(qtw.QLabel("Filter:"))
         self.filter_active = qtw.QLabel("Inactive")
-        self.modify_filter = qtw.QPushButton("Select Filter")
-        self.modify_filter.clicked.connect(lambda _: self.change_filter.emit())
         self.filter_widget.layout().addWidget(self.filter_active)
-        self.filter_widget.layout().addWidget(self.modify_filter)
 
         self.main_widget = QShowAnnotation(self)
 
-        self.histogram = Histogram_Widget()
+        self.histogram = HistogramWidget()
+        self.histogram.ensurePolished()  # updates style of the widget before presenting
+        self.histogram.plot()
 
-        self.button_group = qtw.QWidget()
-        self.button_group.setLayout(qtw.QHBoxLayout())
-
-        self.accept_button = qtw.QPushButton("ACCEPT", self)
-        self.accept_button.clicked.connect(lambda _: self.accept_interval.emit())
-        self.button_group.layout().addWidget(self.accept_button)
-
-        self.modify_button = qtw.QPushButton("MODIFY", self)
-        self.modify_button.clicked.connect(lambda _: self.modify_interval.emit())
-        self.button_group.layout().addWidget(self.modify_button)
-
-        self.reject_button = qtw.QPushButton("REJECT", self)
-        self.reject_button.clicked.connect(lambda _: self.reject_interval.emit())
-        self.button_group.layout().addWidget(self.reject_button)
-
-        self.similarity_label = qtw.QLabel(self)
+        # self.similarity_label = qtw.QLabel(self)
         self.progress_label = qtw.QLabel(format_progress(0, 0), self)
 
         self.footer_widget = qtw.QWidget()
-        self.footer_widget.setLayout(qtw.QGridLayout())
-        self.footer_widget.layout().addWidget(qtw.QLabel("Similarity", self), 0, 0)
-        self.footer_widget.layout().addWidget(self.similarity_label, 0, 1)
+        self.footer_widget.setLayout(qtw.QHBoxLayout())
 
-        self.footer_widget.layout().addWidget(qtw.QLabel("Progress:", self), 1, 0)
-        self.footer_widget.layout().addWidget(self.progress_label, 1, 1)
+        self.footer_widget.layout().addWidget(qtw.QLabel("Progress:", self))
+        self.footer_widget.layout().addWidget(self.progress_label)
 
         vbox = qtw.QVBoxLayout()
 
@@ -71,18 +49,28 @@ class QRetrievalWidget(qtw.QWidget):
         vbox.addWidget(QHLine())
         vbox.addWidget(self.main_widget, alignment=qtc.Qt.AlignCenter, stretch=1)
         vbox.addWidget(QHLine())
-        vbox.addWidget(self.histogram)
-        vbox.addWidget(QHLine())
-        vbox.addWidget(self.button_group, alignment=qtc.Qt.AlignCenter)
+
+        vbox.addWidget(self.histogram, alignment=qtc.Qt.AlignCenter)
         vbox.addWidget(QHLine())
         vbox.addWidget(self.footer_widget, alignment=qtc.Qt.AlignCenter)
         self.setLayout(vbox)
+
+        vbox.setContentsMargins(0, 0, 0, 0)
+
         self.setFixedWidth(400)
 
-    # Display the current interval to the user:
-    # Show him the Interval boundaries and the predicted annotation
     @qtc.pyqtSlot(Query, object)
-    def update_UI(self, query, current_interval):
+    def update_UI(
+        self, query: Query, retrieval_element: Union[RetrievalElement, None]
+    ) -> None:
+        """
+        Update the UI with the current element.
+
+        Args:
+            query: The query that was used to retrieve the element.
+            retrieval_element: The element that was retrieved.
+        """
+
         if query is None:
             self.progress_label.setText("_/_")
             self.histogram.reset()
@@ -97,36 +85,27 @@ class QRetrievalWidget(qtw.QWidget):
         if len(query) == 0:
             self.progress_label.setText("Empty query")
             self.main_widget.show_annotation(None)
-            sim = 0
+            sim = None
 
         # Case 2: We're finished -> End of query reached
-        elif current_interval is None:
+        elif retrieval_element is None:
             txt = format_progress(len(query) - 1, len(query))
             self.progress_label.setText(txt)
-            sim = 0
+            sim = None
 
         # Case 3: Default - we're somewhere in the middle of the query
         else:
-            txt = format_progress(query.idx, len(query))
+            txt = format_progress(query.current_index, len(query))
             self.progress_label.setText(txt)
 
-            proposed_annotation = current_interval.annotation
+            sim = retrieval_element._similarity
+
+            proposed_annotation = retrieval_element.annotation
             self.main_widget.show_annotation(proposed_annotation)
 
-            sim = current_interval.similarity
-
-        data = query.similarity_distribution()
-        self.similarity_label.setText(f"{sim :.3f}")
+        data = query.similarity_distribution
 
         if data.shape[0] > 0:
-            self.histogram.plot_data(data, sim)
+            self.histogram.plot(data, sim)
         else:
             self.histogram.reset()
-
-    @accepts(object, bool)
-    def setEnabled(self, enabled: bool) -> None:
-        self.is_enabled = enabled
-        self.accept_button.setEnabled(enabled)
-        self.modify_button.setEnabled(enabled)
-        self.modify_filter.setEnabled(enabled)
-        self.reject_button.setEnabled(enabled)

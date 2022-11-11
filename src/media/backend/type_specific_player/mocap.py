@@ -1,87 +1,28 @@
-import logging
-
 import PyQt5.QtCore as qtc
 import numpy as np
 import pyqtgraph.opengl as gl
 
-from src.dataclasses.settings import Settings
-from src.media.backend.player import (
-    AbstractMediaLoader,
-    AbstractMediaPlayer,
-    UpdateReason,
-)
-from src.utility import mocap_reader
-
-
-class MocapLoader(AbstractMediaLoader):
-    def __init__(self, path) -> None:
-        super().__init__(path)
-
-    def load(self):
-        try:
-            array = mocap_reader.load_mocap(self.path, normalize=False)
-
-            n = array.shape[0]
-
-            # Calculate Skeleton
-            frames = np.zeros((n, 44, 3))  # dimensions are( frames, bodysegments, xyz)
-            for frame_index in range(n):
-                prog = (100 * frame_index) // n
-                self.progress.emit(prog)
-                frame = array[frame_index, :]
-                frame = calculate_skeleton(frame)
-
-                # NORMALIZATION
-                height = 0
-                for segment in [
-                    body_segments_reversed[i]
-                    for i in ["L toe", "R toe", "L foot", "R foot"]
-                ]:
-                    segment_height = frame[segment * 2, 2]
-                    height = min((height, segment_height))
-                frame[:, 2] -= height
-                # END NORMALIZATION
-
-                frames[frame_index, :, :] = frame
-
-            self.media = frames.astype(np.float32)
-
-        except Exception as e:
-            raise e
+from src.media.backend.player import AbstractMediaPlayer, UpdateReason
+from src.media.mocap_reading import MocapReader
 
 
 class MocapPlayer(AbstractMediaPlayer):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.media_backend = MocapBackend()
-        self.allow_frame_merges = True
         self.media_backend.right_mouse_btn_clicked.connect(self.open_context_menu)
 
     def load(self, path):
-        self.loading_thread = MocapLoader(path)
-        self.loading_thread.progress.connect(self.pbar.setValue)
-        self.loading_thread.finished.connect(self._loading_finished)
-        self.loading_thread.start()
-        logging.info("Loading start")
-
-    @qtc.pyqtSlot(np.ndarray)
-    def _loading_finished(self, media):
-        assert qtc.QThread.currentThread() is self.thread()
-        logging.info("Loading done")
-        self.n_frames = media.shape[0]
-        self.fps = Settings.instance().refresh_rate
-
-        logging.info(f"{media.dtype = }, {media.nbytes = }")
-
+        media = MocapReader(path)
         self.media_backend.media = media
         self.media_backend.set_position(0)
+
         self.layout().replaceWidget(self.pbar, self.media_backend)
         self.pbar.setParent(None)
         del self.pbar
 
-        self.loading_thread.quit()
-        self.loading_thread.wait()
-        self.loading_thread = None
+        self.n_frames = len(media)
+        self.fps = media.fps
 
         self.loaded.emit(self)
 
@@ -93,11 +34,7 @@ class MocapPlayer(AbstractMediaPlayer):
         self.confirm_update(update_reason)
 
     def shutdown(self):
-        assert qtc.QThread.currentThread() is self.thread()
-        if self.loading_thread:
-            logging.info("Waiting for loading thread to finish")
-            self.loading_thread.quit()
-            self.loading_thread.wait()
+        pass
 
 
 class MocapBackend(gl.GLViewWidget):
@@ -121,10 +58,16 @@ class MocapBackend(gl.GLViewWidget):
     @qtc.pyqtSlot(int)
     def set_position(self, new_pos):
         self.position = new_pos  # update position
-        skeleton = self.media[self.position]
+        skeleton = self.get_skeleton(self.position)
         self.current_skeleton.setData(
-            pos=skeleton, color=np.array(skeleton_colors), width=4, mode="lines"
+            pos=skeleton, color=np.array(_skeleton_colors), width=4, mode="lines"
         )
+
+    def get_skeleton(self, idx):
+        array = self.media[idx]
+        skeleton = _calculate_skeleton(array)
+        skeleton = _fix_skeleton_height(skeleton)
+        return skeleton
 
     def mousePressEvent(self, ev):
         lpos = ev.position() if hasattr(ev, "position") else ev.localPos()
@@ -133,7 +76,25 @@ class MocapBackend(gl.GLViewWidget):
             self.right_mouse_btn_clicked.emit()
 
 
-body_segments = {
+def _fix_skeleton_height(skeleton: np.ndarray) -> np.ndarray:
+    """
+    Centralize the skeleton to stay in the center of the coordinate system.
+
+    Args:
+        skeleton (np.ndarray): Skeleton to centralize.
+
+    Returns:
+        np.ndarray: Centralized skeleton.
+    """
+    segments = [
+        _body_segments_reversed[i] for i in ["L toe", "R toe", "L foot", "R foot"]
+    ]
+    height = min(skeleton[segment * 2, 2] for segment in segments)
+    skeleton[:, 2] -= height
+    return skeleton
+
+
+_body_segments = {
     -1: "none",
     0: "head",
     1: "head end",
@@ -159,61 +120,61 @@ body_segments = {
     18: "R toe",
 }
 
-body_segments_reversed = {v: k for k, v in body_segments.items()}
+_body_segments_reversed = {v: k for k, v in _body_segments.items()}
 
-colors = {"r": (1, 0, 0, 1), "g": (0, 1, 0, 1), "b": (0, 0, 1, 1), "y": (1, 1, 0, 1)}
+_colors = {"r": (1, 0, 0, 1), "g": (0, 1, 0, 1), "b": (0, 0, 1, 1), "y": (1, 1, 0, 1)}
 
-# each bodysegmentline needs 2 colors because each has a start and end.
-# different colors on each end result in a gradient
-skeleton_colors = (
-    colors["b"],
-    colors["b"],  # head
-    colors["b"],
-    colors["b"],  # head end
-    colors["b"],
-    colors["b"],  # L collar
-    colors["g"],
-    colors["g"],  # L elbow
-    colors["r"],
-    colors["r"],  # L femur
-    colors["r"],
-    colors["r"],  # L foot
-    colors["g"],
-    colors["g"],  # L humerus
-    colors["r"],
-    colors["r"],  # L tibia
-    colors["r"],
-    colors["r"],  # L toe
-    colors["g"],
-    colors["g"],  # L wrist
-    colors["g"],
-    colors["g"],  # L wrist end
-    colors["b"],
-    colors["b"],  # lower back
-    colors["b"],
-    colors["b"],  # R collar
-    colors["g"],
-    colors["g"],  # R elbow
-    colors["r"],
-    colors["r"],  # R femur
-    colors["r"],
-    colors["r"],  # R foot
-    colors["g"],
-    colors["g"],  # R humerus
-    colors["r"],
-    colors["r"],  # R tibia
-    colors["r"],
-    colors["r"],  # R toe
-    colors["g"],
-    colors["g"],  # R wrist
-    colors["g"],
-    colors["g"],  # R wrist end
-    colors["b"],
-    colors["b"],  # root
+# each bodysegmentline needs 2 _colors because each has a start and end.
+# different _colors on each end result in a gradient
+_skeleton_colors = (
+    _colors["b"],
+    _colors["b"],  # head
+    _colors["b"],
+    _colors["b"],  # head end
+    _colors["b"],
+    _colors["b"],  # L collar
+    _colors["g"],
+    _colors["g"],  # L elbow
+    _colors["r"],
+    _colors["r"],  # L femur
+    _colors["r"],
+    _colors["r"],  # L foot
+    _colors["g"],
+    _colors["g"],  # L humerus
+    _colors["r"],
+    _colors["r"],  # L tibia
+    _colors["r"],
+    _colors["r"],  # L toe
+    _colors["g"],
+    _colors["g"],  # L wrist
+    _colors["g"],
+    _colors["g"],  # L wrist end
+    _colors["b"],
+    _colors["b"],  # lower back
+    _colors["b"],
+    _colors["b"],  # R collar
+    _colors["g"],
+    _colors["g"],  # R elbow
+    _colors["r"],
+    _colors["r"],  # R femur
+    _colors["r"],
+    _colors["r"],  # R foot
+    _colors["g"],
+    _colors["g"],  # R humerus
+    _colors["r"],
+    _colors["r"],  # R tibia
+    _colors["r"],
+    _colors["r"],  # R toe
+    _colors["g"],
+    _colors["g"],  # R wrist
+    _colors["g"],
+    _colors["g"],  # R wrist end
+    _colors["b"],
+    _colors["b"],  # root
 )
 
 
-def calculate_skeleton(frame: np.array) -> np.array:
+def _calculate_skeleton(frame: np.array) -> np.array:
     """Calculates the lines indicating positions of bodysegments at a single timestep
 
     Arguments:
@@ -283,6 +244,5 @@ def calculate_skeleton(frame: np.array) -> np.array:
         t_all.append(a)
         t_all.append(b)
 
-    # convert the list into an array,
-    # convert millimeters to meters and return the result
+    # convert the list into an array, convert mm to meters and return the result
     return np.array(t_all) / 1000

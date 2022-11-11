@@ -4,7 +4,6 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
 from .qt_helper_widgets.lines import QHLine
-from .utility.functions import FrameTimeMapper
 
 
 class QPlaybackWidget(qtw.QWidget):
@@ -17,30 +16,30 @@ class QPlaybackWidget(qtw.QWidget):
         self.n_frames = 0
 
         super(QPlaybackWidget, self).__init__(*args, **kwargs)
-        back_button = qtw.QAction("back", self)
-        back_button.setStatusTip("back")
+        back_button = qtw.QAction("Skip backward (fast)", self)
+        back_button.setStatusTip("Skip backward (fast)")
         back_button.setIcon(self.style().standardIcon(qtw.QStyle.SP_MediaSkipBackward))
         back_button.triggered.connect(lambda _: self.skip_frames.emit(False, True))
         self.back_button = back_button
 
-        slow_back_button = qtw.QAction("slow_back", self)
-        slow_back_button.setStatusTip("slow_back")
+        slow_back_button = qtw.QAction("Skip backward", self)
+        slow_back_button.setStatusTip("Skip backward")
         slow_back_button.setIcon(self.style().standardIcon(qtw.QStyle.SP_ArrowBack))
         slow_back_button.triggered.connect(
             lambda _: self.skip_frames.emit(False, False)
         )
         self.slow_back_button = slow_back_button
 
-        play_stop_button = qtw.QAction("play_stop", self)
+        play_stop_button = qtw.QAction("Play/Pause", self)
         play_stop_button.setText("Start")
-        play_stop_button.setStatusTip("play_stop")
+        play_stop_button.setStatusTip("Play/Pause")
         play_stop_button.setCheckable(True)
         play_stop_button.setIcon(self.style().standardIcon(qtw.QStyle.SP_MediaPlay))
         play_stop_button.triggered.connect(lambda _: self.play_stop_clicked())
         self.play_stop_button = play_stop_button
 
-        slow_forward_button = qtw.QAction("slow_forward", self)
-        slow_forward_button.setStatusTip("slow_forward")
+        slow_forward_button = qtw.QAction("Skip forward", self)
+        slow_forward_button.setStatusTip("Skip forward")
         slow_forward_button.setIcon(
             self.style().standardIcon(qtw.QStyle.SP_ArrowForward)
         )
@@ -49,8 +48,8 @@ class QPlaybackWidget(qtw.QWidget):
         )
         self.slow_forward_button = slow_forward_button
 
-        forward_button = qtw.QAction("forward", self)
-        forward_button.setStatusTip("forward")
+        forward_button = qtw.QAction("Skip forward (fast)", self)
+        forward_button.setStatusTip("Skip forward (fast)")
         forward_button.setIcon(
             self.style().standardIcon(qtw.QStyle.SP_MediaSkipForward)
         )
@@ -76,11 +75,11 @@ class QPlaybackWidget(qtw.QWidget):
 
         vbox = qtw.QVBoxLayout(self)
         vbox.addWidget(self.toolbar, stretch=1, alignment=qtc.Qt.AlignCenter)
-        vbox.addWidget(qtw.QLabel("Replay\nSpeed"))
-        vbox.addWidget(self.replay_speed_widget)
+        vbox.addWidget(qtw.QLabel("Replay\nSpeed"), alignment=qtc.Qt.AlignCenter)
+        vbox.addWidget(self.replay_speed_widget, alignment=qtc.Qt.AlignCenter)
         vbox.addWidget(QHLine())
-        vbox.addWidget(qtw.QLabel("Position"))
-        vbox.addWidget(self.lbl)
+        vbox.addWidget(qtw.QLabel("Position"), alignment=qtc.Qt.AlignCenter)
+        vbox.addWidget(self.lbl, alignment=qtc.Qt.AlignCenter)
         self.setLayout(vbox)
 
     @qtc.pyqtSlot(int)
@@ -88,15 +87,14 @@ class QPlaybackWidget(qtw.QWidget):
         self.update_label(x, self.n_frames)
 
     def update_label(self, pos, limit):
-        frame_time_mapper = FrameTimeMapper.instance()
-        position = frame_time_mapper.frame_repr(pos)
-        limit = frame_time_mapper.frame_repr(max(0, limit - 1))
-        self.lbl.setText("{}\n{}".format(position, limit))
+        limit = max(0, limit - 1)
+        self.lbl.setText("{}\n{}".format(pos, limit))
 
     def play_stop_clicked(self):
         playing = self.play_stop_button.isChecked()
         icon_ = qtw.QStyle.SP_MediaPause if playing else qtw.QStyle.SP_MediaPlay
         self.play_stop_button.setIcon(self.style().standardIcon(icon_))
+        self.play_stop_button.setText("Pause" if playing else "Start")
         if playing:
             self.playing.emit()
         else:

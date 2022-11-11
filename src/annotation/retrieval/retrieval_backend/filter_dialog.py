@@ -2,12 +2,12 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 import numpy as np
 
-from src.annotation.retrieval.retrieval_backend.filter import FilterCriteria
+from src.annotation.retrieval.retrieval_backend.filter import FilterCriterion
 from src.qt_helper_widgets.checkable_combobox import CheckableComboBox
 
 
 class QRetrievalFilter(qtw.QDialog):
-    filter_changed = qtc.pyqtSignal(FilterCriteria)
+    filter_changed = qtc.pyqtSignal(FilterCriterion)
 
     def __init__(self, old_filter, scheme, *args, **kwargs):
         super(QRetrievalFilter, self).__init__(*args, **kwargs)
@@ -52,7 +52,7 @@ class QRetrievalFilter(qtw.QDialog):
             if scheme_element.element_name in current_data:
                 filter_array[idx] = 1
 
-        new_filter = FilterCriteria(filter_array)
+        new_filter = FilterCriterion(filter_array)
 
         if new_filter != self.old_filter:
             self.filter_changed.emit(new_filter)

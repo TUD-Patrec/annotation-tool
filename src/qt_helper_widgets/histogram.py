@@ -7,61 +7,66 @@ import numpy as np
 matplotlib.use("Qt5Agg")
 
 
-class Histogram_Widget(qtw.QWidget):
+class HistogramWidget(qtw.QWidget):
     def __init__(self, *args, **kwargs):
-        super(Histogram_Widget, self).__init__(*args, **kwargs)
+        super(HistogramWidget, self).__init__(*args, **kwargs)
 
         self.position = 0
         self.data = None
+        self.current_color = None
 
-        # a figure instance to plot on
-        self.figure = plt.figure()
+        # figure to plot on
+        self.figure = plt.figure(figsize=(8, 6), dpi=80)
 
-        # this is the Canvas Widget that displays the `figure`
+        # canvas Widget that displays the fig
         self.canvas = FigureCanvas(self.figure)
 
-        # set the layout
-        layout = qtw.QVBoxLayout()
-        layout.addWidget(self.canvas)
-        self.setLayout(layout)
+        # layout
+        self.layout = qtw.QVBoxLayout(self)
+        self.layout.addWidget(self.canvas)
 
-        self.setFixedHeight(200)
+        self.setFixedHeight(175)
 
-    def reset(self):
-        self.position = 0
+    def reset(self) -> None:
+        """Reset the histogram."""
+        self.position = None
         self.data = None
-        self.figure.clear()
+        self.__plot__()
 
-    def update_position(self, new_pos):
-        self.position = new_pos
-        self.plot()
-
-    def update_data(self, data):
-        self.data = data
-        self.plot()
-
-    def plot_data(self, data, position):
+    def plot(self, data: np.ndarray = None, position: float = None) -> None:
+        """Plot the data and the position on the histogram."""
         self.data = data
         self.position = position
-        self.plot()
+        self.__plot__()
 
-    def plot_possible(self):
-        return isinstance(self.data, np.ndarray) and isinstance(
-            self.position, (float, int)
-        )
+    def __plot__(self) -> None:
+        """Plot the data and the position on the histogram."""
+        self.figure.clear()  # clear the figure
+        color = (
+            self.palette().window().color().name()
+        )  # get the background color of the widget
+        if (
+            self.current_color is None or color != self.current_color
+        ):  # if the color has changed
+            ax = plt.axes()
+            ax.set_facecolor(color)
+            self.figure.set_facecolor(color)
+        if self.data is not None:  # if data is available
+            if self.position is not None:  # if position is available
+                plt.axvline(x=self.position, color="r", label="")
 
-    def plot(self):
-        self.figure.clear()
-        if self.plot_possible():
-            data = self.data
-            position = self.position
-
-            plt.axvline(x=position, color="r", label="")
-            # plt.hist(data, bins=25)
-            plt.hist(data, range=(0, np.max(data)), bins=25)
-            self.canvas.draw()
-
-    def norm_to_percentage(self, x):
-        lower, upper = np.min(self.data), np.max(self.data)
-        res = 100 * (x - lower) / (upper - lower)
-        return np.array(res, dtype=np.int64) if isinstance(x, np.ndarray) else int(res)
+            plt.hist(self.data, range=(0, 1), bins=25, density=True, facecolor="g")
+            plt.yticks([])
+            plt.xticks([0, 1], [0, 1])
+        else:
+            plt.text(
+                0.5,
+                0.5,
+                "No data available",
+                horizontalalignment="center",
+                verticalalignment="center",
+            )
+            plt.yticks([])
+            plt.xticks([])
+        plt.box(False)  # remove the box around the plot
+        self.canvas.draw()  # draw the plot

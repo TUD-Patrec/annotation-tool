@@ -4,6 +4,7 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
 from src.dataclasses.globalstate import GlobalState
+from src.media.media_types import MediaType, media_type_of
 
 from ..dataclasses.settings import Settings
 from ..qt_helper_widgets.line_edit_adapted import QLineEditAdapted
@@ -61,8 +62,7 @@ class QNewAnnotationDialog(qtw.QDialog):
         filename, _ = qtw.QFileDialog.getOpenFileName(
             directory="", filter="Video MoCap (*.mp4 *.avi *.csv)"
         )
-        if filehandler.is_non_zero_file(filename):
-            self.line_edit.setText(filename)
+        self.line_edit.setText(filename)
 
     def check_enabled(self):
         enabled = True
@@ -80,6 +80,40 @@ class QNewAnnotationDialog(qtw.QDialog):
     def open_pressed(self):
         self.check_enabled()
         if self.open_button.isEnabled():
+
+            media_type = media_type_of(self.line_edit.text())
+
+            if media_type == MediaType.UNKNOWN:
+                msg = qtw.QMessageBox(self)
+                msg.setIcon(qtw.QMessageBox.Critical)
+                msg.setText("Unknown media type.")
+                msg.setInformativeText("The selected media type is not supported.")
+                msg.setWindowTitle("Error")
+                msg.exec_()
+                self.line_edit.setText("")
+                self.check_enabled()
+                return
+
+            try:
+                _, n, _ = filehandler.meta_data(self.line_edit.text())
+                if n < 1000:
+                    msg = qtw.QMessageBox(self)
+                    msg.setIcon(qtw.QMessageBox.Critical)
+                    msg.setText("Media too short.")
+                    msg.setInformativeText(
+                        "The selected media's length [={}] is too small.\nIt should at least consist of 1000 frames!".format(
+                            n
+                        )
+                    )
+                    msg.setWindowTitle("Error")
+                    msg.exec_()
+                    self.line_edit.setText("")
+                    self.check_enabled()
+                    return
+
+            except FileNotFoundError:
+                pass
+
             idx = self.combobox.currentIndex()
 
             dataset_description = self.datasets[idx]
@@ -91,5 +125,5 @@ class QNewAnnotationDialog(qtw.QDialog):
                 self.annotation_name.text(),
                 self.line_edit.text(),
             )
-            self.load_annotation.emit(annotation)
             self.close()
+            self.load_annotation.emit(annotation)

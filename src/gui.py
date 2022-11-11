@@ -7,6 +7,7 @@ import PyQt5.QtWidgets as qtw
 
 from src.dataclasses.settings import Settings
 
+from . import __version__
 from .dataclasses.globalstate import GlobalState
 from .dialogs.dialog_manager import DialogManager
 from .dialogs.edit_datasets import QEditDatasets
@@ -17,11 +18,11 @@ from .dialogs.settings_dialog import SettingsDialog
 
 
 class LayoutPosition(enum.Enum):
-    LEFT = 0
+    TOP_LEFT = 0
     MIDDLE = 1
     RIGHT = 2
     BOTTOM_LEFT = 3
-    BOTTOM_RIGHT = 4
+    BOTTOM_MIDDLE = 4
 
 
 class GUI(qtw.QMainWindow, DialogManager):
@@ -53,7 +54,7 @@ class GUI(qtw.QMainWindow, DialogManager):
 
         self.resize(settings.window_x, settings.window_y)
         logging.info(self.size())
-        self.setWindowTitle("Annotation Tool")
+        self.setWindowTitle("Annotation Tool v{}".format(__version__))
         # self.setWindowIcon()
 
         self.main_widget = qtw.QWidget()
@@ -63,30 +64,23 @@ class GUI(qtw.QMainWindow, DialogManager):
         for layout_pos in LayoutPosition:
             self.widgets[layout_pos] = qtw.QWidget()
 
-        self.vbox = qtw.QVBoxLayout()
-        self.main_widget.setLayout(self.vbox)
+        self.grid = qtw.QGridLayout()
 
-        self.top_hbox = qtw.QHBoxLayout()
-        self.top_hbox.addWidget(
-            self.widgets[LayoutPosition.LEFT], alignment=qtc.Qt.AlignLeft
-        )
-        self.top_hbox.addWidget(self.widgets[LayoutPosition.MIDDLE], stretch=1)
-        self.top_hbox.addWidget(
-            self.widgets[LayoutPosition.RIGHT], alignment=qtc.Qt.AlignRight
-        )
+        self.main_widget.setLayout(self.grid)
 
-        self.bottom_hbox = qtw.QHBoxLayout()
-        self.bottom_hbox.addWidget(
-            self.widgets[LayoutPosition.BOTTOM_LEFT], alignment=qtc.Qt.AlignLeft
-        )
-        self.bottom_hbox.addWidget(
-            self.widgets[LayoutPosition.BOTTOM_RIGHT],
-            stretch=1,
+        self.grid.addWidget(self.widgets[LayoutPosition.TOP_LEFT], 0, 0)
+        self.grid.addWidget(self.widgets[LayoutPosition.MIDDLE], 0, 1)
+        self.grid.addWidget(self.widgets[LayoutPosition.RIGHT], 0, 2, 2, 1)
+
+        self.grid.addWidget(self.widgets[LayoutPosition.BOTTOM_LEFT], 1, 0)
+        self.grid.addWidget(
+            self.widgets[LayoutPosition.BOTTOM_MIDDLE],
+            1,
+            1,
             alignment=qtc.Qt.AlignBottom,
         )
 
-        self.vbox.addLayout(self.top_hbox, stretch=1)
-        self.vbox.addLayout(self.bottom_hbox)
+        self.grid.setColumnStretch(1, 1)
 
         # Menu Bar
         self.make_menu_bar()
@@ -115,25 +109,25 @@ class GUI(qtw.QMainWindow, DialogManager):
         )
 
         video_menu.addAction(
-            "Next Frame",
+            "Skip forward",
             lambda: self.skip_frames.emit(True, False),
             qtg.QKeySequence(qtc.Qt.Key_Right),
         )
 
         video_menu.addAction(
-            "Last Frame",
+            "Skip backward",
             lambda: self.skip_frames.emit(False, False),
             qtg.QKeySequence(qtc.Qt.Key_Left),
         )
 
         video_menu.addAction(
-            "Skip +100 Frames",
+            "Skip forward (fast)",
             lambda: self.skip_frames.emit(True, True),
             qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_Right),
         )
 
         video_menu.addAction(
-            "Skip -100 Frames",
+            "Skip backward (fast)",
             lambda: self.skip_frames.emit(False, True),
             qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_Left),
         )
@@ -275,10 +269,7 @@ class GUI(qtw.QMainWindow, DialogManager):
         # store new widget into dict
         self.widgets[layout_position] = widget
 
-        if layout_position in [LayoutPosition.BOTTOM_RIGHT, LayoutPosition.BOTTOM_LEFT]:
-            self.bottom_hbox.replaceWidget(old_widget, widget)
-        else:
-            self.top_hbox.replaceWidget(old_widget, widget)
+        self.grid.replaceWidget(old_widget, widget)
 
         old_widget.setParent(None)
         old_widget.deleteLater()

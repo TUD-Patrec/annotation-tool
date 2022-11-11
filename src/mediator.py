@@ -5,7 +5,6 @@ solved inside the main_controller.
 This module is meant to abstract all the tasks which need to happen in the background.
 
 """
-import logging
 
 import PyQt5.QtCore as qtc
 
@@ -85,7 +84,8 @@ class Mediator(qtc.QObject):
                 if not isinstance(rec, QMediaWidget):
                     rec.set_position(self.position)
         else:
-            logging.debug(f"Filtered outdated update = {x = }")
+            # logging.debug(f"Filtered outdated update = {x = }")
+            pass
 
     @qtc.pyqtSlot(bool, bool)
     def skip_frames(self, forward_step, fast):
@@ -100,7 +100,7 @@ class Mediator(qtc.QObject):
     @qtc.pyqtSlot(int, int)
     def start_loop(self, lower, upper):
         assert 0 <= lower
-        assert lower < upper
+        assert lower <= upper
         assert upper < self.n_frames
         self.lower = lower
         self.upper = upper

@@ -4,16 +4,16 @@ import logging
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
-from ..dataclasses.annotation_scheme import create_annotation_scheme
-from ..dataclasses.datasets import DatasetDescription
-from ..qt_helper_widgets.adaptive_scroll_area import QAdaptiveScrollArea
-from ..qt_helper_widgets.line_edit_adapted import QLineEditAdapted
-from ..utility import filehandler, functions
+from src.dataclasses.annotation_scheme import create_annotation_scheme
+from src.dataclasses.datasets import DatasetDescription
+from src.qt_helper_widgets.adaptive_scroll_area import QAdaptiveScrollArea
+from src.qt_helper_widgets.line_edit_adapted import QLineEditAdapted
+from src.utility import filehandler, functions
 
 
 class QEditDatasets(qtw.QDialog):
     def __init__(self, *args, **kwargs):
-        super(QEditDatasets, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         vbox = qtw.QVBoxLayout()
 
         self.scroll_widget = QAdaptiveScrollArea(self)

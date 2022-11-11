@@ -1,6 +1,7 @@
 import logging
 import logging.config
 import sys
+import time
 
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
@@ -41,9 +42,9 @@ class MainApplication(qtw.QApplication):
         self.media_player = QMediaWidget()
         self.timeline = QTimeLine()
 
-        self.gui.set_widget(self.playback, LayoutPosition.LEFT)
+        self.gui.set_widget(self.playback, LayoutPosition.TOP_LEFT)
         self.gui.set_widget(self.media_player, LayoutPosition.MIDDLE)
-        self.gui.set_widget(self.timeline, LayoutPosition.BOTTOM_RIGHT)
+        self.gui.set_widget(self.timeline, LayoutPosition.BOTTOM_MIDDLE)
 
         # CONNECTIONS
         # from QPlaybackWidget
@@ -115,8 +116,13 @@ class MainApplication(qtw.QApplication):
     @qtc.pyqtSlot(GlobalState)
     def load_state(self, state):
         if state is not None:
+            start = time.perf_counter()
             duration, n_frames, fps = filehandler.meta_data(state.input_file)
-            FrameTimeMapper.instance().update(n_frames=n_frames, millisecs=duration)
+            logging.info(f"Loading meta_data took: {time.perf_counter() - start:.4f}s")
+            FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
+
+            # load media
+            self.media_player.load(state.input_file)
 
             # update network module
             network.update_file(state.input_file)
@@ -147,11 +153,10 @@ class MainApplication(qtw.QApplication):
                 n_frames,
             )
 
-            self.media_player.load(state.input_file)
-
             self.mediator.set_position(0)
 
             self.save_annotation()
+
         else:
             raise RuntimeError("State must not be None")
 
@@ -178,8 +183,6 @@ class MainApplication(qtw.QApplication):
         custom_font.setPointSize(settings.font)
         app.setFont(custom_font)
 
-        FrameTimeMapper.instance().update()
-
         log_config_dict = filehandler.logging_config()
         log_config_dict["handlers"]["screen_handler"]["level"] = (
             "DEBUG" if settings.debugging_mode else "WARNING"
@@ -187,6 +190,14 @@ class MainApplication(qtw.QApplication):
         logging.config.dictConfig(log_config_dict)
 
         toggle_stylesheet(settings.darkmode)
+
+        # hack for updating color of histogram in retrieval-widget
+        from src.annotation.retrieval.controller import RetrievalAnnotation
+
+        if self.annotation_controller is not None and isinstance(
+            self.annotation_controller.controller, RetrievalAnnotation
+        ):
+            self.annotation_controller.controller.main_widget.histogram.plot()
 
 
 def toggle_stylesheet(darkmode):
@@ -224,6 +235,7 @@ def main():
     app.setStyle("Fusion")
 
     settings = Settings.instance()
+
     custom_font = qtg.QFont()
     custom_font.setPointSize(settings.font)
     app.setFont(custom_font)

@@ -58,7 +58,7 @@ class Annotation:
                 group_name = scheme_element.group_name
                 if row != scheme_element.row:
                     row = scheme_element.row
-                    d[group_name] = dict()
+                    d[group_name] = {}
 
                 group_element = scheme_element.element_name
 

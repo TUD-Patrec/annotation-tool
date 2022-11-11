@@ -2,20 +2,19 @@ import functools
 import os
 from typing import Tuple
 
-from src.dataclasses.settings import Settings
-
 from ..dataclasses.datasets import DatasetDescription
 from ..dataclasses.globalstate import GlobalState
-from .decorators import Singleton
+from .decorators import Singleton, accepts_m
 from .filehandler import Paths, is_non_zero_file
 
 
 def scale(N: int, M: int, x: int) -> Tuple[int, int]:
-    """Scaling function that scales some point x within a range
+    """
+    Scaling function that scales some point x within a range
     of N elements to another range of M elements while keeping its
     relative position inside that range.
-    Scaling from some smaller range to a bigger one ends maps one point
-    into a interval of possibly multiple-points.
+    Scaling from some smaller range to a bigger one maps one point
+    into an element of possibly multiple-points.
     Args:
         N (int): Size of the initial range.
         M (int): Size of the new range.
@@ -25,26 +24,31 @@ def scale(N: int, M: int, x: int) -> Tuple[int, int]:
         ValueError: Raised if any of the input-values is not an integer.
 
     Returns:
-        Tuple[int, int]: Closed interval in the new range where the
+        Tuple[int, int]: Closed element in the new range where the
         initial point is mapped onto.
     """
     if isinstance(N, int) and isinstance(M, int) and isinstance(x, int):
         if N == M:
             return x, x
-        elif N > M:
+        if N > M:
             return (x * M) // N, (x * M) // N
-        elif N < M:
-            lo = (x * M) // N if (x * M) % N == 0 else (x * M) // N + 1
-            hi = (
-                ((x + 1) * M) // N - 1 if ((x + 1) * M) % N == 0 else ((x + 1) * M) // N
-            )
+        if N < M:
+            if N > 0:
+                lo = (x * M) // N if (x * M) % N == 0 else (x * M) // N + 1
+                hi = (
+                    ((x + 1) * M) // N - 1
+                    if ((x + 1) * M) % N == 0
+                    else ((x + 1) * M) // N
+                )
+            else:
+                lo, hi = 0, M - 1
             return lo, hi
-    else:
-        raise ValueError
+    raise ValueError
 
 
 def scale_functions(N: int, M: int, last_to_last: bool = False):
-    """Create scaling functions
+    """
+    Create scaling functions
 
     Args:
         N (int): Number of elements in the first range.
@@ -64,13 +68,14 @@ def scale_functions(N: int, M: int, last_to_last: bool = False):
 
 
 def ms_to_time_string(ms: int) -> str:
-    """Create a human readable representation for the given milliseconds.
+    """
+    Create a human readable representation for the given milliseconds.
 
     Args:
         ms (int): Milliseconds.
 
     Returns:
-        str: String representation formatted as mm:ss:mm.
+        str: String representation formatted as mm:ss:mmm.
     """
     mins = ms // (60 * 1000)
     ms %= 60 * 1000
@@ -80,7 +85,8 @@ def ms_to_time_string(ms: int) -> str:
 
 
 def get_datasets() -> list:
-    """Read all stored datasets from disk.
+    """
+    Read all stored datasets from disk.
 
     Returns:
         list: List of datasets.
@@ -96,7 +102,8 @@ def get_datasets() -> list:
 
 
 def get_annotations() -> list:
-    """Read all annotation files from disk.
+    """
+    Read all annotation files from disk.
 
     Returns:
         list: List of annotations.
@@ -113,19 +120,21 @@ def get_annotations() -> list:
 
 @Singleton
 class FrameTimeMapper:
-    """Simple helper class to ease the use of the scaling functions for
+    """
+    Simple helper class to ease the use of the scaling functions for
     the specific case of mapping between frame-positions within some media
     and the corresponding timestamp.
     """
 
     def __init__(self) -> None:
-        self.use_time = Settings.instance().show_millisecs
         self.n_frames = 1
         self.millisecs = 1
         self._frame_to_ms, self._ms_to_frame = scale_functions(1, 1, True)
 
-    def update(self, n_frames: int = None, millisecs: int = None) -> None:
-        """Update the state of the Mapper. Changes the two ranges and updates
+    @accepts_m(int, int)
+    def update(self, n_frames: int, millis: int) -> None:
+        """
+        Update the state of the Mapper. Changes the two ranges and updates
         the mapping functions.
 
         Args:
@@ -134,33 +143,16 @@ class FrameTimeMapper:
             millisecs (int, optional): Duration of the media in milliseconds.
             Defaults to None.
         """
-        if n_frames:
-            self.n_frames = n_frames
-        if millisecs:
-            self.millisecs = millisecs
-        self.use_time = Settings.instance().show_millisecs
+        self.n_frames = n_frames
+        self.millisecs = millis
 
         self._frame_to_ms, self._ms_to_frame = scale_functions(
             self.n_frames, self.millisecs, True
         )
 
-    def frame_repr(self, frame: int) -> str:
-        """Get representation of current frame-position.
-
-        Args:
-            frame (int): Current frame position.
-
-        Returns:
-            str: Readable representation of the current position.
-        """
-        if self.use_time:
-            millisecs = self._frame_to_ms(frame)[0]
-            return ms_to_time_string(millisecs)
-        else:
-            return str(frame)
-
     def frame_to_ms(self, frame: int) -> int:
-        """Map frame-position to time-position.
+        """
+        Map frame-position to time-position.
 
         Args:
             frame (int): Index to current frame.
@@ -171,7 +163,8 @@ class FrameTimeMapper:
         return self._frame_to_ms(frame)[0]
 
     def ms_to_frame(self, ms: int) -> int:
-        """Map time-position to frame-position.
+        """
+        Map time-position to frame-position.
 
         Args:
             ms (int): Timestamp corresponding to current frame

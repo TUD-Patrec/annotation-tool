@@ -3,8 +3,8 @@ import PyQt5.QtWidgets as qtw
 
 
 class QAdaptiveScrollArea(qtw.QWidget):
-    def __init__(self, parent=None):
-        super(QAdaptiveScrollArea, self).__init__(parent=parent)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.items = []
         self.initUI()
 

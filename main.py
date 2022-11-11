@@ -73,7 +73,7 @@ def start():
 
     logging.info("Running relative to {}".format(application_path))
 
-    enable_high_dpi_scaling()
+    # enable_high_dpi_scaling()
 
     main()
 
