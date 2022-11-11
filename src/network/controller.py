@@ -19,6 +19,13 @@ class NetworkType(enum.Enum):
     LARA_ATTR_CNN_IMU = 1
 
 
+def to_tensor(data: np.ndarray) -> torch.Tensor:
+    # if cuda available, use it
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # logging.info(f"{device = }")
+    return torch.from_numpy(data).to(device)
+
+
 __data_file__ = None
 
 
@@ -133,9 +140,7 @@ def __load_raw_data__(file: os.PathLike, media_type: MediaType = None) -> np.nda
     return data
 
 
-__cached_network__ = {}  # static variable for caching
-
-
+@lru_cache(maxsize=1)
 def __load_network__(media_type: MediaType) -> Tuple[Network, dict]:
     # find best fitting network
 
@@ -150,24 +155,19 @@ def __load_network__(media_type: MediaType) -> Tuple[Network, dict]:
 
         if not os.path.isfile(network_path):
             raise FileNotFoundError("Could not find any LARa-Network")
+
+        network, config = __load_lara_network__(network_path)
+
     elif media_type == MediaType.VIDEO:
         raise NotImplementedError
     else:
-        raise ValueError(f"{media_type = } is not usable.")
+        raise ValueError(f"{media_type = } is not supported")
 
-    cached_network_path = __cached_network__.get("network_path")
-    if cached_network_path and cached_network_path == network_path:
-        network = __cached_network__.get("network")
-        assert network is not None
-        config = __cached_network__.get("config")
-        return network, config
-    else:
-        if media_type == MediaType.MOCAP:
-            return __load_lara_network__(network_path)
-        elif media_type == MediaType.VIDEO:
-            raise NotImplementedError
-        else:
-            raise ValueError(f"{media_type = } does not support a network")
+    # to cuda
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    network.to(device)
+
+    return network, config
 
 
 def __load_lara_network__(network_path: os.PathLike) -> Tuple[Network, dict]:
@@ -183,11 +183,6 @@ def __load_lara_network__(network_path: os.PathLike) -> Tuple[Network, dict]:
         network = Network(config)
         network.load_state_dict(state_dict)
         network.eval()
-
-        # cache results
-        __cached_network__["network_path"] = network_path
-        __cached_network__["network"] = network
-        __cached_network__["config"] = config
 
         return network, config
     except Exception:
@@ -214,7 +209,7 @@ def __preprocess__(data, media_type: MediaType) -> np.ndarray:
 def __preprocess_lara__(data) -> np.ndarray:
     data = np.delete(data, range(66, 72), 1)
 
-    # data = lara_util.normalize(data)
+    # data = lara_specifics.normalize(data)
     return data
 
 
