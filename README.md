@@ -25,7 +25,7 @@ After installation the annotation tool can be run as simple as
 
 **Requirements:**
 - Python 3.8 or higher
-- [poetry]
+- [poetry] 1.2 or higher
 - [make]
 
 For installing the development environment run
