@@ -1,5 +1,6 @@
 import abc
 import os
+from typing import Optional
 
 import numpy as np
 
@@ -26,7 +27,8 @@ class MediaBase:
             raise FileNotFoundError(path)
         self._path = path
         self._id = filehandler.footprint_of_file(path)
-        self._duration, self._n_frames, self._fps = filehandler.meta_data(path)
+        self._n_frames = None
+        self._fps = None
 
     @property
     def path(self) -> os.PathLike:
@@ -60,8 +62,13 @@ class MediaBase:
         return self.id
 
     @property
-    def duration(self) -> float:
-        return self._duration
+    def duration(self) -> Optional[float]:
+        """
+        Returns the duration of the media in seconds.
+        """
+        if self.n_frames is None or self.fps is None:
+            return None
+        return self.n_frames / self.fps
 
     @property
     def fps(self) -> float:
@@ -79,21 +86,30 @@ class MediaBase:
             return self.id == other.id
         return False
 
-    def __getitem__(self, idx: int) -> np.ndarray:
+    def __getitem__(self, idx):
         """
         Returns the frame at the given index.
         If the index is a slice, returns a list of frames.
 
         Args:
-            idx: The index of the frame to return.
+            idx: The index/indices of the frame(s) to return.
         Returns:
-            The frame at the given index.
+            The frame(s) at the given indices.
         Raises:
             IndexError: If the index is out of range.
+            TypeError: If the index/indices are not integers.
         """
-        if idx < 0 or idx >= self.n_frames:
-            raise IndexError("Index out of range")
-        return self.__get_frame__(idx)
+
+        if isinstance(idx, slice):
+            return (self[i] for i in range(*idx.indices(len(self))))
+        elif isinstance(list, tuple):
+            return (self[i] for i in idx)
+        elif isinstance(idx, int):
+            if idx >= len(self):
+                raise IndexError("Index out of range.")
+            return self.__get_frame__(idx)
+        else:
+            raise TypeError("Invalid argument type.")
 
     @abc.abstractmethod
     def __get_frame__(self, idx: int) -> np.ndarray:

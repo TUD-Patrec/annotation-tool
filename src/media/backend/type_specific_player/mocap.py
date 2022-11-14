@@ -3,7 +3,7 @@ import numpy as np
 import pyqtgraph.opengl as gl
 
 from src.media.backend.player import AbstractMediaPlayer, UpdateReason
-from src.media.mocap_reading import MocapReader
+from src.media.mocap_reader import MocapReader
 
 
 class MocapPlayer(AbstractMediaPlayer):

@@ -172,7 +172,7 @@ class AbstractMediaPlayer(qtw.QWidget):
         if self._is_main_replay_widget:
             return x
         else:
-            return x * self.fps // self._reference_fps
+            return int(x * self.fps / self._reference_fps)
 
     def send_ACK(self, r):
         if r == UpdateReason.TIMEOUT:
