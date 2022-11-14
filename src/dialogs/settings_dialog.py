@@ -2,7 +2,7 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
-from src.dataclasses.settings import Settings
+from src.data_model.settings import Settings
 
 
 def _read_from_txt(x: str, x_type, default):

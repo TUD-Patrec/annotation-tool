@@ -4,7 +4,7 @@ from typing import List
 import PyQt5.QtCore as qtc
 import numpy as np
 
-from src.dataclasses import Annotation, AnnotationScheme, Sample
+from src.data_model import Annotation, AnnotationScheme, Sample
 from src.dialogs.dialog_manager import DialogManager
 
 

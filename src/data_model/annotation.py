@@ -4,7 +4,7 @@ from typing import Union
 
 import numpy as np
 
-from src.dataclasses.annotation_scheme import AnnotationScheme
+from src.data_model.annotation_scheme import AnnotationScheme
 from src.utility.decorators import returns
 
 

@@ -2,8 +2,8 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 import numpy as np
 
-from src.dataclasses import AnnotationScheme, Sample
-from src.dataclasses.annotation import Annotation
+from src.data_model import AnnotationScheme, Sample
+from src.data_model.annotation import Annotation
 
 
 class QAnnotationDialog(qtw.QDialog):

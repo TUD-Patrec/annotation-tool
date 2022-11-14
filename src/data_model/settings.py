@@ -1,7 +1,5 @@
 from dataclasses import dataclass, field, fields
-import logging
 
-from src.utility import filehandler
 from src.utility.decorators import Singleton, accepts_m
 
 
@@ -22,11 +20,7 @@ class Settings:
     _big_skip: int = field(init=False, default=100)
 
     def __post_init__(self):
-        paths = filehandler.Paths.instance()
-        if not filehandler.is_non_zero_file(paths.config):
-            self.to_disk()
-        else:
-            self.from_disk()
+        super().__init__()
 
     @property
     def retrieval_segment_size(self):
@@ -149,21 +143,3 @@ class Settings:
     def reset(self):
         for fld in fields(self):
             setattr(self, fld.name, fld.default)
-
-    def from_disk(self):
-        paths = filehandler.Paths.instance()
-        d = filehandler.read_json(paths.config)
-        self.from_dict(d)
-
-    def to_disk(self):
-        paths = filehandler.Paths.instance()
-        d = self.as_dict()
-        filehandler.write_json(paths.config, d)
-
-    def from_dict(self, d):
-        for fld in fields(self):
-            logging.info("{} <- {}".format(fld.name, d[fld.name]))
-            setattr(self, fld.name, d[fld.name])
-
-    def as_dict(self):
-        return dict((field.name, getattr(self, field.name)) for field in fields(self))

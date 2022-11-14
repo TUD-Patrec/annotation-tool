@@ -2,8 +2,7 @@ import functools
 import os
 from typing import Tuple
 
-from ..dataclasses.datasets import DatasetDescription
-from ..dataclasses.globalstate import GlobalState
+from ..data_model import Dataset, GlobalState
 from .decorators import Singleton, accepts_m
 from .filehandler import Paths, is_non_zero_file
 
@@ -95,7 +94,7 @@ def get_datasets() -> list:
     for file in os.listdir(Paths.instance().datasets):
         file_path = os.path.join(Paths.instance().datasets, file)
         if is_non_zero_file(file_path):
-            data_description = DatasetDescription.from_disk(file_path)
+            data_description = Dataset.from_disk(file_path)
             datasets.append(data_description)
     datasets.sort(key=lambda x: x.name)
     return datasets

@@ -1,7 +1,7 @@
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
-from src.dataclasses import Sample
+from src.data_model import Sample
 from src.qt_helper_widgets.display_scheme import QShowAnnotation
 from src.qt_helper_widgets.lines import QHLine
 

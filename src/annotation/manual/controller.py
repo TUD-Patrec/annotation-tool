@@ -4,7 +4,7 @@ from src.annotation.annotation_base import AnnotationBaseClass
 from src.annotation.manual.main_widget import QDisplaySample
 from src.annotation.manual.tool_widget import ManualAnnotationTools
 from src.annotation.modes import AnnotationMode
-from src.dataclasses import Sample
+from src.data_model import Sample
 from src.dialogs.annotation_dialog import QAnnotationDialog
 
 

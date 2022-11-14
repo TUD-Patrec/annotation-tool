@@ -5,10 +5,10 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
-from src.dataclasses.settings import Settings
+from src.data_model.settings import Settings
 
 from . import __version__
-from .dataclasses.globalstate import GlobalState
+from .data_model.globalstate import GlobalState
 from .dialogs.dialog_manager import DialogManager
 from .dialogs.edit_datasets import QEditDatasets
 from .dialogs.export_annotation_dialog import QExportAnnotationDialog

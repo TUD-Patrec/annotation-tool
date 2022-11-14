@@ -3,7 +3,7 @@ import os
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
-from ..dataclasses.globalstate import GlobalState
+from ..data_model.globalstate import GlobalState
 from ..qt_helper_widgets.line_edit_adapted import QLineEditAdapted
 from ..utility import filehandler, functions
 

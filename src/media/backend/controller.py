@@ -4,7 +4,7 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
-from src.dataclasses.settings import Settings
+from src.data_model.settings import Settings
 from src.media.backend.player import AbstractMediaPlayer
 from src.media.backend.timer import Timer
 from src.media.backend.type_specific_player.mocap import MocapPlayer

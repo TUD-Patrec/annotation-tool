@@ -1,18 +1,14 @@
-from dataclasses import dataclass, field
 import random
 
 import PyQt5.QtGui as qtg
 from distinctipy import distinctipy
 
-from ..utility.decorators import Singleton
-from .annotation import Annotation
+from src.data_model.annotation import Annotation
+from src.utility.decorators import Singleton
 
 
 @Singleton
-@dataclass()
 class ColorMapper:
-    _color_map: list = field(init=False)
-
     def __init__(self) -> None:
         random.seed(42)
         self._color_map = distinctipy.get_colors(50, n_attempts=250)

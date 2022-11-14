@@ -3,10 +3,10 @@ import os
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
-from src.dataclasses.globalstate import GlobalState
+from src.data_model.globalstate import GlobalState
 from src.media.media_types import MediaType, media_type_of
 
-from ..dataclasses.settings import Settings
+from ..data_model.settings import Settings
 from ..qt_helper_widgets.line_edit_adapted import QLineEditAdapted
 from ..utility import filehandler, functions
 

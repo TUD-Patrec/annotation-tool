@@ -9,12 +9,12 @@ import PyQt5.QtWidgets as qtw
 
 from src.annotation.modes import AnnotationMode
 from src.annotation.timeline import QTimeLine
-from src.dataclasses.settings import Settings
+from src.data_model.settings import Settings
 import src.network.controller as network
 import src.utility.breeze_resources  # noqa: F401
 
 from .annotation.controller import AnnotationController
-from .dataclasses.globalstate import GlobalState
+from .data_model.globalstate import GlobalState
 from .gui import GUI, LayoutPosition
 from .media.media import QMediaWidget
 from .mediator import Mediator

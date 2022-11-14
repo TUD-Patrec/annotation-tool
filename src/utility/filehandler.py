@@ -13,7 +13,7 @@ from typing import Tuple, Union
 import cv2
 import numpy as np
 
-from src.dataclasses.settings import Settings
+from src.data_model.settings import Settings
 from src.media.media_types import MediaType, media_type_of
 from src.media.mocap_reading import load_mocap
 from src.utility.decorators import Singleton

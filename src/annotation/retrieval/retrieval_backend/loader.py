@@ -5,7 +5,7 @@ import numpy as np
 from scipy import spatial
 
 from src.annotation.retrieval.retrieval_backend.element import RetrievalElement
-from src.dataclasses import Annotation
+from src.data_model import Annotation
 import src.network.controller as network
 
 

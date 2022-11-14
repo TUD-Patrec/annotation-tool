@@ -16,7 +16,7 @@ from src.annotation.retrieval.retrieval_backend.filter_dialog import QRetrievalF
 from src.annotation.retrieval.retrieval_backend.loader import RetrievalLoader
 from src.annotation.retrieval.retrieval_backend.query import Query
 from src.annotation.retrieval.tool_widget import RetrievalTools
-from src.dataclasses import Sample, Settings
+from src.data_model import Sample, Settings
 from src.dialogs.annotation_dialog import QAnnotationDialog
 
 

@@ -3,8 +3,6 @@ import os
 
 import numpy as np
 
-import src.utility.filehandler as filehandler
-
 
 class MediaBase:
     """
@@ -21,6 +19,9 @@ class MediaBase:
         Raises:
             FileNotFoundError: If the file does not exist.
         """
+
+        import src.utility.filehandler as filehandler
+
         if not os.path.isfile(path):
             raise FileNotFoundError(path)
         self._path = path
@@ -42,6 +43,8 @@ class MediaBase:
             FileNotFoundError: If the file does not exist.
             ValueError: If the file has changed.
         """
+        import src.utility.filehandler as filehandler
+
         if not os.path.isfile(value):
             raise FileNotFoundError(value)
         if self.id != filehandler.footprint_of_file(value):

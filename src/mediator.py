@@ -10,7 +10,7 @@ import PyQt5.QtCore as qtc
 
 from src.annotation.controller import AnnotationController
 from src.annotation.timeline import QTimeLine
-from src.dataclasses import Settings
+from src.data_model import Settings
 from src.media.media import QMediaWidget
 from src.playback import QPlaybackWidget
 

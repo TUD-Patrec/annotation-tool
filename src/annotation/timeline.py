@@ -2,7 +2,7 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
-from src.dataclasses.sample import Sample
+from src.data_model.sample import Sample
 from src.utility import functions
 from src.utility.functions import FrameTimeMapper, ms_to_time_string
 
