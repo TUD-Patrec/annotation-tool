@@ -15,7 +15,7 @@ import numpy as np
 
 from src.dataclasses.settings import Settings
 from src.media.media_types import MediaType, media_type_of
-from src.media.mocap_reading import load_mocap
+from src.media.mocap_reader import load_mocap
 from src.utility.decorators import Singleton
 
 
@@ -350,7 +350,8 @@ def meta_data(path: os.PathLike) -> Tuple[float, int, float]:
             not lead to a non-zero file.
 
     Returns:
-        Tuple[float, int, float]: Length of the media in seconds,
+        Tuple[float, int, float]:
+            Length of the media in seconds,
             Total number of frames,
             Framerate aka. sampling-rate.
     """

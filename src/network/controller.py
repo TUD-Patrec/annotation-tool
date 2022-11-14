@@ -7,7 +7,7 @@ import numpy as np
 import torch
 
 from src.media.media_types import MediaType, media_type_of
-from src.media.mocap_reading import load_mocap
+from src.media.mocap_reader import load_mocap
 from src.network.LARa import lara_specifics
 from src.network.network import Network
 from src.utility.filehandler import Paths

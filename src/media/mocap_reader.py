@@ -4,6 +4,7 @@ import os
 import numpy as np
 
 from src.media.media_base import MediaBase
+from src.utility import filehandler
 
 
 @lru_cache(maxsize=10)
@@ -135,6 +136,7 @@ class MocapReader(MediaBase):
 
         super().__init__(path)
         self._data: np.ndarray = load_mocap(path)
+        _, self._n_frames, self._fps = filehandler.meta_data(path)
 
     def __get_frame__(self, idx: int) -> np.ndarray:
         """

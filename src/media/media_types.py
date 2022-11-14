@@ -5,7 +5,7 @@ import os.path
 import cv2
 import filetype
 
-from src.media.mocap_reading import load_mocap
+from src.media.mocap_reader import load_mocap
 from src.utility import filehandler
 
 

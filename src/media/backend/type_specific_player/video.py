@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 
 from src.media.backend.player import AbstractMediaPlayer, UpdateReason
+from src.media.video_reader import VideoReader
 
 
 class VideoPlayer(AbstractMediaPlayer):
@@ -32,12 +33,12 @@ class VideoPlayer(AbstractMediaPlayer):
         self.init_worker()
 
     def load(self, path):
-        media = cv2.VideoCapture(path)
+        media = VideoReader(path)
         self.layout().replaceWidget(self.pbar, self.lblVid)
         self.pbar.setParent(None)
         del self.pbar
-        self.fps = int(media.get(cv2.CAP_PROP_FPS))
-        self.n_frames = int(media.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.fps = media.fps
+        self.n_frames = len(media)
         self.media_loaded.emit(media)
         self.update_media_position(UpdateReason.INIT)
         self.loaded.emit(self)
@@ -121,8 +122,7 @@ class VideoHelper(qtc.QObject):
         self.last_position = -1
         self.last_width = -1
         self.last_height = -1
-        self.n_frames = int(media.get(cv2.CAP_PROP_FRAME_COUNT))
-        logging.info(f"VideoLength: {self.n_frames}")
+        self.n_frames = len(self.media)
 
     @qtc.pyqtSlot(int, int, int, UpdateReason)
     def prepare_update(self, pos, width, height, update_reason):
@@ -137,21 +137,14 @@ class VideoHelper(qtc.QObject):
             # no update needed
             self.no_update_needed.emit(update_reason)
             return
-        if pos != self.last_position + 1:
-            # no seq-reading - update needed
-            self.media.set(cv2.CAP_PROP_POS_FRAMES, pos)
 
         self.last_position = pos
         self.last_width = width
         self.last_height = height
 
-        assert (
-            0 <= int(self.media.get(cv2.CAP_PROP_POS_FRAMES)) < self.n_frames
-        ), f"{int(self.media.get(cv2.CAP_PROP_POS_FRAMES)) = }, {self.n_frames = }"
-
         # Loading image and pixmap
-        ret, frame = self.media.read()
-        if ret:
+        frame = self.media[pos]
+        if frame is not None:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             h, w, ch = frame.shape
@@ -162,16 +155,11 @@ class VideoHelper(qtc.QObject):
             )
             img = current_img.scaled(
                 width, height, qtc.Qt.KeepAspectRatio, qtc.Qt.SmoothTransformation
-            )  # Somehow this is faster
-            # img = self.current_img.scaled(
-            # self.lblVid.width(), self.lblVid.height(),
-            # qtc.Qt.KeepAspectRatio, qtc.Qt.FastTransformation
-            # )
+            )
 
             self.image_ready.emit(img, frame, w, h, bytes_per_line, update_reason)
 
         else:
-            logging.warning(f"Reading Frame failed at {pos = }!")
             self.no_update_needed.emit(update_reason)
 
     @qtc.pyqtSlot()
