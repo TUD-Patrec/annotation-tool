@@ -1,5 +1,3 @@
-import logging
-
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
@@ -21,6 +19,7 @@ class VideoPlayer(AbstractMediaPlayer):
         self.lblVid = qtw.QLabel(self)
         self.lblVid.setSizePolicy(qtw.QSizePolicy.Ignored, qtw.QSizePolicy.Ignored)
         self.lblVid.setAlignment(qtc.Qt.AlignCenter)
+        self.layout().addWidget(self.lblVid)
         self.current_img = None
 
         # design
@@ -34,9 +33,6 @@ class VideoPlayer(AbstractMediaPlayer):
 
     def load(self, path):
         media = VideoReader(path)
-        self.layout().replaceWidget(self.pbar, self.lblVid)
-        self.pbar.setParent(None)
-        del self.pbar
         self.fps = media.fps
         self.n_frames = len(media)
         self.media_loaded.emit(media)
@@ -85,7 +81,6 @@ class VideoPlayer(AbstractMediaPlayer):
         self.confirm_update(update_reason)
 
     def init_worker(self):
-        logging.info("INIT Worker Thread")
         self.worker_thread = qtc.QThread()
         self.worker = VideoHelper()
         self.worker.moveToThread(self.worker_thread)

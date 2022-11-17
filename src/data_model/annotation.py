@@ -4,8 +4,9 @@ from typing import Union
 
 import numpy as np
 
-from src.data_model.annotation_scheme import AnnotationScheme
 from src.utility.decorators import returns
+
+from .annotation_scheme import AnnotationScheme
 
 
 def is_compatible(raw_annotation: Union[np.ndarray, dict], scheme: AnnotationScheme):

@@ -2,7 +2,7 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
-from src.data_model.settings import Settings
+from src.settings import settings
 
 
 def _read_from_txt(x: str, x_type, default):
@@ -15,7 +15,6 @@ class SettingsDialog(qtw.QDialog):
 
     def __init__(self, *args, **kwargs):
         super(SettingsDialog, self).__init__(*args, **kwargs)
-        settings = Settings.instance()
 
         self.old_settings = settings.as_dict()
 
@@ -93,7 +92,6 @@ class SettingsDialog(qtw.QDialog):
         self.setMinimumSize(self.size())
 
     def load_layout(self):
-        settings = Settings.instance()
         x_min, y_min, x_max, y_max = 720, 576, 5000, 5000
 
         id_validator = qtg.QIntValidator(self)
@@ -160,8 +158,6 @@ class SettingsDialog(qtw.QDialog):
         self.retrieval_segment_overlap.setPlaceholderText(str(0))
 
     def save_pressed(self):
-        settings = Settings.instance()
-
         old_x, old_y = settings.window_x, settings.window_y
 
         settings.annotator_id = _read_from_txt(
@@ -193,8 +189,6 @@ class SettingsDialog(qtw.QDialog):
             self.retrieval_segment_overlap.placeholderText(),
         )
 
-        settings.to_disk()
-
         if old_x != settings.window_x or old_y != settings.window_y:
             self.window_size_changed.emit(settings.window_x, settings.window_y)
 
@@ -202,12 +196,11 @@ class SettingsDialog(qtw.QDialog):
         self.close()
 
     def reset_pressed(self):
-        settings = Settings.instance()
         settings.reset()
         self.load_layout()
 
     def cancel_pressed(self):
-        Settings.instance().from_dict(self.old_settings)
+        settings.from_dict(self.old_settings)
         self.close()
 
 

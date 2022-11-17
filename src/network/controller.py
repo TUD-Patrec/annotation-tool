@@ -151,6 +151,7 @@ def __load_network__(media_type: MediaType) -> Tuple[Network, dict]:
         # lara_path = "attrib_network.pt"
         # lara_path = "cnn_imu_attrib_network.pt"
         lara_path = "cnn_attrib_network.pt"
+        lara_path = "network.pt"
 
         network_path = os.path.join(path_networks, lara_path)
 

@@ -43,7 +43,7 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
         self,
         samples: List[Sample],
         scheme: AnnotationScheme,
-        dependencies: List[np.ndarray],
+        dependencies: np.ndarray,
         n_frames: int,
     ) -> None:
         """
@@ -52,7 +52,7 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
         Args:
             samples: List of samples to annotate
             scheme: Annotation scheme
-            dependencies: List of dependencies for each sample
+            dependencies: Dependency-matrix
             n_frames: Number of frames in the video/mocap file
         """
         self.samples = samples

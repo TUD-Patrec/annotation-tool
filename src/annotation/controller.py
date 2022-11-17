@@ -73,7 +73,7 @@ class AnnotationController(qtc.QObject):
         self,
         samples: List[Sample],
         scheme: AnnotationScheme,
-        dependencies: List[np.ndarray],
+        dependencies: np.ndarray,
         n_frames: int,
     ) -> None:
         """

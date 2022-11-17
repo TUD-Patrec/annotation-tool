@@ -5,8 +5,9 @@ import shutil
 import PyQt5.QtWidgets as qtw
 import numpy as np
 
+from src.data_model import GlobalState
 from src.qt_helper_widgets.line_edit_adapted import QLineEditAdapted
-from src.utility import filehandler, functions
+from src.utility import filehandler
 
 
 class QExportAnnotationDialog(qtw.QDialog):
@@ -15,7 +16,6 @@ class QExportAnnotationDialog(qtw.QDialog):
         form = qtw.QFormLayout()
         self.annotation_combobox = qtw.QComboBox()
 
-        self.annotations = functions.get_annotations()
         for annotation in self.annotations:
             self.annotation_combobox.addItem(annotation.name)
 
@@ -67,6 +67,10 @@ class QExportAnnotationDialog(qtw.QDialog):
         self.setLayout(form)
         self.setMinimumWidth(400)
 
+    @property
+    def annotations(self):
+        return GlobalState.get_all()
+
     def get_path(self):
         path = qtw.QFileDialog.getExistingDirectory(self, directory="")
         if os.path.isdir(path):
@@ -93,7 +97,7 @@ class QExportAnnotationDialog(qtw.QDialog):
 
         # Grab informations from annotation.pkl
         annotation = self.annotations[idx]
-        annotated_file = annotation.input_file
+        annotated_file = annotation.media.path
         input_filename = os.path.split(annotated_file)[1]
         annotator_id = annotation.annotator_id
 
@@ -145,8 +149,8 @@ class QExportAnnotationDialog(qtw.QDialog):
             meta_dict["name"] = annotation.name
             meta_dict["dataset_name"] = annotation.dataset.name
             meta_dict["annotator_id"] = annotation.annotator_id
-            meta_dict["input_file"] = annotation.input_file
-            meta_dict["footprint"] = annotation.footprint
+            meta_dict["input_file"] = annotation.media.path
+            meta_dict["footprint"] = annotation.media.footprint
 
             out_path = os.path.join(exportation_directory, "meta_informations.json")
             filehandler.write_json(path=out_path, data=meta_dict)

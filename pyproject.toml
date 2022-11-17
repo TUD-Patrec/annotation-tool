@@ -38,6 +38,7 @@ pyqtgraph = "0.11.0"
 scipy = "*"
 torch = "~1.12.0"
 sortedcontainers = "^2.4.0"
+fcache = "^0.4.7"
 
 [tool.poetry.group.dev.dependencies]
 black = "*"

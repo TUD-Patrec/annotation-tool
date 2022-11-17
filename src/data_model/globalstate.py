@@ -4,28 +4,34 @@ from typing import List
 
 import numpy as np
 
-from src.data_model.annotation import empty_annotation
+from src.media.media_base import MediaReader
+from src.utility.decorators import accepts
+from src.utility.file_cache import cached
 
-from ..media.media_base import MediaBase
-from ..utility.decorators import accepts
-from ..utility.file_cache import Cachable
+from .annotation import empty_annotation
 from .dataset import Dataset
 from .sample import Sample
 
 
+@cached
 @dataclass
-class GlobalState(Cachable):
+class GlobalState:
     annotator_id: int
-    dataset: Dataset
+    _dataset: Dataset  # immutable
     name: str
-    media: MediaBase
+    _media: MediaReader  # immutable
     _samples: list = field(init=False, default_factory=list)
 
     def __post_init__(self):
-        super().__init__()
         a = empty_annotation(self.dataset.scheme)
         s = Sample(0, self.media.n_frames - 1, a)
         self.samples.append(s)
+
+        # Check if all attributes are set correctly
+        assert self.annotator_id is not None and isinstance(self.annotator_id, int)
+        assert self._dataset is not None and isinstance(self._dataset, Dataset)
+        assert self.name is not None and isinstance(self.name, str)
+        assert self._media is not None and isinstance(self._media, MediaReader)
 
     @property
     def samples(self) -> List[Sample]:
@@ -68,3 +74,11 @@ class GlobalState(Cachable):
                 x.append(annotation_vector)
         x = np.array(x, int)
         return x
+
+    @property
+    def dataset(self) -> Dataset:
+        return self._dataset
+
+    @property
+    def media(self) -> MediaReader:
+        return self._media

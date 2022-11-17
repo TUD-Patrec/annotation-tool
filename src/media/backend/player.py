@@ -21,20 +21,17 @@ class AbstractMediaPlayer(qtw.QWidget):
     new_input_wanted = qtc.pyqtSignal(str)  # Path to new input-file
     loaded = qtc.pyqtSignal(
         qtw.QWidget
-    )  # Emit self to notify controller about successfull loading
+    )  # Emit self to notify controller about successfully loading
     failed = qtc.pyqtSignal(
         qtw.QWidget
     )  # Emit self to notify controller about failed loading
     ACK_timeout = qtc.pyqtSignal(qtw.QWidget)  # Confirm timeout processed
-    ACK_setpos = qtc.pyqtSignal(qtw.QWidget)  # Confirm set_positon processed
+    ACK_setpos = qtc.pyqtSignal(qtw.QWidget)  # Confirm set_position processed
     position_changed = qtc.pyqtSignal(int)  # Broadcast position after change
     cleaned_up = qtc.pyqtSignal(qtw.QWidget)
 
     def __init__(self, is_main, *args, **kwargs):
         super(AbstractMediaPlayer, self).__init__(*args, **kwargs)
-
-        # media
-        self._media = None
 
         # media controll attributes
         self._fps = None
@@ -46,11 +43,10 @@ class AbstractMediaPlayer(qtw.QWidget):
         self._reference_fps = None
         self._reference_N = None
 
+        self.setLayout(qtw.QVBoxLayout(self))
+
         # distinct between primary player and added ones
         self._is_main_replay_widget = is_main
-
-        # layout
-        self.init_layout()
 
         # Thread saftey
         self._mutex_fps = qtc.QMutex()
@@ -61,13 +57,6 @@ class AbstractMediaPlayer(qtw.QWidget):
     def set_reference_player(self, p):
         self._reference_fps = p.fps
         self._reference_N = p.N
-
-    def init_layout(self):
-        self.hbox = qtw.QHBoxLayout(self)
-        self.pbar = qtw.QProgressBar(self)
-        self.pbar.setValue(0)
-        self.pbar.setRange(0, 100)
-        self.hbox.addWidget(self.pbar)
 
     def mousePressEvent(self, e):
         # rightclick = context_menu
@@ -157,8 +146,6 @@ class AbstractMediaPlayer(qtw.QWidget):
     def ack_position_update(self):
         self.ACK_setpos.emit(self)
 
-    qtc.pyqtSlot(int, int)
-
     def N_FRAMES(self):
         if self._is_main_replay_widget:
             N = self.n_frames
@@ -199,19 +186,6 @@ class AbstractMediaPlayer(qtw.QWidget):
 
     # Thread safe getter and setter
     # Settings properties is only allowed from the main GUI-Thread - see assertions
-    @property
-    def media(self):
-        # Need to asure that the media object is not accessed from another thread
-        # Implement thread-secure methods for accessing
-        # media-informations (reading a frame for example)
-        assert qtc.QThread.currentThread() is self.thread()
-        return self._media
-
-    @media.setter
-    def media(self, x):
-        assert qtc.QThread.currentThread() is self.thread()
-        self._media = x
-
     @property
     @returns((int, float))
     def fps(self):
@@ -308,21 +282,3 @@ class AbstractMediaPlayer(qtw.QWidget):
     @returns(bool)
     def is_looping(self):
         return self._looping
-
-
-class AbstractMediaLoader(qtc.QThread):
-    progress = qtc.pyqtSignal(int)
-    finished = qtc.pyqtSignal(object)
-
-    def __init__(self, path: str) -> None:
-        super().__init__()
-        self.path = path
-        self.media = None
-
-    def run(self):
-        self.load()
-        self.finished.emit(self.media)
-
-    @abstractmethod
-    def load(self):
-        raise NotImplementedError

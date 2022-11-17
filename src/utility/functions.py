@@ -1,10 +1,7 @@
 import functools
-import os
 from typing import Tuple
 
-from ..data_model import Dataset, GlobalState
 from .decorators import Singleton, accepts_m
-from .filehandler import Paths, is_non_zero_file
 
 
 def scale(N: int, M: int, x: int) -> Tuple[int, int]:
@@ -81,40 +78,6 @@ def ms_to_time_string(ms: int) -> str:
     secs = ms // 1000
     ms %= 1000
     return "{:02d}:{:02d}:{:03d}".format(mins, secs, ms)
-
-
-def get_datasets() -> list:
-    """
-    Read all stored datasets from disk.
-
-    Returns:
-        list: List of datasets.
-    """
-    datasets = []
-    for file in os.listdir(Paths.instance().datasets):
-        file_path = os.path.join(Paths.instance().datasets, file)
-        if is_non_zero_file(file_path):
-            data_description = Dataset.from_disk(file_path)
-            datasets.append(data_description)
-    datasets.sort(key=lambda x: x.name)
-    return datasets
-
-
-def get_annotations() -> list:
-    """
-    Read all annotation files from disk.
-
-    Returns:
-        list: List of annotations.
-    """
-    annotations = []
-    for file in os.listdir(Paths.instance().annotations):
-        file_path = os.path.join(Paths.instance().annotations, file)
-        if is_non_zero_file(file_path):
-            annotation = GlobalState.from_disk(file_path)
-            annotations.append(annotation)
-    annotations.sort(key=lambda x: x.name)
-    return annotations
 
 
 @Singleton

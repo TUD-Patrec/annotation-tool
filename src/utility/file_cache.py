@@ -1,53 +1,126 @@
-import logging
+import functools
+from typing import List, Optional, Type, Union
 
 from fcache.cache import FileCache
 
-_file_cache = FileCache("annotation-tool", flag="cs")
-
-logging.info(f"Cache directory: {_file_cache.cache_dir}")
-
-# check if key "ID" exists
-if "next_id" not in _file_cache:
-    _file_cache["next_id"] = 0
+_file_cache = FileCache("annotation-tool", flag="c")
+_cache_directory = _file_cache.cache_dir
+print(f"Cache directory: {_cache_directory}")
 
 
-def write(obj) -> None:
-    from src.data_model import Dataset, GlobalState, Settings
+def get_next_id() -> str:
+    _next_id = max([int(x) for x in _file_cache.keys()], default=0) + 1
 
-    if not hasattr(obj, "_id") or obj._id is None:
-        obj._id = _file_cache["next_id"]
-        _file_cache["next_id"] += 1
-    if isinstance(obj, Settings):
-        _file_cache["settings"] = Settings.instance()
-    elif isinstance(obj, GlobalState):
-        _file_cache["global_state"][obj._id] = obj
-    elif isinstance(obj, Dataset):
-        _file_cache["dataset"][obj._id] = obj
-    else:
-        raise TypeError(f"Cannot cache object of type {type(obj)}")
+    # closure
+    def get_id():
+        nonlocal _next_id
+        _next_id += 1
+        return _next_id
+
+    return str(get_id())
 
 
-def get_settings():
-    return _file_cache["settings"]
+def write(obj: object) -> None:
+    """
+    Writes the object to the cache.
+
+    Args:
+        obj: The object to write.
+
+    Raises:
+        TypeError: If the object cannot be cached (i.e. it does not use the @cached decorator).
+    """
+    if not hasattr(obj, "cache_id"):
+        raise TypeError(f"Object of type {type(obj)} is not cachable.")
+    if obj.cache_id is None:
+        obj.cache_id = get_next_id()
+    _file_cache[obj.cache_id] = obj
+    _file_cache.sync()
 
 
-def get_global_states():
-    return (_file_cache["global_state"][key] for key in _file_cache["global_state"])
+def delete(obj: object) -> None:
+    """
+    Deletes the object from the cache.
+
+    Args:
+        obj: The object to delete.
+    """
+    if not hasattr(obj, "cache_id"):
+        raise TypeError(f"Cannot delete object of type {type(obj)}")
+    try:
+        del _file_cache[obj.cache_id]
+        _file_cache.sync()
+    except KeyError:
+        pass
 
 
-def get_datasets():
-    return (_file_cache["dataset"][key] for key in _file_cache["dataset"])
+def get_by_type(x: Union[Type, str]) -> List[object]:
+    """
+    Returns a list of all objects of type x in the cache.
+
+    Args:
+        x: The type of the objects to return.
+
+    """
+
+    cls_name = x if isinstance(x, str) else x.__name__
+    return [obj for obj in _file_cache.values() if obj.__class__.__name__ == cls_name]
 
 
-class Cachable:
-    def __init__(self):
-        print("Cachable init")
-        self._id = None
+def get_by_id(x: int) -> Optional[object]:
+    """
+    Returns the object with the given id from the cache.
 
-    def __setattr__(self, key, value):
-        """Overwrite __setattr__ to write to cache on every change"""
-        super().__setattr__(key, value)
+    Args:
+        x: The id of the object to return.
 
+    Returns:
+        The object with the given id or None if no object with the given id exists.
+    """
+    try:
+        return _file_cache[x]
+    except KeyError:
+        return None
+
+
+def wrap_setattr(func):
+    @functools.wraps(func)
+    def wrapper(self, key, value):
+        func(self, key, value)
         if key != "_id":
-            print(f"{key = } Writing {self} to cache")
             write(self)
+
+    return wrapper
+
+
+def get_all(cls) -> List[object]:
+    """
+    Returns a list of all objects of type cls in the cache.
+    """
+    return get_by_type(cls)
+
+
+def cached(cls):
+    """
+    Decorator for classes that should be cached.
+    Updating an attribute of the class will automatically update the object in the cache.
+
+    Adding a few class-methods:
+        delete(self) -> None
+            Deletes the object from the cache.
+        sync(self) -> None
+            Writes the object to the cache.
+        synchronize(self) -> None
+            Writes the object to the cache. (alias for sync)
+
+    Args:
+        cls: The class to decorate.
+    """
+    cls.cache_id = None
+    cls.__setattr__ = wrap_setattr(cls.__setattr__)
+    cls.delete = delete
+    cls.sync = write
+    cls.synchronize = write
+    cls.get_all = functools.partial(get_all, cls.__name__)
+
+    return cls

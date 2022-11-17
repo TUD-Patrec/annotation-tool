@@ -1,17 +1,27 @@
-from dataclasses import dataclass
-from typing import List
+from dataclasses import dataclass, field
 
 import numpy as np
 
-from . import AnnotationScheme
-from ..utility.file_cache import Cachable
+from src.utility.file_cache import cached
+
+from .annotation_scheme import AnnotationScheme
 
 
-@dataclass()
-class Dataset(Cachable):
-    name: str
-    scheme: AnnotationScheme
-    dependencies: List[np.ndarray]
+@cached
+@dataclass
+class Dataset:
+    _name: str = field(init=True)
+    _scheme: AnnotationScheme = field(init=True)
+    _dependencies: np.ndarray = field(init=True, default=None, compare=False)
 
-    def __post_init__(self):
-        super().__init__()
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def scheme(self) -> AnnotationScheme:
+        return self._scheme
+
+    @property
+    def dependencies(self) -> np.ndarray:
+        return self._dependencies

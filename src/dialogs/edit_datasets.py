@@ -3,12 +3,13 @@ import logging
 
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
+import numpy as np
 
+from src.data_model import Dataset
 from src.data_model.annotation_scheme import create_annotation_scheme
-from src.data_model.dataset import Dataset
 from src.qt_helper_widgets.adaptive_scroll_area import QAdaptiveScrollArea
 from src.qt_helper_widgets.line_edit_adapted import QLineEditAdapted
-from src.utility import filehandler, functions
+from src.utility import filehandler
 
 
 class QEditDatasets(qtw.QDialog):
@@ -102,7 +103,7 @@ class QEditDatasets(qtw.QDialog):
         row_widget = qtw.QWidget(self)
         hbox = qtw.QHBoxLayout(row_widget)
 
-        dataset = functions.get_datasets()[id]
+        dataset = Dataset.get_all()[id]
 
         idx_label = qtw.QLabel(str(id + 1))
         idx_label.setAlignment(qtc.Qt.AlignCenter)
@@ -112,8 +113,9 @@ class QEditDatasets(qtw.QDialog):
         name_label.setAlignment(qtc.Qt.AlignCenter)
         hbox.addWidget(name_label)
 
-        dependencies_exist = dataset.dependencies_exist
-        dependencies_exist = "loaded" if dependencies_exist else "not loaded"
+        dependencies_exist = (
+            "loaded" if dataset.dependencies is not None else "not loaded"
+        )
         dependencies_label = qtw.QLabel(dependencies_exist)
         dependencies_label.setAlignment(qtc.Qt.AlignCenter)
         hbox.addWidget(dependencies_label)
@@ -131,7 +133,7 @@ class QEditDatasets(qtw.QDialog):
     def _reload(self):
         self.scroll_widget.clear()
 
-        for idx, _ in enumerate(functions.get_datasets()):
+        for idx, _ in enumerate(Dataset.get_all()):
             row = self._make_row(idx)
             row.setSizePolicy(qtw.QSizePolicy.Expanding, qtw.QSizePolicy.Expanding)
             self.scroll_widget.addItem(row)
@@ -151,13 +153,14 @@ class QEditDatasets(qtw.QDialog):
 
         dependency_error_str = "Could not load dependencies."
         dependency_txt = self._dependencies.text()
-        dependencies = []
+
+        dependencies = None
 
         if len(dependency_txt) > 0:
             if dependency_txt != dependency_error_str:
                 try:
                     dependencies = filehandler.read_csv(
-                        self._dependencies.text(), data_type=int
+                        self._dependencies.text(), data_type=np.int8
                     )
                 except FileNotFoundError:
                     self._dependencies.setText(dependency_error_str)
@@ -166,8 +169,7 @@ class QEditDatasets(qtw.QDialog):
                     self._dependencies.setText(dependency_error_str)
                     return
 
-        dataset = Dataset(name, scheme, dependencies)
-        dataset.to_disk()
+        Dataset(name, scheme, dependencies)
 
         self._reload()
 
@@ -177,7 +179,7 @@ class QEditDatasets(qtw.QDialog):
         self.add_button.setEnabled(False)
 
     def remove_pressed(self, idx):
-        dataset = functions.get_datasets()[idx]
+        dataset = Dataset.get_all()[idx]
         dataset_name = dataset.name
 
         msg = qtw.QMessageBox(self)
@@ -189,7 +191,7 @@ class QEditDatasets(qtw.QDialog):
 
         msg.show()
 
-    def msgbtn(self, answer, dataset):
+    def msgbtn(self, answer, x):
         if answer.text().lower().endswith("yes"):
-            dataset.delete()
+            x.delete()
             self._reload()

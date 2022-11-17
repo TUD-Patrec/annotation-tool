@@ -4,23 +4,18 @@ import functools
 import hashlib
 import json
 import logging
-import math
 import os
 import pickle
 import string
 from typing import Tuple, Union
 
-import cv2
 import numpy as np
 
-from src.data_model.settings import Settings
-from src.media.media_types import MediaType, media_type_of
-from src.media.mocap_reader import load_mocap
 from src.utility.decorators import Singleton
 
 
 @Singleton
-@dataclass()
+@dataclass
 class Paths:
     _root: str = field(init=False, default=None)
     _local_storage: str = field(init=False, default="__local__storage__")
@@ -339,66 +334,6 @@ def path_to_dirname(path: os.PathLike) -> os.PathLike:
         return dirname
 
 
-def meta_data(path: os.PathLike) -> Tuple[float, int, float]:
-    """Compute some useful information for the given media.
-
-    Args:
-        path (os.PathLike): Path to media that should be analysed.
-
-    Raises:
-        FileNotFoundError: Raised if the given path does
-            not lead to a non-zero file.
-
-    Returns:
-        Tuple[float, int, float]:
-            Length of the media in seconds,
-            Total number of frames,
-            Framerate aka. sampling-rate.
-    """
-    if is_non_zero_file(path):
-        footprint = footprint_of_file(path)
-        return __meta_data__(path, footprint)
-    else:
-        raise FileNotFoundError
-
-
-@functools.lru_cache(maxsize=128)
-def __meta_data__(path: os.PathLike, _: str):
-    if media_type_of(path) == MediaType.MOCAP:
-        meta = __meta_data_of_mocap__(path)
-    elif media_type_of(path) == MediaType.VIDEO:
-        meta = __meta_data_of_video__(path)
-    else:
-        raise ValueError(f"Could not determine media-type for {path}")
-    return meta
-
-
-def __meta_data_of_mocap__(path: os.PathLike) -> Tuple[int, int, float]:
-    mocap = load_mocap(path)
-    frame_count = mocap.shape[0]
-    fps = Settings.instance().refresh_rate
-    return 1000 * int(frame_count / fps), frame_count, fps
-
-
-def __meta_data_of_video__(path: os.PathLike) -> Tuple[int, int, float]:
-    video = cv2.VideoCapture(path)
-    frame_count: int = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    frame_rate: float = video.get(cv2.CAP_PROP_FPS)
-    duration: float = frame_count / frame_rate
-    lower, upper = math.floor(duration), math.ceil(duration)
-
-    d_lower = abs(lower * frame_rate - frame_count)
-    d_upper = abs(upper * frame_rate - frame_count)
-
-    # picking the better choice
-    if d_lower < d_upper:
-        duration: int = 1000 * lower
-    else:
-        duration: int = 1000 * upper
-
-    return duration, frame_count, frame_rate
-
-
 def logging_config() -> dict:
     """Create basic configuration for logging.
 
@@ -433,25 +368,18 @@ def logging_config() -> dict:
 
 
 def init_logger():
+    from src.settings import settings
+
     """Initialize logger."""
     log_config_dict = logging_config()
     log_config_dict["handlers"]["screen_handler"]["level"] = (
-        "DEBUG" if Settings.instance().debugging_mode else "WARNING"
+        "DEBUG" if settings.debugging_mode else "WARNING"
     )
     logging.config.dictConfig(log_config_dict)
 
 
-# TODO
-def clean_folders():
-    """Check folders for unnessesary files and remove those."""
-    # paths: Paths = Paths.instance()
-    pass
-
-
 def init_folder_structure():
     """Create all folders needed for the tool to work properly."""
-    clean_folders()
-
     paths = Paths.instance()
 
     create_dir(paths.local_storage)

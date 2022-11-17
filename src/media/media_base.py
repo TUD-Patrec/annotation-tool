@@ -1,18 +1,21 @@
 import abc
 import os
-from typing import Optional
+from typing import Optional, Union
 
+import cv2 as cv
 import numpy as np
 
+import src.utility.filehandler as filehandler
 
-class MediaBase:
+
+class MediaReader:
     """
     Baseclass for media readers (e.g. video, mocap, etc.)
     """
 
     def __init__(self, path: os.PathLike) -> None:
         """
-        Initializes a new MediaBase object.
+        Initializes a new MediaReader object.
 
         Args:
             path: The path to the media file.
@@ -20,8 +23,6 @@ class MediaBase:
         Raises:
             FileNotFoundError: If the file does not exist.
         """
-
-        import src.utility.filehandler as filehandler
 
         if not os.path.isfile(path):
             raise FileNotFoundError(path)
@@ -45,7 +46,6 @@ class MediaBase:
             FileNotFoundError: If the file does not exist.
             ValueError: If the file has changed.
         """
-        import src.utility.filehandler as filehandler
 
         if not os.path.isfile(value):
             raise FileNotFoundError(value)
@@ -62,17 +62,22 @@ class MediaBase:
         return self.id
 
     @property
-    def duration(self) -> Optional[float]:
+    def duration(self) -> Optional[int]:
         """
-        Returns the duration of the media in seconds.
+        Returns the duration of the media in milliseconds.
         """
         if self.n_frames is None or self.fps is None:
             return None
-        return self.n_frames / self.fps
+        return int(self.n_frames / self.fps) * 1000
 
     @property
     def fps(self) -> float:
-        return self._fps
+        if self._fps:
+            return self._fps
+        else:
+            from src.settings import settings
+
+            return settings.refresh_rate
 
     @property
     def n_frames(self) -> int:
@@ -82,9 +87,12 @@ class MediaBase:
         return self.n_frames
 
     def __eq__(self, other) -> bool:
-        if isinstance(other, MediaBase):
+        if isinstance(other, MediaReader):
             return self.id == other.id
         return False
+
+    def __del__(self):
+        memoizer.remove(self)
 
     def __getitem__(self, idx):
         """
@@ -122,3 +130,63 @@ class MediaBase:
             The frame at the given index.
         """
         raise NotImplementedError
+
+    @property
+    def media(self):
+        """
+        We need to make sure that this is not stored in the class, because it
+        cannot be pickled.
+        """
+        return memoizer(self)
+
+
+class Memoizer:
+    def __init__(self):
+        self._cache = []
+
+    def __call__(self, mr: MediaReader) -> Union[cv.VideoCapture, np.ndarray]:
+        """
+        Returns the memorized version of the given MediaReader.
+
+        Args:
+            mr: The MediaReader to memorize.
+
+        Returns:
+            The memorized version of the MediaReader.
+        """
+        # check if vr already registered
+        for (reader, memorized_vr) in self._cache:
+            if reader is mr:
+                return memorized_vr
+        else:
+            from .mocap_reader import MocapReader, get_mocap
+            from .video_reader import VideoReader, get_cv
+
+            if isinstance(mr, VideoReader):
+                memorized_vr = get_cv(mr.path)
+            elif isinstance(mr, MocapReader):
+                memorized_vr = np.copy(get_mocap(mr.path))
+            else:
+                raise TypeError("Invalid MediaReader type.")
+            self._cache.append((mr, memorized_vr))
+
+            return memorized_vr
+
+    def remove(self, mr: MediaReader) -> None:
+        """
+        Removes the given MediaReader from the cache.
+
+        Args:
+            mr: The MediaReader to remove.
+        """
+        for (reader, memorized_vr) in self._cache:
+            if reader is mr:
+                self._cache.remove((reader, memorized_vr))
+
+                if isinstance(memorized_vr, cv.VideoCapture):
+                    memorized_vr.release()
+                    print("Released VideoCapture object.")
+                break
+
+
+memoizer = Memoizer()

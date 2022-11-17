@@ -4,33 +4,48 @@ import os
 import cv2
 import numpy as np
 
-from src.media.media_base import MediaBase
+from .media_base import MediaReader
 
 
-class VideoReader(MediaBase):
+def get_cv(path: os.PathLike) -> cv2.VideoCapture:
+    """
+    Returns a cv2.VideoCapture object for the given path.
+
+    Args:
+        path (os.PathLike): The path to the video file.
+
+    Returns:
+        cv2.VideoCapture: The cv2.VideoCapture object.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        IOError: If the file cannot be read as video.
+    """
+    try:
+        _vc = cv2.VideoCapture(path)
+    except Exception:
+        raise IOError("Loading video failed.")
+
+    frame_count = int(_vc.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    if frame_count > 0:
+        ok, _ = _vc.read()  # test if video is readable
+        if not ok:
+            raise IOError(f"Reading single frame from {path} failed.")
+    else:
+        raise IOError(f"Video at {path} has no frames.")
+
+    _vc.set(cv2.CAP_PROP_POS_FRAMES, 0)  # reset to first frame
+
+    return _vc
+
+
+class VideoReader(MediaReader):
     def __init__(self, path: os.PathLike) -> None:
         super().__init__(path)
 
-        if not os.path.isfile(path):
-            raise FileNotFoundError(f"{path} not found.")
-        self._vc = cv2.VideoCapture(path)
-
-        ok, frame = self._vc.read()  # read frame to get number of channels
-        if ok:
-            self._frame_channels = int(frame.shape[-1])
-        else:
-            raise IOError(f"cannot read frame from {self._filename}.")
-
-        self._seek(0)  # reset to first frame
-
-        self._n_frames = int(self._vc.get(cv2.CAP_PROP_FRAME_COUNT))
-        self._fps = self._vc.get(cv2.CAP_PROP_FPS)
-
-    def __del__(self):
-        try:
-            self._vc.release()
-        except AttributeError:
-            pass
+        self._n_frames = int(self.media.get(cv2.CAP_PROP_FRAME_COUNT))
+        self._fps = self.media.get(cv2.CAP_PROP_FPS)
 
     def __enter__(self):
         return self
@@ -49,7 +64,7 @@ class VideoReader(MediaBase):
         if not is_current_frame:
             self._seek(idx)
 
-        ok, frame = self._vc.read()
+        ok, frame = self.media.read()
         if ok:
             return frame
         else:
@@ -58,26 +73,10 @@ class VideoReader(MediaBase):
 
     @property
     def current_position(self):
-        return int(self._vc.get(cv2.CAP_PROP_POS_FRAMES))
-
-    @property
-    def width(self):
-        return int(self._vc.get(cv2.CAP_PROP_FRAME_WIDTH))
-
-    @property
-    def height(self):
-        return int(self._vc.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-    @property
-    def frame_format(self):
-        return self._vc.get(cv2.CAP_PROP_FORMAT)
-
-    @property
-    def frame_channels(self):
-        return self._frame_channels
+        return int(self.media.get(cv2.CAP_PROP_POS_FRAMES))
 
     def _seek(self, idx: int) -> None:
-        self._vc.set(cv2.CAP_PROP_POS_FRAMES, idx)
+        self.media.set(cv2.CAP_PROP_POS_FRAMES, idx)
 
     def close(self):
         self.__del__()

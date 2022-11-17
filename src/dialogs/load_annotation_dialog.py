@@ -3,9 +3,10 @@ import os
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
+from ..data_model import Dataset
 from ..data_model.globalstate import GlobalState
 from ..qt_helper_widgets.line_edit_adapted import QLineEditAdapted
-from ..utility import filehandler, functions
+from ..utility import filehandler
 
 
 class QLoadExistingAnnotationDialog(qtw.QDialog):
@@ -16,7 +17,6 @@ class QLoadExistingAnnotationDialog(qtw.QDialog):
         form = qtw.QFormLayout()
         self.combobox = qtw.QComboBox()
 
-        self.annotations = functions.get_annotations()
         for annotation in self.annotations:
             self.combobox.addItem(annotation.name)
 
@@ -68,17 +68,17 @@ class QLoadExistingAnnotationDialog(qtw.QDialog):
 
             self.dataset_line_edit.setText(dataset.name)
 
-            if not filehandler.is_non_zero_file(dataset.path):
+            if dataset not in self.datasets:
                 depr_str = self.dataset_line_edit.text() + " [Deleted]"
                 self.dataset_line_edit.setText(depr_str)
                 self.dataset_line_edit.setStatusTip(
                     "The original Dataset was deleted via the Edit-Dataset Menu."
                 )
 
-            if os.path.isfile(annotation.input_file):
-                hash = filehandler.footprint_of_file(annotation.input_file)
-                if annotation.footprint == hash:
-                    self.line_edit.setText(annotation.input_file)
+            if os.path.isfile(annotation.media.path):
+                hash = filehandler.footprint_of_file(annotation.media.path)
+                if annotation.media.footprint == hash:
+                    self.line_edit.setText(annotation.media.path)
                 else:
                     self.line_edit.setText(
                         "The path of the input has changed, please select the new path."
@@ -101,8 +101,8 @@ class QLoadExistingAnnotationDialog(qtw.QDialog):
                 self.line_edit.setText("")
                 return
 
-            annotation = self.annotations[idx]
-            other_hash = annotation.footprint
+            annotation: GlobalState = self.annotations[idx]
+            other_hash = annotation.media.footprint
 
             if hash == other_hash:
                 self.line_edit.setText(file_path)
@@ -129,7 +129,15 @@ class QLoadExistingAnnotationDialog(qtw.QDialog):
         idx = self.combobox.currentIndex()
         annotation = self.annotations[idx]
 
-        annotation.input_file = self.line_edit.text()
+        annotation.media.path = self.line_edit.text()
 
         self.close()
         self.load_annotation.emit(annotation)
+
+    @property
+    def annotations(self):
+        return GlobalState.get_all()
+
+    @property
+    def datasets(self):
+        return Dataset.get_all()

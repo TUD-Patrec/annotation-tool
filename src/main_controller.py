@@ -1,7 +1,6 @@
 import logging
 import logging.config
 import sys
-import time
 
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
@@ -9,8 +8,8 @@ import PyQt5.QtWidgets as qtw
 
 from src.annotation.modes import AnnotationMode
 from src.annotation.timeline import QTimeLine
-from src.data_model.settings import Settings
 import src.network.controller as network
+from src.settings import settings
 import src.utility.breeze_resources  # noqa: F401
 
 from .annotation.controller import AnnotationController
@@ -114,18 +113,18 @@ class MainApplication(qtw.QApplication):
         self.mediator.add_emitter(self.playback)
 
     @qtc.pyqtSlot(GlobalState)
-    def load_state(self, state):
+    def load_state(self, state: GlobalState):
         if state is not None:
-            start = time.perf_counter()
-            duration, n_frames, fps = filehandler.meta_data(state.input_file)
-            logging.info(f"Loading meta_data took: {time.perf_counter() - start:.4f}s")
+            duration = state.media.duration
+            n_frames = state.media.n_frames
+
             FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
 
             # load media
-            self.media_player.load(state.input_file)
+            self.media_player.load(state.media.path)
 
             # update network module
-            network.update_file(state.input_file)
+            network.update_file(state.media.path)
 
             # save for later reuse
             self.n_frames = n_frames
@@ -153,7 +152,7 @@ class MainApplication(qtw.QApplication):
                 n_frames,
             )
 
-            self.mediator.set_position(0)
+            self.mediator.set_position(0, force_update=True)
 
             self.save_annotation()
 
@@ -171,12 +170,10 @@ class MainApplication(qtw.QApplication):
                 assert samples[-1].end_position + 1 == self.n_frames
             else:
                 assert self.n_frames == 0
-            self.global_state.samples = samples
-            self.global_state.to_disk()
+            self.global_state.samples = samples  # this also writes the update to disk
 
     @qtc.pyqtSlot()
     def settings_changed(self):
-        settings = Settings.instance()
         app = qtw.QApplication.instance()
 
         custom_font = qtg.QFont()
@@ -190,6 +187,12 @@ class MainApplication(qtw.QApplication):
         logging.config.dictConfig(log_config_dict)
 
         toggle_stylesheet(settings.darkmode)
+
+        FrameTimeMapper.instance().update(
+            n_frames=self.global_state.media.n_frames,
+            millis=self.global_state.media.duration,
+        )
+        self.timeline.update()
 
         # hack for updating color of histogram in retrieval-widget
         from src.annotation.retrieval.controller import RetrievalAnnotation
@@ -233,8 +236,6 @@ def main():
 
     app = MainApplication(sys.argv)
     app.setStyle("Fusion")
-
-    settings = Settings.instance()
 
     custom_font = qtg.QFont()
     custom_font.setPointSize(settings.font)

@@ -5,7 +5,7 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
-from src.data_model.settings import Settings
+from src.settings import settings
 
 from . import __version__
 from .data_model.globalstate import GlobalState
@@ -48,9 +48,6 @@ class GUI(qtw.QMainWindow, DialogManager):
 
     def __init__(self, *args, **kwargs):
         super(GUI, self).__init__(*args, **kwargs)
-
-        # window setup
-        settings = Settings.instance()
 
         self.resize(settings.window_x, settings.window_y)
         logging.info(self.size())

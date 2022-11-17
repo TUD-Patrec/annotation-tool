@@ -16,8 +16,9 @@ from src.annotation.retrieval.retrieval_backend.filter_dialog import QRetrievalF
 from src.annotation.retrieval.retrieval_backend.loader import RetrievalLoader
 from src.annotation.retrieval.retrieval_backend.query import Query
 from src.annotation.retrieval.tool_widget import RetrievalTools
-from src.data_model import Sample, Settings
+from src.data_model import Sample
 from src.dialogs.annotation_dialog import QAnnotationDialog
+from src.settings import settings
 
 
 class RetrievalAnnotation(AnnotationBaseClass):
@@ -38,8 +39,8 @@ class RetrievalAnnotation(AnnotationBaseClass):
         self.tool_widget.change_filter.connect(self.select_filter)
 
         # Constants
-        self.interval_size: int = Settings.instance().retrieval_segment_size
-        self.overlap: float = Settings.instance().retrieval_segment_overlap
+        self.interval_size: int = settings.retrieval_segment_size
+        self.overlap: float = settings.retrieval_segment_overlap
 
         # Control Attributes
         self.filter_criterion: FilterCriterion = FilterCriterion()  # empty filter
