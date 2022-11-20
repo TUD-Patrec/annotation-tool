@@ -8,10 +8,10 @@ from src.utility.file_cache import cached
 class Settings:
     annotator_id: int = field(init=False, default=0)
     debugging_mode: bool = field(init=False, default=False)
-    window_x: int = field(init=False, default=1200)
-    window_y: int = field(init=False, default=700)
+    preferred_width: int = field(init=False, default=1200)
+    preferred_height: int = field(init=False, default=700)
     darkmode: bool = field(init=False, default=False)
-    font: int = field(init=False, default=10)
+    font_size: int = field(init=False, default=10)
     refresh_rate: int = field(init=False, default=200)
     retrieval_segment_size: int = field(init=False, default=200)
     retrieval_segment_overlap: float = field(init=False, default=0)
@@ -21,6 +21,11 @@ class Settings:
     def reset(self):
         for fld in fields(self):
             setattr(self, fld.name, fld.default)
+
+    def get_default(self, name):
+        for fld in fields(self):
+            if fld.name == name:
+                return fld.default
 
     def as_dict(self):
         return {fld.name: getattr(self, fld.name) for fld in fields(self)}

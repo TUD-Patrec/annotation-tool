@@ -96,8 +96,11 @@ def wrap_setattr(func):
 def get_all(cls) -> List[object]:
     """
     Returns a list of all objects of type cls in the cache.
+    The elements are sorted by their cache_id.
     """
-    return get_by_type(cls)
+    all = get_by_type(cls)
+    all.sort(key=lambda x: x.cache_id)
+    return all
 
 
 def cached(cls):

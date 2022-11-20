@@ -5,13 +5,13 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
+from src.dialogs.annotation_list import GlobalStatesDialog
 from src.settings import settings
 
 from . import __version__
 from .data_model.globalstate import GlobalState
 from .dialogs.dialog_manager import DialogManager
 from .dialogs.edit_datasets import QEditDatasets
-from .dialogs.export_annotation_dialog import QExportAnnotationDialog
 from .dialogs.load_annotation_dialog import QLoadExistingAnnotationDialog
 from .dialogs.new_annotation_dialog import QNewAnnotationDialog
 from .dialogs.settings_dialog import SettingsDialog
@@ -32,13 +32,17 @@ class GUI(qtw.QMainWindow, DialogManager):
     play_pause_pressed = qtc.pyqtSignal()
     skip_frames = qtc.pyqtSignal(bool, bool)
     cut_pressed = qtc.pyqtSignal()
+    accept_pressed = qtc.pyqtSignal()
+    change_filter_pressed = qtc.pyqtSignal()
     cut_and_annotate_pressed = qtc.pyqtSignal()
     merge_left_pressed = qtc.pyqtSignal()
     merge_right_pressed = qtc.pyqtSignal()
+    modify_pressed = qtc.pyqtSignal()
     annotate_pressed = qtc.pyqtSignal()
     increase_speed_pressed = qtc.pyqtSignal()
     decrease_speed_pressed = qtc.pyqtSignal()
     reset_pressed = qtc.pyqtSignal()
+    reject_pressed = qtc.pyqtSignal()
     undo_pressed = qtc.pyqtSignal()
     redo_pressed = qtc.pyqtSignal()
     merge_adjacent_pressed = qtc.pyqtSignal()
@@ -49,7 +53,7 @@ class GUI(qtw.QMainWindow, DialogManager):
     def __init__(self, *args, **kwargs):
         super(GUI, self).__init__(*args, **kwargs)
 
-        self.resize(settings.window_x, settings.window_y)
+        self.resize(settings.preferred_width, settings.preferred_height)
         logging.info(self.size())
         self.setWindowTitle("Annotation Tool v{}".format(__version__))
         # self.setWindowIcon()
@@ -139,39 +143,63 @@ class GUI(qtw.QMainWindow, DialogManager):
 
     def edit_menu(self):
         menu = self.menuBar()
-        edit_menu = menu.addMenu("&Edit")
+        self.edit_menu = menu.addMenu("&Edit")
+        self.edit_menu_for_manual_annotation()
 
-        edit_menu.addAction(
+    def edit_menu_for_manual_annotation(self):
+        self.edit_menu.clear()
+
+        self.edit_menu.addAction(
             "Annotate",
             self.annotate_pressed,
             qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_A),
         )
 
-        edit_menu.addAction(
+        self.edit_menu.addAction(
             "Cut", self.cut_pressed, qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_C)
         )
 
-        edit_menu.addAction(
+        self.edit_menu.addAction(
             "Cut + Annotate",
             self.cut_and_annotate_pressed,
             qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_X),
         )
 
-        edit_menu.addAction(
+        self.edit_menu.addAction(
             "Merge Left",
             self.merge_left_pressed,
             qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_L),
         )
 
-        edit_menu.addAction(
+        self.edit_menu.addAction(
             "Merge Right",
             self.merge_right_pressed,
             qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_R),
         )
 
-        edit_menu.addAction("Undo", self.undo_pressed, qtg.QKeySequence.Undo)
+        self.edit_menu.addAction("Undo", self.undo_pressed, qtg.QKeySequence.Undo)
 
-        edit_menu.addAction("Redo", self.redo_pressed, qtg.QKeySequence.Redo)
+        self.edit_menu.addAction("Redo", self.redo_pressed, qtg.QKeySequence.Redo)
+
+    def edit_menu_for_retrieval_mode(self):
+        self.edit_menu.clear()
+        self.edit_menu.addAction(
+            "Accept", self.accept_pressed, qtg.QKeySequence(qtc.Qt.Key_A)
+        )
+        self.edit_menu.addAction(
+            "Reject",
+            self.reject_pressed,
+            qtg.QKeySequence(qtc.Qt.Key_R),
+        )
+        self.edit_menu.addAction(
+            "Modify", self.modify_pressed, qtg.QKeySequence(qtc.Qt.Key_M)
+        )
+        self.edit_menu.addAction(
+            "Change Filter", self.change_filter_pressed, qtg.QKeySequence(qtc.Qt.Key_F)
+        )
+
+        # self.edit_menu.addAction("Undo", self.undo_pressed, qtg.QKeySequence.Undo)
+        # self.edit_menu.addAction("Redo", self.redo_pressed, qtg.QKeySequence.Redo)
 
     def settings_menu(self):
         menu = self.menuBar()
@@ -192,11 +220,7 @@ class GUI(qtw.QMainWindow, DialogManager):
 
         file_menu.addAction("Save", self.save_pressed, qtg.QKeySequence.Save)
 
-        file_menu.addAction(
-            "Export Annotation",
-            self.export_annotation,
-            qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_E),
-        )
+        file_menu.addAction("List Annotations", self.list_annotations)
 
         file_menu.addAction("Edit Datasets", self.edit_datasets)
 
@@ -214,19 +238,23 @@ class GUI(qtw.QMainWindow, DialogManager):
 
         a = ag.addAction(qtw.QAction("Manual Annotation", self, checkable=True))
         a.setChecked(True)
-        a.toggled.connect(self.manual_anotation_toggled)
+        a.toggled.connect(self.manual_annotation_toggled)
         annotation_menu.addAction(a)
 
         a = ag.addAction(qtw.QAction("Retrieval Mode", self, checkable=True))
-        a.toggled.connect(self.retrievel_mode_toggled)
+        a.toggled.connect(self.retrieval_mode_toggled)
         annotation_menu.addAction(a)
 
-    def manual_anotation_toggled(self, active):
+    def manual_annotation_toggled(self, active):
         if active:
+            self.edit_menu.clear()
+            self.edit_menu_for_manual_annotation()
             self.use_manual_annotation.emit()
 
-    def retrievel_mode_toggled(self, active):
+    def retrieval_mode_toggled(self, active):
         if active:
+            self.edit_menu.clear()
+            self.edit_menu_for_retrieval_mode()
             self.use_retrieval_mode.emit()
 
     def open_settings(self):
@@ -247,10 +275,9 @@ class GUI(qtw.QMainWindow, DialogManager):
         self.open_dialog(dialog)
         self.save_pressed.emit()
 
-    def export_annotation(self):
-        dialog = QExportAnnotationDialog()
+    def list_annotations(self):
+        dialog = GlobalStatesDialog()
         self.open_dialog(dialog)
-        self.save_pressed.emit()
 
     def edit_datasets(self):
         dialog = QEditDatasets()

@@ -93,6 +93,10 @@ class MainApplication(qtw.QApplication):
         self.gui.increase_speed_pressed.connect(self.playback.increase_speed)
         self.gui.undo_pressed.connect(self.annotation_controller.undo)
         self.gui.redo_pressed.connect(self.annotation_controller.redo)
+        self.gui.accept_pressed.connect(self.annotation_controller.accept)
+        self.gui.reject_pressed.connect(self.annotation_controller.reject)
+        self.gui.modify_pressed.connect(self.annotation_controller.modify)
+        self.gui.change_filter_pressed.connect(self.annotation_controller.select_filter)
         self.gui.settings_changed.connect(self.settings_changed)
         self.gui.settings_changed.connect(self.media_player.settings_changed)
         self.gui.exit_pressed.connect(self.media_player.shutdown)
@@ -177,7 +181,7 @@ class MainApplication(qtw.QApplication):
         app = qtw.QApplication.instance()
 
         custom_font = qtg.QFont()
-        custom_font.setPointSize(settings.font)
+        custom_font.setPointSize(settings.font_size)
         app.setFont(custom_font)
 
         log_config_dict = filehandler.logging_config()
@@ -188,10 +192,12 @@ class MainApplication(qtw.QApplication):
 
         toggle_stylesheet(settings.darkmode)
 
-        FrameTimeMapper.instance().update(
-            n_frames=self.global_state.media.n_frames,
-            millis=self.global_state.media.duration,
-        )
+        if self.global_state is not None:
+            FrameTimeMapper.instance().update(
+                n_frames=self.global_state.media.n_frames,
+                millis=self.global_state.media.duration,
+            )
+
         self.timeline.update()
 
         # hack for updating color of histogram in retrieval-widget
@@ -238,7 +244,7 @@ def main():
     app.setStyle("Fusion")
 
     custom_font = qtg.QFont()
-    custom_font.setPointSize(settings.font)
+    custom_font.setPointSize(settings.font_size)
     app.setFont(custom_font)
 
     file = (

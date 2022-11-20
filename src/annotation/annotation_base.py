@@ -157,6 +157,34 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
         """
         pass
 
+    @qtc.pyqtSlot()
+    def accept(self):
+        """
+        Accept the current annotation.
+        """
+        pass
+
+    @qtc.pyqtSlot()
+    def modify(self) -> None:
+        """
+        Modify the current sample.
+        """
+        pass
+
+    @qtc.pyqtSlot()
+    def reject(self):
+        """
+        Reject the current annotation.
+        """
+        pass
+
+    @qtc.pyqtSlot()
+    def select_filter(self) -> None:
+        """
+        Select a filter to apply to the samples.
+        """
+        pass
+
     # Class methods
     def add_to_undo_stack(self) -> None:
         """

@@ -183,3 +183,31 @@ class AnnotationController(qtc.QObject):
             sample: The sample to insert.
         """
         self.controller.insert_sample(sample)
+
+    @qtc.pyqtSlot()
+    def accept(self) -> None:
+        """
+        Accept the current sample.
+        """
+        self.controller.accept()
+
+    @qtc.pyqtSlot()
+    def reject(self) -> None:
+        """
+        Reject the current sample.
+        """
+        self.controller.reject()
+
+    @qtc.pyqtSlot()
+    def modify(self) -> None:
+        """
+        Modify the current sample.
+        """
+        self.controller.modify()
+
+    @qtc.pyqtSlot()
+    def select_filter(self) -> None:
+        """
+        Select the filter.
+        """
+        self.controller.select_filter()

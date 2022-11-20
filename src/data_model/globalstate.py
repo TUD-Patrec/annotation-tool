@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 import logging
+import time
 from typing import List
 
 import numpy as np
@@ -21,6 +22,7 @@ class GlobalState:
     name: str
     _media: MediaReader  # immutable
     _samples: list = field(init=False, default_factory=list)
+    _creation_time: time.struct_time = field(init=False, default_factory=time.localtime)
 
     def __post_init__(self):
         a = empty_annotation(self.dataset.scheme)
@@ -82,3 +84,38 @@ class GlobalState:
     @property
     def media(self) -> MediaReader:
         return self._media
+
+    @property
+    def creation_time(self) -> time.struct_time:
+        return self._creation_time
+
+    @property
+    def timestamp(self) -> str:
+        return time.strftime("%Y-%m-%d_%H-%M-%S", self.creation_time)
+
+    @property
+    def progress(self) -> float:
+        """
+        Returns the annotation progress in percent.
+        """
+        n_frames = self.media.n_frames
+        n_annotations = sum(
+            [
+                s.end_position - s.start_position + 1
+                for s in self.samples
+                if not s.annotation.is_empty()
+            ]
+        )
+        return n_annotations / n_frames * 100
+
+    @property
+    def meta_data(self) -> dict:
+        return {
+            "annotator_id": self.annotator_id,
+            "dataset": self.dataset.name,
+            "file": self.media.path,
+            "file_id": self.media.id,
+            "name": self.name,
+            "creation_time": self.timestamp,
+            "progress": self.progress,
+        }
