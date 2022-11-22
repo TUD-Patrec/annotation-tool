@@ -19,6 +19,9 @@ class RetrievalLoader(qtc.QThread):
         self.controller = controller
 
     def run(self):
+        intervals, classifications, retrieval_elements = self.load()
+        self.success.emit(intervals, classifications, retrieval_elements)
+        return
         try:
             intervals, classifications, retrieval_elements = self.load()
             self.success.emit(intervals, classifications, retrieval_elements)

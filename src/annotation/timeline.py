@@ -3,6 +3,7 @@ import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
 from src.data_model.sample import Sample
+from src.settings import settings
 from src.utility import functions
 from src.utility.functions import FrameTimeMapper, ms_to_time_string
 
@@ -26,7 +27,7 @@ class QTimeLine(qtw.QWidget):
         # Set variables
         self.backgroundColor = qtg.QColor(60, 63, 65)
         self.textColor = qtg.QColor(187, 187, 187)
-        self.font = qtg.QFont("Decorative", 10)
+        self.font = qtg.QFont("Decorative", settings.font_size)
         self.clicking = False  # Check if mouse left button is being pressed
         self.is_in = False  # check if user is in the widget
 
@@ -103,6 +104,8 @@ class QTimeLine(qtw.QWidget):
         self.update()
 
     def paintEvent(self, event):
+        self.font.setPointSize(settings.font_size)
+
         # set some constants
         HEIGHT_SAMPLE = 70
         MARGIN_SAMPLE = 10

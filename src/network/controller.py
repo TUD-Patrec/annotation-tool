@@ -150,7 +150,7 @@ def __load_network__(media_type: MediaType) -> Tuple[Network, dict]:
 
         # lara_path = "attrib_network.pt"
         # lara_path = "cnn_imu_attrib_network.pt"
-        lara_path = "cnn_attrib_network.pt"
+        # lara_path = "cnn_attrib_network.pt"
         lara_path = "network.pt"
 
         network_path = os.path.join(path_networks, lara_path)
@@ -174,6 +174,7 @@ def __load_network__(media_type: MediaType) -> Tuple[Network, dict]:
 
 def __load_lara_network__(network_path: os.PathLike) -> Tuple[Network, dict]:
     try:
+        print(f"Loading network from {network_path}")
         checkpoint = torch.load(network_path, map_location=torch.device("cpu"))
 
         state_dict = checkpoint["state_dict"]

@@ -94,22 +94,25 @@ class SettingsDialog(qtw.QDialog):
 
     def change_appearance(self):
         dlg = AppearanceSettingsDialog(self)
-        if dlg.exec_():
-            self.settings_changed.emit()
+        dlg.window_size_changed.connect(self.window_size_changed.emit)
+        dlg.exec_()
         dlg.deleteLater()
 
     def change_media(self):
-        dlg = qtw.QDialog(self)
-        dlg.setWindowTitle("Media Settings")
-        dlg.setFixedSize(400, 300)
-        self.dlg = dlg
+        dlg = MediaSettingsDialog(self)
+        dlg.settings_changed.connect(self.settings_changed.emit)
         dlg.exec_()
+        dlg.deleteLater()
 
     def change_navigation(self):
-        pass
+        dlg = NavigationSettingsDialog(self)
+        dlg.exec_()
+        dlg.deleteLater()
 
     def change_retrieval_mode(self):
-        pass
+        dlg = RetrievalSettingsDialog(self)
+        dlg.exec_()
+        dlg.deleteLater()
 
     def reset_settings(self):
         self.annotator_id_edit.setText(str(self.settings.get_default("annotator_id")))
@@ -127,15 +130,18 @@ class SettingsDialog(qtw.QDialog):
         self.settings_changed.emit()
         super().accept()
 
-    def reject(self):
-        super().reject()
-
 
 class AppearanceSettingsDialog(qtw.QDialog):
+    window_size_changed = qtc.pyqtSignal(int, int)
+    font_size_changed = qtc.pyqtSignal(int)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.settings = settings
         self.init_ui()
+
+        from src.main_controller import get_app
+
+        self.app = get_app()
 
     def init_ui(self):
         self.setWindowTitle("Appearance Settings")
@@ -148,7 +154,8 @@ class AppearanceSettingsDialog(qtw.QDialog):
         self.theme_label = qtw.QLabel("Theme:")
         self.theme_combobox = qtw.QComboBox()
         self.theme_combobox.addItems(["Light", "Dark"])
-        self.theme_combobox.setCurrentIndex(1 if self.settings.darkmode else 0)
+        self.theme_combobox.setCurrentIndex(1 if settings.darkmode else 0)
+        self.theme_combobox.currentIndexChanged.connect(self.change_theme)
         self.theme_layout.addWidget(self.theme_label)
         self.theme_layout.addWidget(self.theme_combobox)
         self.layout.addLayout(self.theme_layout)
@@ -158,7 +165,8 @@ class AppearanceSettingsDialog(qtw.QDialog):
         self.font_size_label = qtw.QLabel("Font Size:")
         self.font_size_spinbox = qtw.QSpinBox()
         self.font_size_spinbox.setRange(8, 24)
-        self.font_size_spinbox.setValue(self.settings.font_size)
+        self.font_size_spinbox.setValue(settings.font_size)
+        self.font_size_spinbox.valueChanged.connect(self.change_font_size)
         self.font_size_layout.addWidget(self.font_size_label)
         self.font_size_layout.addWidget(self.font_size_spinbox)
         self.layout.addLayout(self.font_size_layout)
@@ -169,7 +177,8 @@ class AppearanceSettingsDialog(qtw.QDialog):
         self.preferred_width_spinbox = qtw.QSpinBox()
         self.preferred_width_spinbox.setRange(600, 4000)
         self.preferred_width_spinbox.setSingleStep(100)
-        self.preferred_width_spinbox.setValue(self.settings.preferred_width)
+        self.preferred_width_spinbox.setValue(settings.preferred_width)
+        self.preferred_width_spinbox.valueChanged.connect(self.preferred_width_changed)
         self.preferred_width_layout.addWidget(self.preferred_width_label)
         self.preferred_width_layout.addWidget(self.preferred_width_spinbox)
         self.layout.addLayout(self.preferred_width_layout)
@@ -180,45 +189,246 @@ class AppearanceSettingsDialog(qtw.QDialog):
         self.preferred_height_spinbox = qtw.QSpinBox()
         self.preferred_height_spinbox.setRange(400, 2000)
         self.preferred_height_spinbox.setSingleStep(100)
-        self.preferred_height_spinbox.setValue(self.settings.preferred_height)
+        self.preferred_height_spinbox.setValue(settings.preferred_height)
+        self.preferred_height_spinbox.valueChanged.connect(
+            self.preferred_height_changed
+        )
         self.preferred_height_layout.addWidget(self.preferred_height_label)
         self.preferred_height_layout.addWidget(self.preferred_height_spinbox)
         self.layout.addLayout(self.preferred_height_layout)
 
-        # Accept, Reset and Cancel buttons
+        # high DPI scaling
+        self.high_dpi_scaling_layout = qtw.QHBoxLayout()
+        self.high_dpi_scaling_label = qtw.QLabel("High DPI Scaling:")
+        self.high_dpi_scaling_label.setToolTip(
+            "Changing this will only take effect after a restart."
+        )
+        self.high_dpi_scaling_checkbox = qtw.QCheckBox()
+        self.high_dpi_scaling_checkbox.setToolTip(
+            "Changing this will only take effect after a restart."
+        )
+        self.high_dpi_scaling_checkbox.setChecked(settings.high_dpi_scaling)
+        self.high_dpi_scaling_checkbox.stateChanged.connect(
+            self.change_high_dpi_scaling
+        )
+        self.high_dpi_scaling_layout.addWidget(self.high_dpi_scaling_label)
+        self.high_dpi_scaling_layout.addWidget(self.high_dpi_scaling_checkbox)
+        self.layout.addLayout(self.high_dpi_scaling_layout)
+
+        # Accept, Reset buttons
         self.button_layout = qtw.QHBoxLayout()
-        self.reset_button = qtw.QPushButton("Reset")
-        self.reset_button.clicked.connect(self.reset_settings)
-        self.button_layout.addWidget(self.reset_button)
-        self.button_layout.addStretch()
         self.accept_button = qtw.QPushButton("Accept")
         self.accept_button.clicked.connect(self.accept)
+        self.reset_button = qtw.QPushButton("Reset")
+        self.reset_button.clicked.connect(self.reset_settings)
         self.button_layout.addWidget(self.accept_button)
-        self.cancel_button = qtw.QPushButton("Cancel")
-        self.cancel_button.clicked.connect(self.reject)
-        self.button_layout.addWidget(self.cancel_button)
+        self.button_layout.addWidget(self.reset_button)
         self.layout.addLayout(self.button_layout)
 
         self.setLayout(self.layout)
 
     def reset_settings(self):
         self.theme_combobox.setCurrentIndex(
-            1 if self.settings.get_default("darkmode") else 0
+            1 if settings.get_default("darkmode") else 0
         )
-        self.font_size_spinbox.setValue(self.settings.get_default("font_size"))
-        self.preferred_width_spinbox.setValue(
-            self.settings.get_default("preferred_width")
-        )
-        self.preferred_height_spinbox.setValue(
-            self.settings.get_default("preferred_height")
+        self.font_size_spinbox.setValue(settings.get_default("font_size"))
+        self.preferred_width_spinbox.setValue(settings.get_default("preferred_width"))
+        self.preferred_height_spinbox.setValue(settings.get_default("preferred_height"))
+        self.high_dpi_scaling_checkbox.setChecked(
+            settings.get_default("high_dpi_scaling")
         )
 
-    def accept(self):
-        self.settings.darkmode = bool(self.theme_combobox.currentIndex())
-        self.settings.font_size = self.font_size_spinbox.value()
-        self.settings.preferred_width = self.preferred_width_spinbox.value()
-        self.settings.preferred_height = self.preferred_height_spinbox.value()
-        super().accept()
+    def change_theme(self):
+        is_darkmode = bool(self.theme_combobox.currentIndex())
+        settings.darkmode = is_darkmode
+        self.app.update_theme()
 
-    def reject(self):
-        super().reject()
+    def preferred_width_changed(self, value):
+        # grab the main window
+        settings.preferred_width = value
+        self.window_size_changed.emit(value, settings.preferred_height)
+
+    def preferred_height_changed(self, value):
+        settings.preferred_height = value
+        self.window_size_changed.emit(settings.preferred_width, value)
+
+    def change_font_size(self, value):
+        settings.font_size = value
+        self.app.update_font()
+
+    def change_high_dpi_scaling(self, value):
+        settings.high_dpi_scaling = bool(value)
+
+
+class MediaSettingsDialog(qtw.QDialog):
+    settings_changed = qtc.pyqtSignal()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.init_ui()
+
+    def init_ui(self):
+        # set window title
+        self.setWindowTitle("Media Settings")
+        self.setFixedSize(400, 300)
+
+        # layout
+        self.layout = qtw.QVBoxLayout()
+
+        # fallback FPS if no FPS is detected
+        self.fallback_fps_layout = qtw.QHBoxLayout()
+        self.fallback_fps_label = qtw.QLabel("Fallback FPS:")
+        # slider for fallback FPS
+        self.fallback_fps_slider = qtw.QSlider(qtc.Qt.Horizontal)
+        self.fallback_fps_slider.setRange(1, 250)
+        # display the current value of the slider
+        self.fallback_display = qtw.QLabel(str(settings.refresh_rate))
+        self.fallback_fps_slider.valueChanged.connect(self.change_fallback_fps)
+        self.fallback_fps_layout.addWidget(self.fallback_fps_label)
+        self.fallback_fps_slider.setValue(settings.refresh_rate)
+        self.fallback_fps_layout.addWidget(self.fallback_fps_slider)
+        self.fallback_fps_layout.addWidget(self.fallback_display)
+        self.layout.addLayout(self.fallback_fps_layout)
+
+        # Accept, Reset buttons
+        self.button_layout = qtw.QHBoxLayout()
+        self.accept_button = qtw.QPushButton("Accept")
+        self.accept_button.clicked.connect(self.accept)
+        self.reset_button = qtw.QPushButton("Reset")
+        self.reset_button.clicked.connect(self.reset_settings)
+        self.button_layout.addWidget(self.accept_button)
+        self.button_layout.addWidget(self.reset_button)
+        self.layout.addLayout(self.button_layout)
+
+        self.setLayout(self.layout)
+
+    def change_fallback_fps(self, value: int) -> None:
+        settings.refresh_rate = value
+        self.fallback_display.setText(str(value))
+        self.settings_changed.emit()
+
+    def reset_settings(self):
+        self.fallback_fps_slider.setValue(settings.get_default("refresh_rate"))
+
+
+class NavigationSettingsDialog(qtw.QDialog):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.init_ui()
+
+    def init_ui(self):
+        # set window title
+        self.setWindowTitle("Navigation Settings")
+        self.setFixedSize(400, 300)
+
+        # layout
+        self.layout = qtw.QVBoxLayout()
+
+        # Small skip
+        self.small_skip_layout = qtw.QHBoxLayout()
+        self.small_skip_label = qtw.QLabel("Small skip:")
+        self.small_skip_spinbox = qtw.QSpinBox()
+        self.small_skip_spinbox.setRange(1, 100)
+        self.small_skip_spinbox.setValue(settings.small_skip)
+        self.small_skip_spinbox.valueChanged.connect(self.change_small_skip)
+        self.small_skip_layout.addWidget(self.small_skip_label)
+        self.small_skip_layout.addWidget(self.small_skip_spinbox)
+        self.layout.addLayout(self.small_skip_layout)
+
+        # Big skip
+        self.big_skip_layout = qtw.QHBoxLayout()
+        self.big_skip_label = qtw.QLabel("Big skip:")
+        self.big_skip_spinbox = qtw.QSpinBox()
+        self.big_skip_spinbox.setRange(100, 5000)
+        self.big_skip_spinbox.setSingleStep(100)
+        self.big_skip_spinbox.setValue(settings.big_skip)
+        self.big_skip_spinbox.valueChanged.connect(self.change_big_skip)
+        self.big_skip_layout.addWidget(self.big_skip_label)
+        self.big_skip_layout.addWidget(self.big_skip_spinbox)
+        self.layout.addLayout(self.big_skip_layout)
+
+        # Accept, Reset buttons
+        self.button_layout = qtw.QHBoxLayout()
+        self.accept_button = qtw.QPushButton("Accept")
+        self.accept_button.clicked.connect(self.accept)
+        self.reset_button = qtw.QPushButton("Reset")
+        self.reset_button.clicked.connect(self.reset_settings)
+        self.button_layout.addWidget(self.accept_button)
+        self.button_layout.addWidget(self.reset_button)
+        self.layout.addLayout(self.button_layout)
+
+        self.setLayout(self.layout)
+
+    def change_small_skip(self, value: int) -> None:
+        settings.small_skip = value
+
+    def change_big_skip(self, value: int) -> None:
+        settings.big_skip = value
+
+    def reset_settings(self):
+        self.small_skip_spinbox.setValue(settings.get_default("small_skip"))
+        self.big_skip_spinbox.setValue(settings.get_default("big_skip"))
+
+
+class RetrievalSettingsDialog(qtw.QDialog):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.init_ui()
+
+    def init_ui(self):
+        # set window title
+        self.setWindowTitle("Retrieval Settings")
+        self.setFixedSize(400, 300)
+
+        # layout
+        self.layout = qtw.QVBoxLayout()
+
+        # Segment size
+        self.segment_size_layout = qtw.QHBoxLayout()
+        self.segment_size_label = qtw.QLabel("Segment size:")
+        self.segment_size_spinbox = qtw.QSpinBox()
+        self.segment_size_spinbox.setRange(100, 10000)
+        self.segment_size_spinbox.setSingleStep(100)
+        self.segment_size_spinbox.setValue(settings.retrieval_segment_size)
+        self.segment_size_spinbox.valueChanged.connect(self.change_segment_size)
+        self.segment_size_layout.addWidget(self.segment_size_label)
+        self.segment_size_layout.addWidget(self.segment_size_spinbox)
+        self.layout.addLayout(self.segment_size_layout)
+
+        # Segment overlap double spinbox
+        self.segment_overlap_layout = qtw.QHBoxLayout()
+        self.segment_overlap_label = qtw.QLabel("Segment overlap:")
+        self.segment_overlap_spinbox = qtw.QDoubleSpinBox()
+        self.segment_overlap_spinbox.setRange(0, 0.95)
+        self.segment_overlap_spinbox.setSingleStep(0.05)
+        self.segment_overlap_spinbox.setValue(settings.retrieval_segment_overlap)
+        self.segment_overlap_spinbox.valueChanged.connect(self.change_segment_overlap)
+        self.segment_overlap_layout.addWidget(self.segment_overlap_label)
+        self.segment_overlap_layout.addWidget(self.segment_overlap_spinbox)
+        self.layout.addLayout(self.segment_overlap_layout)
+
+        # Accept, Reset buttons
+        self.button_layout = qtw.QHBoxLayout()
+        self.accept_button = qtw.QPushButton("Accept")
+        self.accept_button.clicked.connect(self.accept)
+        self.reset_button = qtw.QPushButton("Reset")
+        self.reset_button.clicked.connect(self.reset_settings)
+        self.button_layout.addWidget(self.accept_button)
+        self.button_layout.addWidget(self.reset_button)
+        self.layout.addLayout(self.button_layout)
+
+        self.setLayout(self.layout)
+
+    def change_segment_size(self, value: int) -> None:
+        settings.retrieval_segment_size = value
+
+    def change_segment_overlap(self, value: float) -> None:
+        settings.retrieval_segment_overlap = value
+
+    def reset_settings(self):
+        self.segment_size_spinbox.setValue(
+            settings.get_default("retrieval_segment_size")
+        )
+        self.segment_overlap_spinbox.setValue(
+            settings.get_default("retrieval_segment_overlap")
+        )

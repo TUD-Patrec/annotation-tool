@@ -21,6 +21,8 @@ from .playback import QPlaybackWidget
 from .utility import filehandler
 from .utility.functions import FrameTimeMapper
 
+main_application = None
+
 
 class MainApplication(qtw.QApplication):
     update_media_pos = qtc.pyqtSignal(int)
@@ -116,6 +118,10 @@ class MainApplication(qtw.QApplication):
         self.mediator.add_emitter(self.media_player)
         self.mediator.add_emitter(self.playback)
 
+        # ui
+        self.update_theme()
+        self.update_font()
+
     @qtc.pyqtSlot(GlobalState)
     def load_state(self, state: GlobalState):
         if state is not None:
@@ -178,19 +184,11 @@ class MainApplication(qtw.QApplication):
 
     @qtc.pyqtSlot()
     def settings_changed(self):
-        app = qtw.QApplication.instance()
-
-        custom_font = qtg.QFont()
-        custom_font.setPointSize(settings.font_size)
-        app.setFont(custom_font)
-
         log_config_dict = filehandler.logging_config()
         log_config_dict["handlers"]["screen_handler"]["level"] = (
             "DEBUG" if settings.debugging_mode else "WARNING"
         )
         logging.config.dictConfig(log_config_dict)
-
-        toggle_stylesheet(settings.darkmode)
 
         if self.global_state is not None:
             FrameTimeMapper.instance().update(
@@ -200,6 +198,18 @@ class MainApplication(qtw.QApplication):
 
         self.timeline.update()
 
+    def update_theme(self):
+        return
+        darkmode = settings.darkmode
+        file = (
+            qtc.QFile(":/dark/stylesheet.qss")
+            if darkmode
+            else qtc.QFile(":/light/stylesheet.qss")
+        )
+        file.open(qtc.QFile.ReadOnly | qtc.QFile.Text)
+        stream = qtc.QTextStream(file)
+        self.setStyleSheet(stream.readAll())
+
         # hack for updating color of histogram in retrieval-widget
         from src.annotation.retrieval.controller import RetrievalAnnotation
 
@@ -208,52 +218,45 @@ class MainApplication(qtw.QApplication):
         ):
             self.annotation_controller.controller.main_widget.histogram.plot()
 
+    def update_font(self):
+        print(self.styleSheet())
+        font = self.font()
+        font.setPointSize(settings.font_size)
+        self.setFont(font)
 
-def toggle_stylesheet(darkmode):
-    """
-    Toggle the stylesheet to use the desired path in the Qt resource
-    system (prefixed by `:/`) or generically (a path to a file on
-    system).
-
-    :path:      A full path to a resource or file on system
-    """
-
-    # get the QApplication instance,  or crash if not set
-    app = qtw.QApplication.instance()
-    if app is None:
-        raise RuntimeError("No Qt Application found.")
-
-    file = (
-        qtc.QFile(":/dark/stylesheet.qss")
-        if darkmode
-        else qtc.QFile(":/light/stylesheet.qss")
-    )
-    file.open(qtc.QFile.ReadOnly | qtc.QFile.Text)
-    stream = qtc.QTextStream(file)
-    app.setStyleSheet(stream.readAll())
+    def closeEvent(self, event):
+        self.save_annotation()
+        self.media_player.shutdown()
+        event.accept()
 
 
 def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)
 
 
-def main():
-    sys.excepthook = except_hook
+def make_app() -> qtg.QApplication:
+    from . import __version__
 
     app = MainApplication(sys.argv)
     app.setStyle("Fusion")
+    app.setApplicationName("Annotation Tool")
+    app.setApplicationVersion(__version__)
+    app.setOrganizationName("TU Dortmund")
+    app.setOrganizationDomain("tu-dortmund.de")
+    app.setWindowIcon(qtg.QIcon(":/icons/icon.png"))
+    app.setQuitOnLastWindowClosed(True)
+    app.setApplicationDisplayName("Annotation Tool")
+    return app
 
-    custom_font = qtg.QFont()
-    custom_font.setPointSize(settings.font_size)
-    app.setFont(custom_font)
 
-    file = (
-        qtc.QFile(":/dark/stylesheet.qss")
-        if settings.darkmode
-        else qtc.QFile(":/light/stylesheet.qss")
-    )
-    file.open(qtc.QFile.ReadOnly | qtc.QFile.Text)
-    stream = qtc.QTextStream(file)
-    app.setStyleSheet(stream.readAll())
+def get_app() -> qtg.QApplication:
+    if qtc.QCoreApplication.instance():
+        return qtc.QCoreApplication.instance()
+    else:
+        return make_app()
 
+
+def main():
+    sys.excepthook = except_hook
+    app = make_app()
     sys.exit(app.exec_())
