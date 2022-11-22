@@ -9,6 +9,7 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
 from src.main_controller import main
+from src.settings import settings
 from src.utility import filehandler
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -73,7 +74,8 @@ def start():
 
     logging.info("Running relative to {}".format(application_path))
 
-    # enable_high_dpi_scaling()
+    if settings.high_dpi_scaling:
+        enable_high_dpi_scaling()
 
     main()
 
