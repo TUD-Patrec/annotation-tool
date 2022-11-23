@@ -23,6 +23,7 @@ bump-beta:
 	poetry run cz bump --prerelease beta
 
 test: test-black test-flake8 test-isort
+	@echo "All tests passed successfully!"
 
 test-black:
 	@echo "Checking format with black..."
