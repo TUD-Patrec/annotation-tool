@@ -3,12 +3,12 @@
 setup: install pre-commit
 
 install:
-	@echo "Installing depenencies..."
+	@echo "Installing dependencies..."
 	poetry install
 
 pre-commit: install
 	@echo "Setting up pre-commit..."
-	poetry run pre-commit install --hook-type commit-msg
+	poetry run pre-commit install -t commit-msg -t pre-commit
 
 bump:
 	@echo "Bumping version..."
@@ -23,6 +23,7 @@ bump-beta:
 	poetry run cz bump --prerelease beta
 
 test: test-black test-flake8 test-isort
+	@echo "All tests passed successfully!"
 
 test-black:
 	@echo "Checking format with black..."
