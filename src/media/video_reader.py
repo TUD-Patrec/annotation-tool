@@ -68,7 +68,7 @@ class VideoReader(MediaReader):
         if ok:
             return frame
         else:
-            logging.error(f"cannot read frame {idx} from {self._filename}.")
+            logging.error(f"cannot read frame {idx} from {self.path}.")
             return None
 
     @property

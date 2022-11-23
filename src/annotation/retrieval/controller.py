@@ -58,7 +58,6 @@ class RetrievalAnnotation(AnnotationBaseClass):
         self.loading_thread = RetrievalLoader(self)
         self.loading_thread.success.connect(self.loading_success)
         self.loading_thread.error.connect(self.loading_error)
-        self.loading_thread.start()
 
         self.progress_dialog = qtw.QProgressDialog(self.main_widget)
         # remove cancel button of progress_dialog
@@ -69,8 +68,9 @@ class RetrievalAnnotation(AnnotationBaseClass):
         self.progress_dialog.setWindowTitle("Loading")
         self.progress_dialog.setForegroundRole(qtg.QPalette.Highlight)
         self.loading_thread.progress.connect(self.progress_dialog.setValue)
-        self.progress_dialog.open()
         self.loading_thread.finished.connect(self.progress_dialog.close)
+        self.progress_dialog.open()
+        self.loading_thread.start()
 
     @qtc.pyqtSlot(Exception)
     def loading_error(self, e: Exception):
