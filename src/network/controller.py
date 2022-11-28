@@ -10,7 +10,6 @@ from src.media.media_types import MediaType, media_type_of
 from src.media.mocap_reader import load_mocap
 from src.network.LARa import lara_specifics
 from src.network.network import Network
-from src.utility.filehandler import Paths
 
 __network_dict__ = {}
 
@@ -146,7 +145,9 @@ def __load_network__(media_type: MediaType) -> Tuple[Network, dict]:
     # find best fitting network
 
     if media_type == MediaType.MOCAP:
-        path_networks = Paths.instance().networks
+        # path to desktop
+        path_networks = os.path.join(os.path.expanduser("~"), "Desktop")
+        print(f"{path_networks = }")
 
         # lara_path = "attrib_network.pt"
         # lara_path = "cnn_imu_attrib_network.pt"

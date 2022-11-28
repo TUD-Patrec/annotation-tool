@@ -103,6 +103,14 @@ def get_all(cls) -> List[object]:
     return all
 
 
+def del_all(cls) -> None:
+    """
+    Deletes all objects of type cls from the cache.
+    """
+    for obj in get_by_type(cls):
+        delete(obj)
+
+
 def cached(cls):
     """
     Decorator for classes that should be cached.
@@ -125,5 +133,6 @@ def cached(cls):
     cls.sync = write
     cls.synchronize = write
     cls.get_all = functools.partial(get_all, cls.__name__)
+    cls.del_all = functools.partial(del_all, cls.__name__)
 
     return cls

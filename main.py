@@ -62,17 +62,9 @@ def enable_high_dpi_scaling():
 
 
 def start():
-    application_path = get_application_path()
-
-    # Injecting root_path
-    paths = filehandler.Paths.instance()
-    paths.root = application_path
-
-    # Init Folders and logger
-    filehandler.init_folder_structure()
     filehandler.init_logger()
-
-    logging.info("Running relative to {}".format(application_path))
+    # application_path = get_application_path()
+    # logging.info("Running relative to {}".format(application_path))
 
     if settings.high_dpi_scaling:
         enable_high_dpi_scaling()

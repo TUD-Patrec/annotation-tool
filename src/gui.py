@@ -13,6 +13,7 @@ from .data_model.globalstate import GlobalState
 from .dialogs.dialog_manager import DialogManager
 from .dialogs.edit_datasets import QEditDatasets
 from .dialogs.load_annotation_dialog import QLoadExistingAnnotationDialog
+from .dialogs.network_list import NetworksDialog
 from .dialogs.new_annotation_dialog import QNewAnnotationDialog
 from .dialogs.settings_dialog import SettingsDialog
 
@@ -208,6 +209,10 @@ class GUI(qtw.QMainWindow, DialogManager):
             "Options",
             self.open_settings,
         )
+        settings_menu.addAction(
+            "Networks",
+            self.open_networks,
+        )
 
     def file_menu(self):
         menu = self.menuBar()
@@ -261,6 +266,10 @@ class GUI(qtw.QMainWindow, DialogManager):
         dialog = SettingsDialog()
         dialog.window_size_changed.connect(self.resize)
         dialog.settings_changed.connect(self.settings_changed)
+        self.open_dialog(dialog)
+
+    def open_networks(self):
+        dialog = NetworksDialog()
         self.open_dialog(dialog)
 
     def create_new_annotation(self):
