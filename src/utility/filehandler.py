@@ -7,7 +7,7 @@ import logging
 import os
 import pickle
 import string
-from typing import Tuple, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 
@@ -240,17 +240,22 @@ def read_csv(
     return data
 
 
-def write_csv(path: os.PathLike, data: np.ndarray) -> None:
+def write_csv(path: os.PathLike, data: np.ndarray, header: List[str] = None) -> None:
     """Write numpy-array to file.
 
     Args:
         path (os.PathLike): Output path.
         data (np.ndarray): Array containing the data.
+        header (List[str], optional): Header for the csv-file.
     """
-    if np.issubdtype(data.dtype, np.integer):
-        np.savetxt(path, data, fmt="%d", delimiter=",")
+    if header is not None:
+        header = ",".join(header)
     else:
-        np.savetxt(path, data, delimiter=",")
+        header = ""
+    if np.issubdtype(data.dtype, np.integer):
+        np.savetxt(path, data, fmt="%d", delimiter=",", header=header)
+    else:
+        np.savetxt(path, data, delimiter=",", header=header)
 
 
 def write_pickle(path: os.PathLike, data: object) -> None:

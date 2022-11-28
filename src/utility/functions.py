@@ -49,7 +49,7 @@ def scale_functions(N: int, M: int, last_to_last: bool = False):
     Args:
         N (int): Number of elements in the first range.
         M (int): Number of elements in the second range.
-        last_to_last (bool, optional): Sometimes its useful if the last elements
+        last_to_last (bool, optional): Sometimes it's useful if the last elements
             of two ranges always map to each other. Defaults to False.
 
     Returns:

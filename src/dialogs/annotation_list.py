@@ -243,7 +243,9 @@ class ExportAnnotationDialog(qtw.QDialog):
 
         # Export main annotation-file
         array = self.global_state.to_numpy()
-        filehandler.write_csv(os.path.join(export_dir, "annotation.csv"), array)
+        scheme = self.global_state.dataset.scheme
+        header = [x.element_name for x in scheme]
+        filehandler.write_csv(os.path.join(export_dir, "annotation.csv"), array, header)
 
         # add copy of annotated file
         if self.add_copy_checkbox.isChecked():
