@@ -1,5 +1,5 @@
 import csv
-from dataclasses import dataclass, field
+import fnmatch
 import functools
 import hashlib
 import json
@@ -11,52 +11,66 @@ from typing import List, Tuple, Union
 
 import numpy as np
 
-from src.utility.decorators import Singleton
+
+def find_all(name: str, path: os.PathLike = None) -> list:
+    """Find all files with the given name in the given path. If no path is
+    given, the user's home directory is used.
+
+        Args:
+            name (str): Name of the file.
+            path (os.PathLike, optional): Path to search in. Defaults to None.
+
+        Returns:
+            list: List of all files with the given name.
+
+        Raises:
+            ValueError: If no path is given.
+    """
+    if name is None or name == "":
+        raise ValueError("name must not be empty")
+    if path is None:
+        path = os.path.join(os.path.expanduser("~"))
+    result = []
+    for root, dirs, files in os.walk(path):
+        if name in files:
+            result.append(os.path.join(root, name))
+    return result
 
 
-@Singleton
-@dataclass
-class Paths:
-    _root: str = field(init=False, default=None)
-    _local_storage: str = field(init=False, default="__local__storage__")
-    _annotations: str = field(init=False, default="annotations")
-    _datasets: str = field(init=False, default="dataset_schemes")
-    _networks: str = field(init=False, default="networks")
-    _resources: str = field(init=False, default="resources")
-    _config: str = field(init=False, default="config.json")
+def find_all_p(pattern: str, path: os.PathLike) -> list:
+    """Find all files matching the given pattern in the given path.
+    If no path is given, the user's home directory is used.
 
-    @property
-    def root(self):
-        return self._root
+    Args:
+        pattern (str): Pattern to match.
+        path (os.PathLike): Path to search in.
 
-    @root.setter
-    def root(self, path):
-        if self._root is None and os.path.isdir(path):
-            self._root = path
+    Returns:
+        list: List of all files matching the given pattern.
+    """
+    result = []
+    for root, dirs, files in os.walk(path):
+        for name in files:
+            if fnmatch.fnmatch(name, pattern):
+                result.append(os.path.join(root, name))
+    return result
 
-    @property
-    def local_storage(self):
-        return os.path.join(self.root, self._local_storage)
 
-    @property
-    def annotations(self):
-        return os.path.join(self.local_storage, self._annotations)
+def find_first(name: str, path: os.PathLike = None) -> Union[str, None]:
+    """Find first file with the given name in the given path. If no path is
+    given, the user's home directory is used.
 
-    @property
-    def datasets(self):
-        return os.path.join(self.local_storage, self._datasets)
+    Args:
+        name (str): Name of the file.
+        path (os.PathLike, optional): Path to search in. Defaults to None.
 
-    @property
-    def networks(self):
-        return os.path.join(self.local_storage, self._networks)
-
-    @property
-    def resources(self):
-        return os.path.join(self.local_storage, self._resources)
-
-    @property
-    def config(self):
-        return os.path.join(self.local_storage, self._config)
+    Returns:
+        Union[str, None]: Path to the first file found or None.
+    """
+    for root, dirs, files in os.walk(path):
+        if name in files:
+            return os.path.join(root, name)
+    return None
 
 
 def is_non_zero_file(path: os.PathLike) -> bool:
@@ -381,14 +395,3 @@ def init_logger():
         "DEBUG" if settings.debugging_mode else "WARNING"
     )
     logging.config.dictConfig(log_config_dict)
-
-
-def init_folder_structure():
-    """Create all folders needed for the tool to work properly."""
-    paths = Paths.instance()
-
-    create_dir(paths.local_storage)
-    create_dir(paths.annotations)
-    create_dir(paths.datasets)
-    create_dir(paths.networks)
-    create_dir(paths.resources)

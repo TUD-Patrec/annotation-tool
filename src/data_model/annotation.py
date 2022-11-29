@@ -44,7 +44,9 @@ class Annotation:
             annotation = np.zeros(len(scheme), dtype=np.int8)
         else:
             assert isinstance(annotation, (np.ndarray, dict))
-            assert is_compatible(annotation, scheme)
+            assert is_compatible(
+                annotation, scheme
+            ), "Annotation is not compatible: \n {} \n {}".format(annotation, scheme)
 
         self._scheme = scheme
         self._annotation_dict = self._make_dict(annotation)

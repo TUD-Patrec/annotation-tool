@@ -10,7 +10,6 @@ from src.media.media_types import MediaType, media_type_of
 from src.media.mocap_reader import load_mocap
 from src.network.LARa import lara_specifics
 from src.network.network import Network
-from src.utility.filehandler import Paths
 
 __network_dict__ = {}
 
@@ -146,15 +145,14 @@ def __load_network__(media_type: MediaType) -> Tuple[Network, dict]:
     # find best fitting network
 
     if media_type == MediaType.MOCAP:
-        path_networks = Paths.instance().networks
+        from src.data_model import get_model_by_mediatype
 
-        # lara_path = "attrib_network.pt"
-        # lara_path = "cnn_imu_attrib_network.pt"
-        # lara_path = "cnn_attrib_network.pt"
-        lara_path = "network.pt"
-
-        network_path = os.path.join(path_networks, lara_path)
-
+        # path to desktop
+        model = get_model_by_mediatype(MediaType.MOCAP)
+        if model:
+            network_path = model.path
+        else:
+            raise FileNotFoundError("No model found for mocap")
         if not os.path.isfile(network_path):
             raise FileNotFoundError("Could not find any LARa-Network")
 

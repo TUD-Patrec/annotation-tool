@@ -133,7 +133,7 @@ class GlobalStateList(qtw.QWidget):
 
         # add global states
         global_states = GlobalState.get_all()
-        global_states.sort(key=lambda x: x.timestamp, reverse=True)
+        # global_states.sort(key=lambda x: x.creation_time, reverse=True)
         for global_state in global_states:
             widget = GlobalStateWidget(global_state)
             widget.deleted.connect(self.update)
@@ -144,6 +144,7 @@ class GlobalStateList(qtw.QWidget):
             frame.setFrameShadow(qtw.QFrame.Raised)
             frame_layout = qtw.QVBoxLayout(frame)
             frame_layout.addWidget(widget)
+
             self.scroll_layout.addWidget(frame)
 
 
@@ -156,8 +157,6 @@ class GlobalStatesDialog(qtw.QDialog):
         self.setWindowTitle("Annotations")
         self.setMinimumSize(500, 500)
         self.grid = qtw.QGridLayout(self)
-        self.grid.setContentsMargins(0, 0, 0, 0)
-        self.grid.setSpacing(0)
 
         self.scroll_global_states = GlobalStateList()
         self.grid.addWidget(self.scroll_global_states)
