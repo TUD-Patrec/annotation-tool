@@ -110,6 +110,10 @@ class NetworkWidget(qtw.QWidget):
         self.model.media_type = MediaType[self.media_type_edit.currentText()]
         self.model.activated = self.activated_edit.isChecked()
 
+        # highlight widget for 1 second to indicate that the model was updated
+        self.setStyleSheet("background-color: lightgreen")
+        qtc.QTimer.singleShot(1000, lambda: self.setStyleSheet(""))
+
 
 class NetworkListWidget(qtw.QWidget):
     def __init__(self, *args, **kwargs):

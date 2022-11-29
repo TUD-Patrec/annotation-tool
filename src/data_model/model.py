@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 import os
 import time
+from typing import List, Optional
 
 from src.media import MediaType
 from src.utility.file_cache import cached
@@ -48,6 +49,10 @@ class Model:
             self.name = get_unique_name()
 
     @property
+    def path(self):
+        return self.network_path
+
+    @property
     def timestamp(self) -> str:
         return time.strftime("%Y-%m-%d_%H-%M-%S", self.creation_time)
 
@@ -84,3 +89,35 @@ def make_model(
         The new Model object.
     """
     return Model(network_path, sampling_rate, media_type, name)
+
+
+def get_models(media_type: MediaType, get_deactivated=False) -> List[Model]:
+    """
+    Returns all models of a certain media type.
+
+    Args:
+        media_type: The media type to filter by.
+        get_deactivated: Whether to return deactivated models.
+    Returns:
+        A list of models.
+    """
+    return [
+        m
+        for m in Model.get_all()
+        if (m.media_type == media_type and (m.activated or get_deactivated))
+    ]
+
+
+def get_model_by_mediatype(media_type: MediaType) -> Optional[Model]:
+    """
+    Returns the first model of a certain media type.
+
+    Args:
+        media_type: The media type to filter by.
+    Returns:
+        The first model of the media type. None if no model exists.
+    """
+    models = get_models(media_type)
+    if len(models) > 0:
+        return models[0]
+    return None
