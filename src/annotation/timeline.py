@@ -8,6 +8,7 @@ import PyQt5.QtWidgets as qtw
 from src.data_model.sample import Sample
 from src.settings import settings
 from src.utility import functions
+from src.utility.functions import FrameTimeMapper, ms_to_time_string
 
 ScalingRatio = namedtuple("ScalingRatio", ["Frames", "Pixels"])
 
@@ -17,8 +18,6 @@ class Scaling:
         self.idx = 0
         self.parent = parent
         self.negative_scales = [
-            ScalingRatio(1, 8),
-            ScalingRatio(1, 4),
             ScalingRatio(1, 2),
         ]
         self.positive_scales = [ScalingRatio(2**i, 1) for i in range(0, 64)]
@@ -74,11 +73,9 @@ class Scaling:
         Returns:
             int: The frame position.
         """
-        N = max(self.ratio.Pixels - 1, 0)
-        M = max(
-            self.ratio.Frames - 1, 0
-        )  # -1 because we want to map the last pixel to the last frame
-        return functions.scale(N, M, x)[0]
+        M = self.width
+        N = int(M * self.ratio_f)
+        return functions.scale(M, N, x)[0]
 
     def frame_to_pixel(self, x) -> int:
         """
@@ -90,13 +87,12 @@ class Scaling:
         Returns:
             int: The pixel position.
         """
-        N = max(self.ratio.Frames - 1, 0)
-        M = max(
-            self.ratio.Pixels - 1, 0
-        )  # -1 because we want to map the last frame to the last pixel
+        M = self.width
+        N = int(M * self.ratio_f)
         return functions.scale(N, M, x)[0]
 
     def increase(self):
+        """Zoom out."""
         if self.idx < len(self.positive_scales) - 1:
             current_ratio = self.ratio_f
             self.idx += 1
@@ -106,28 +102,10 @@ class Scaling:
             print("increase", self.ratio_f)
 
     def decrease(self):
+        """Zoom in."""
         if self.idx > -len(self.negative_scales):
             self.idx -= 1
             print("decrease", self.ratio_f)
-
-
-"""
-class TestParent:
-    def __init__(self):
-        self.w = 1080
-        self.n_frames = 24000
-
-    def width(self):
-        return self.w
-
-
-s = Scaling(TestParent())
-for _ in range(20):
-    print(s.idx, s.ratio, s.ratio_f)
-    print(s.frame_to_pixel(1079), s.pixel_to_frame(23999))
-    print()
-    s.increase()
-"""
 
 
 class QTimeLine(qtw.QWidget):
@@ -136,7 +114,7 @@ class QTimeLine(qtw.QWidget):
     def __init__(self):
         super(qtw.QWidget, self).__init__()
         self.frame_idx = 0
-        self.pointer_position = None  # Don't remove
+        self.pos = None  # Don't remove
         self.scaler = Scaling(self)
         self.n_frames = self.width()
         self.lower = 0
@@ -164,17 +142,48 @@ class QTimeLine(qtw.QWidget):
         self.update()
 
     def update_visible_range(self):
-        pixel_pos = self.scaler.frame_to_pixel(self.frame_idx)
-        w = self.width()
-        if pixel_pos is not None:
-            # check if scroll is needed
-            if pixel_pos <= 0:
-                # scroll left
-                self.lower = max(0, self.frame_idx - 1)
-            elif pixel_pos >= w - 1:
-                # scroll right
-                upper = self.frame_idx + 1
-                self.lower = max(0, upper - w + 1)
+        if self.frame_idx <= self.scroll_left_interval[1]:
+            too_less = self.scroll_left_interval[1] - self.frame_idx
+            self.lower = max(self.lower - (too_less + 1), 0)
+        elif self.frame_idx >= self.scroll_right_interval[0]:
+            too_far = self.frame_idx - self.scroll_right_interval[0]
+            self.lower += too_far + 1
+        if self.upper > self.n_frames - 1:
+            too_far = self.upper - (self.n_frames - 1)
+            self.lower -= too_far
+        self.check_consistency()
+
+    def zoom_in(self):
+        lo = self.lower
+        hi = self.upper
+        zoom_in_left_half = self.frame_idx - lo <= self.n_inner_frames / 2
+
+        self.scaler.decrease()
+
+        if zoom_in_left_half:
+            self.lower = max(lo, self.frame_idx - self.n_inner_frames // 2)
+        else:
+            hi_tmp = min(hi, self.frame_idx + self.n_inner_frames // 2)
+            self.lower = hi_tmp - self.scaler.pixel_to_frame(self.width()) + 1
+
+        assert self.lower >= lo, f"{self.lower = }, {lo = }"
+        assert self.upper <= hi, f"{self.upper} {hi}"
+        self.update()
+
+    def zoom_out(self):
+        self.scaler.increase()
+        self.lower = max(0, self.frame_idx - self.n_inner_frames // 2)
+        if self.upper > self.n_frames - 1:
+            too_far = self.upper - (self.n_frames - 1)
+            self.lower -= too_far
+
+        self.update()
+
+    def check_consistency(self):
+        assert self.lower >= 0, f"{self.lower = }"
+        assert self.upper <= self.n_frames - 1, f"{self.upper = }, {self.n_frames = }"
+        assert self.frame_idx >= self.lower
+        assert self.upper <= self.n_frames - 1, f"{self.upper = } {self.n_frames = }"
 
     @qtc.pyqtSlot(int)
     def set_position(self, pos):
@@ -192,26 +201,25 @@ class QTimeLine(qtw.QWidget):
     def wheelEvent(self, e):
         if self.is_in:
             if e.angleDelta().y() < 0:
-                self.scaler.increase()
+                self.zoom_out()
             else:
-                self.scaler.decrease()
-            self.update()
+                self.zoom_in()
         else:
             e.ignore()
 
     def mouseMoveEvent(self, e):
-        self.pointer_position = e.pos()
+        self.pos = e.pos()
 
         # if mouse is being pressed, update pointer
         if self.clicking:
-            x = self.pointer_position.x()
+            x = self.pos.x()
             x = max(0, x)
             x = min(x, self.width() - 1)
 
             self.frame_idx = self.scaler.pixel_to_frame(x) + self.lower
             self.position_changed.emit(self.frame_idx)
 
-        # self.update()
+        self.update()
 
     def mousePressEvent(self, e):
         if e.button() == qtc.Qt.LeftButton:
@@ -220,6 +228,7 @@ class QTimeLine(qtw.QWidget):
             self.position_changed.emit(self.frame_idx)
             self.clicking = True  # Set clicking check to true
 
+        self.update_visible_range()
         self.update()
 
     def mouseReleaseEvent(self, e):
@@ -243,11 +252,17 @@ class QTimeLine(qtw.QWidget):
         super().update()
 
     def paintEvent(self, event):
-        relative_frame_idx = self.frame_idx - self.lower
-        pointer_x = self.scaler.frame_to_pixel(relative_frame_idx)
-        print(
-            f"frame_idx = {self.frame_idx}, rel_frame_idx = {relative_frame_idx}, pointer = {pointer_x}, visible = {self.visible_range}"
-        )
+        # set some constants
+        HEIGHT_SAMPLE = 70
+        MARGIN_SAMPLE = 10
+        WIDTH_TEXT = 100
+        HEIGHT_TEXT = 25
+        HEIGHT_LINE = 40
+        HEIGHT_DASHED_LINE = 20
+        MARGIN_HORIZONTAL_LINES = 40
+
+        # step_size between ticks
+        dist = 100
 
         qp = qtg.QPainter()
         qp.begin(self)
@@ -255,34 +270,136 @@ class QTimeLine(qtw.QWidget):
         qp.setFont(self.font)
         qp.setRenderHint(qtg.QPainter.Antialiasing)
 
-        # Draw line of current mouse-position
-        if self.pointer_position is not None and self.is_in:
-            line_height = 40
-            qp.drawLine(
-                pointer_x,
+        # Draw time
+        pos = dist
+        while pos < self.width():
+            frame_idx = self.scaler.pixel_to_frame(int(pos)) + self.lower
+
+            time_stamp = FrameTimeMapper.instance().frame_to_ms(frame_idx)
+            time_stamp = ms_to_time_string(time_stamp)
+            time_stamp = time_stamp.split(":")
+            time_stamp = ":".join(time_stamp[:-1])
+
+            start_pos = int(pos) - WIDTH_TEXT // 2
+
+            # Draw time_stamps and frame_numbers
+            qp.drawText(
+                start_pos,
                 0,
-                pointer_x,
-                line_height,
+                WIDTH_TEXT,
+                HEIGHT_TEXT,
+                qtc.Qt.AlignHCenter,
+                str(frame_idx),
+            )
+            lower_text_y = (
+                MARGIN_HORIZONTAL_LINES
+                + 2 * MARGIN_SAMPLE
+                + HEIGHT_SAMPLE
+                + HEIGHT_TEXT
+            )
+            qp.drawText(
+                start_pos,
+                lower_text_y,
+                WIDTH_TEXT,
+                HEIGHT_TEXT,
+                qtc.Qt.AlignHCenter,
+                time_stamp,
             )
 
-        # Draw pointer_position
-        pos = (
-            self.scaler.frame_to_pixel(self.frame_idx)
-            if self.frame_idx is not None
-            else 0
-        )
+            pos += dist
 
-        line = qtc.QLine(
-            qtc.QPoint(pos, 40),
-            qtc.QPoint(pos, self.height()),
+        # Draw horizontal lines
+        qp.setPen(qtg.QPen(qtc.Qt.darkCyan, 5, qtc.Qt.SolidLine))
+        qp.drawLine(0, MARGIN_HORIZONTAL_LINES, self.width(), 40)
+        lower_horizontal_line_y = (
+            MARGIN_HORIZONTAL_LINES + 2 * MARGIN_SAMPLE + HEIGHT_SAMPLE
         )
-        poly = qtg.QPolygon(
-            [
-                qtc.QPoint(pos - 10, 20),
-                qtc.QPoint(pos + 10, 20),
-                qtc.QPoint(pos, 40),
-            ]
-        )
+        qp.drawLine(0, lower_horizontal_line_y, self.width(), lower_horizontal_line_y)
+
+        # Draw dash lines
+        qp.setPen(qtg.QPen(self.textColor))
+        pos = dist
+        while pos < self.width():
+            qp.drawLine(int(pos), MARGIN_HORIZONTAL_LINES, int(pos), HEIGHT_DASHED_LINE)
+            lower_dashed_line_y = (
+                MARGIN_HORIZONTAL_LINES + 2 * MARGIN_SAMPLE + HEIGHT_SAMPLE
+            )
+            qp.drawLine(
+                int(pos),
+                lower_dashed_line_y,
+                int(pos),
+                lower_dashed_line_y + HEIGHT_DASHED_LINE,
+            )
+            pos += dist
+
+        # Draw line of current mouse-position
+        if self.pos is not None and self.is_in:
+            # qp.drawLine(self.pos.x(), 0, self.pos.x(), HEIGHT_LINE)
+            line_height = MARGIN_HORIZONTAL_LINES + 2 * MARGIN_SAMPLE + HEIGHT_SAMPLE
+            qp.drawLine(self.pos.x(), 0, self.pos.x(), line_height + HEIGHT_LINE)
+
+        # Draw pos
+        if self.frame_idx is not None:
+            pos = self.scaler.frame_to_pixel(self.frame_idx - self.lower)
+
+            line_height = 2 * MARGIN_SAMPLE + HEIGHT_SAMPLE
+            line = qtc.QLine(
+                qtc.QPoint(pos, MARGIN_HORIZONTAL_LINES),
+                qtc.QPoint(pos, MARGIN_HORIZONTAL_LINES + line_height),
+            )
+            poly = qtg.QPolygon(
+                [
+                    qtc.QPoint(pos - 10, 20),
+                    qtc.QPoint(pos + 10, 20),
+                    qtc.QPoint(pos, 40),
+                ]
+            )
+        else:
+            pos = 0
+            line = qtc.QLine(qtc.QPoint(pos, 40), qtc.QPoint(pos, self.height()))
+            poly = qtg.QPolygon(
+                [
+                    qtc.QPoint(pos - 10, 20),
+                    qtc.QPoint(pos + 10, 20),
+                    qtc.QPoint(pos, 40),
+                ]
+            )
+
+        # Draw samples
+        for sample in self.samples:
+            if sample.start_position > self.upper or sample.end_position < self.lower:
+                continue
+
+            sample_start = self.scaler.frame_to_pixel(
+                sample.start_position - self.lower
+            )
+            sample_end = self.scaler.frame_to_pixel(sample.end_position - self.lower)
+            sample_length = sample_end - sample_start + 1
+
+            if sample != self.current_sample:
+                color = sample.color
+            else:
+                r = sample.color.red()
+                g = sample.color.green()
+                b = sample.color.blue()
+                color = qtg.QColor(r, g, b, 255)
+
+            # Clear clip path
+            height = MARGIN_HORIZONTAL_LINES + MARGIN_SAMPLE
+
+            path = qtg.QPainterPath()
+            path.addRoundedRect(
+                qtc.QRectF(sample_start, height, sample_length, HEIGHT_SAMPLE), 10, 10
+            )
+            qp.setClipPath(path)
+
+            path = qtg.QPainterPath()
+            qp.setPen(color)
+            path.addRoundedRect(
+                qtc.QRectF(sample_start, height, sample_length, HEIGHT_SAMPLE), 10, 10
+            )
+            qp.fillPath(path, color)
+            qp.drawPath(path)
 
         # Clear clip path
         path = qtg.QPainterPath()
@@ -301,10 +418,20 @@ class QTimeLine(qtw.QWidget):
 
     @property
     def upper(self):
-        lo = self.lower
-        hi = lo + self.scaler.pixel_to_frame(self.width())
-        return hi
+        return self.lower + self.scaler.pixel_to_frame(self.width()) - 1
 
     @property
     def visible_range(self):
         return self.lower, self.upper
+
+    @property
+    def n_inner_frames(self):
+        return self.upper - self.lower + 1
+
+    @property
+    def scroll_left_interval(self):
+        return self.lower, self.lower + self.n_inner_frames // 10
+
+    @property
+    def scroll_right_interval(self):
+        return self.upper - self.n_inner_frames // 10, self.upper
