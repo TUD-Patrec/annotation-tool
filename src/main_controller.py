@@ -257,6 +257,11 @@ def get_app() -> qtg.QApplication:
 
 
 def main():
+    # set font
+    font = qtg.QFont()
+    font.setPointSize(settings.font_size)
+    qtg.QApplication.setFont(font)
+
     sys.excepthook = except_hook
     app = make_app()
     sys.exit(app.exec_())
