@@ -53,10 +53,9 @@ class QRetrievalWidget(qtw.QWidget):
         vbox.addWidget(self.histogram, alignment=qtc.Qt.AlignCenter)
         vbox.addWidget(QHLine())
         vbox.addWidget(self.footer_widget, alignment=qtc.Qt.AlignCenter)
-        self.setLayout(vbox)
 
         vbox.setContentsMargins(0, 0, 0, 0)
-
+        self.setLayout(vbox)
         self.setFixedWidth(400)
 
     @qtc.pyqtSlot(Query, object)
