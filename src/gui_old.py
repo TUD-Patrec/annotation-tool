@@ -1,20 +1,12 @@
 import enum
-from functools import partial
 import logging
 
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
-from src.annotation.modes import AnnotationMode
 from src.dialogs.annotation_list import GlobalStatesDialog
 from src.settings import settings
-from src.user_actions import (
-    get_annotation_actions,
-    get_edit_actions,
-    get_replay_actions,
-    get_shortcut,
-)
 
 from . import __version__
 from .data_model.globalstate import GlobalState
@@ -38,14 +30,29 @@ class GUI(qtw.QMainWindow, DialogManager):
     load_annotation = qtc.pyqtSignal(GlobalState)
     save_pressed = qtc.pyqtSignal()
     exit_pressed = qtc.pyqtSignal()
+    play_pause_pressed = qtc.pyqtSignal()
+    skip_frames = qtc.pyqtSignal(bool, bool)
+    cut_pressed = qtc.pyqtSignal()
+    accept_pressed = qtc.pyqtSignal()
+    change_filter_pressed = qtc.pyqtSignal()
+    cut_and_annotate_pressed = qtc.pyqtSignal()
+    merge_left_pressed = qtc.pyqtSignal()
+    merge_right_pressed = qtc.pyqtSignal()
+    modify_pressed = qtc.pyqtSignal()
+    annotate_pressed = qtc.pyqtSignal()
+    increase_speed_pressed = qtc.pyqtSignal()
+    decrease_speed_pressed = qtc.pyqtSignal()
+    reset_pressed = qtc.pyqtSignal()
+    reject_pressed = qtc.pyqtSignal()
+    undo_pressed = qtc.pyqtSignal()
+    redo_pressed = qtc.pyqtSignal()
+    merge_adjacent_pressed = qtc.pyqtSignal()
     settings_changed = qtc.pyqtSignal()
-    annotation_mode_changed = qtc.pyqtSignal(AnnotationMode)
-    user_action = qtc.pyqtSignal(enum.Enum)
+    use_manual_annotation = qtc.pyqtSignal()
+    use_retrieval_mode = qtc.pyqtSignal()
 
     def __init__(self, *args, **kwargs):
         super(GUI, self).__init__(*args, **kwargs)
-
-        self.current_mode = AnnotationMode.MANUAL
 
         self.resize(settings.preferred_width, settings.preferred_height)
         logging.info(self.size())
@@ -90,53 +97,122 @@ class GUI(qtw.QMainWindow, DialogManager):
 
     def make_menu_bar(self):
         self.file_menu()
-        self.annotation_menu = self.menuBar().addMenu("&Annotation")
-        self.edit_menu = self.menuBar().addMenu("&Edit")
-        self.replay_menu = self.menuBar().addMenu("&Replay")
-        self.update_flex_menus()
-        self.annotation_mode_menu()
+        self.video_menu()
+        self.edit_menu()
         self.settings_menu()
+        self.annotation_mode_menu()
 
-    def update_flex_menus(self):
-        if not hasattr(self, "flex_actions"):
-            self.flex_actions = {}
-        self.build_flex_menu(self.annotation_menu, get_annotation_actions)
-        self.build_flex_menu(self.edit_menu, get_edit_actions)
-        self.build_flex_menu(self.replay_menu, get_replay_actions)
+    def video_menu(self):
+        menu = self.menuBar()
+        video_menu = menu.addMenu("&Video")
 
-    def build_flex_menu(self, menu, get_function):
-        menu.clear()
-        for action in get_function(self.current_mode):
-            shortcut = get_shortcut(action)
+        video_menu.addAction(
+            "Play/Pause", self.play_pause_pressed, qtg.QKeySequence(qtc.Qt.Key_Space)
+        )
 
-            self.flex_actions[action.name] = action
+        video_menu.addAction(
+            "Skip forward",
+            lambda: self.skip_frames.emit(True, False),
+            qtg.QKeySequence(qtc.Qt.Key_Right),
+        )
 
-            fun = partial(self.emit_action, action)
+        video_menu.addAction(
+            "Skip backward",
+            lambda: self.skip_frames.emit(False, False),
+            qtg.QKeySequence(qtc.Qt.Key_Left),
+        )
 
-            if shortcut is not None:
-                menu.addAction(
-                    action.name.capitalize(),
-                    fun,
-                    shortcut,
-                )
-            else:
-                menu.addAction(
-                    action.name.capitalize(),
-                    fun,
-                )
+        video_menu.addAction(
+            "Skip forward (fast)",
+            lambda: self.skip_frames.emit(True, True),
+            qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_Right),
+        )
 
-    def emit_action(self, action):
-        self.user_action.emit(action)
+        video_menu.addAction(
+            "Skip backward (fast)",
+            lambda: self.skip_frames.emit(False, True),
+            qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_Left),
+        )
+
+        video_menu.addAction(
+            "Increase replay speed", lambda: self.increase_speed_pressed.emit()
+        )
+
+        video_menu.addAction(
+            "Decrease replay speed", lambda: self.decrease_speed_pressed.emit()
+        )
+
+    def edit_menu(self):
+        menu = self.menuBar()
+        self.edit_menu = menu.addMenu("&Edit")
+        self.edit_menu_for_manual_annotation()
+
+    def edit_menu_for_manual_annotation(self):
+        self.edit_menu.clear()
+
+        self.edit_menu.addAction(
+            "Annotate",
+            self.annotate_pressed,
+            qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_A),
+        )
+
+        self.edit_menu.addAction(
+            "Cut", self.cut_pressed, qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_C)
+        )
+
+        self.edit_menu.addAction(
+            "Cut + Annotate",
+            self.cut_and_annotate_pressed,
+            qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_X),
+        )
+
+        self.edit_menu.addAction(
+            "Merge Left",
+            self.merge_left_pressed,
+            qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_L),
+        )
+
+        self.edit_menu.addAction(
+            "Merge Right",
+            self.merge_right_pressed,
+            qtg.QKeySequence(qtc.Qt.CTRL + qtc.Qt.Key_R),
+        )
+
+        self.edit_menu.addAction("Undo", self.undo_pressed, qtg.QKeySequence.Undo)
+
+        self.edit_menu.addAction("Redo", self.redo_pressed, qtg.QKeySequence.Redo)
+
+    def edit_menu_for_retrieval_mode(self):
+        self.edit_menu.clear()
+        self.edit_menu.addAction(
+            "Accept", self.accept_pressed, qtg.QKeySequence(qtc.Qt.Key_A)
+        )
+        self.edit_menu.addAction(
+            "Reject",
+            self.reject_pressed,
+            qtg.QKeySequence(qtc.Qt.Key_R),
+        )
+        self.edit_menu.addAction(
+            "Modify", self.modify_pressed, qtg.QKeySequence(qtc.Qt.Key_M)
+        )
+        self.edit_menu.addAction(
+            "Change Filter", self.change_filter_pressed, qtg.QKeySequence(qtc.Qt.Key_F)
+        )
+
+        # self.edit_menu.addAction("Undo", self.undo_pressed, qtg.QKeySequence.Undo)
+        # self.edit_menu.addAction("Redo", self.redo_pressed, qtg.QKeySequence.Redo)
 
     def settings_menu(self):
         menu = self.menuBar()
-        options_menu = menu.addMenu("&Options")
-        options_menu.addAction("About", self.open_about_dialog)
-        options_menu.addAction(
-            "Settings",
+        settings_menu = menu.addMenu("&Options")
+        settings_menu.addAction(
+            "Options",
             self.open_settings,
         )
-        options_menu.addAction("Local Files", self.open_local_files)
+        settings_menu.addAction(
+            "Networks",
+            self.open_networks,
+        )
 
     def file_menu(self):
         menu = self.menuBar()
@@ -149,14 +225,9 @@ class GUI(qtw.QMainWindow, DialogManager):
 
         file_menu.addAction("Save", self.save_pressed, qtg.QKeySequence.Save)
 
-        file_menu.addAction("Annotations", self.list_annotations)
+        file_menu.addAction("List Annotations", self.list_annotations)
 
-        file_menu.addAction("Datasets", self.edit_datasets)
-
-        file_menu.addAction(
-            "Networks",
-            self.open_networks,
-        )
+        file_menu.addAction("Edit Datasets", self.edit_datasets)
 
         file_menu.addAction("Exit", self._exit, qtg.QKeySequence.Close)
 
@@ -172,18 +243,24 @@ class GUI(qtw.QMainWindow, DialogManager):
 
         a = ag.addAction(qtw.QAction("Manual Annotation", self, checkable=True))
         a.setChecked(True)
-        a.toggled.connect(lambda: self.update_annotation_mode(AnnotationMode.MANUAL))
+        a.toggled.connect(self.manual_annotation_toggled)
         annotation_menu.addAction(a)
 
         a = ag.addAction(qtw.QAction("Retrieval Mode", self, checkable=True))
-        a.toggled.connect(lambda: self.update_annotation_mode(AnnotationMode.RETRIEVAL))
+        a.toggled.connect(self.retrieval_mode_toggled)
         annotation_menu.addAction(a)
 
-    def update_annotation_mode(self, new_mode):
-        if new_mode != self.current_mode:
-            self.current_mode = new_mode
-            self.update_flex_menus()
-            self.annotation_mode_changed.emit(new_mode)
+    def manual_annotation_toggled(self, active):
+        if active:
+            self.edit_menu.clear()
+            self.edit_menu_for_manual_annotation()
+            self.use_manual_annotation.emit()
+
+    def retrieval_mode_toggled(self, active):
+        if active:
+            self.edit_menu.clear()
+            self.edit_menu_for_retrieval_mode()
+            self.use_retrieval_mode.emit()
 
     def open_settings(self):
         dialog = SettingsDialog()
@@ -194,12 +271,6 @@ class GUI(qtw.QMainWindow, DialogManager):
     def open_networks(self):
         dialog = NetworksDialog()
         self.open_dialog(dialog)
-
-    def open_about_dialog(self):
-        pass  # TODO
-
-    def open_local_files(self):
-        pass  # TODO
 
     def create_new_annotation(self):
         dialog = QNewAnnotationDialog()

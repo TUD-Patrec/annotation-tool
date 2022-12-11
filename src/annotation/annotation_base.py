@@ -1,4 +1,5 @@
 from abc import abstractmethod
+import enum
 from typing import List
 
 import PyQt5.QtCore as qtc
@@ -6,6 +7,7 @@ import numpy as np
 
 from src.data_model import Annotation, AnnotationScheme, Sample
 from src.dialogs.dialog_manager import DialogManager
+from src.user_actions import AnnotationActions
 
 
 class AnnotationBaseClass(qtc.QObject, DialogManager):
@@ -60,6 +62,7 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
         self.dependencies = dependencies
         self.n_frames = n_frames
         self.position = 0
+        self.copied_annotation = None
         self.clear_undo_redo()
         self.check_for_selected_sample(force_update=True)
         self.load_subclass()
@@ -95,57 +98,12 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
             self.tool_widget.setEnabled(x)
 
     @qtc.pyqtSlot()
-    def undo(self) -> None:
-        """
-        Undo the last action.
-        """
-        pass
-
-    @qtc.pyqtSlot()
-    def redo(self) -> None:
-        """
-        Redo the last action.
-        """
-        pass
-
-    @qtc.pyqtSlot()
     def clear_undo_redo(self) -> None:
         """
         Clear the undo and redo stacks.
         """
         self.undo_stack = []
         self.redo_stack = []
-
-    @qtc.pyqtSlot()
-    def annotate(self) -> None:
-        """
-        Annotate the current sample.
-        """
-        pass
-
-    @qtc.pyqtSlot()
-    def cut(self) -> None:
-        """
-        Split the current sample at the current position.
-        """
-        pass
-
-    @qtc.pyqtSlot()
-    def cut_and_annotate(self) -> None:
-        """
-        Split the current sample at the current position and annotate the new sample.
-        """
-        pass
-
-    @qtc.pyqtSlot(bool)
-    def merge(self, left: bool) -> None:
-        """
-        Merge the current sample with the sample on the left or right.
-
-        Args:
-            left: Merge with the sample on the left.
-        """
-        pass
 
     @qtc.pyqtSlot(Sample)
     def insert_sample(self, new_sample: Sample) -> None:
@@ -157,61 +115,61 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
         """
         pass
 
-    @qtc.pyqtSlot()
+    @qtc.pyqtSlot(enum.Enum)
+    def on_user_action(self, action: AnnotationActions) -> None:
+        """
+        Handle user actions.
+
+        Args:
+            action: The user action.
+        """
+        d = {
+            AnnotationActions.ANNOTATE: self.annotate,
+            AnnotationActions.CUT: self.cut,
+            AnnotationActions.CUT_ANNOTATE: self.cut_and_annotate,
+            AnnotationActions.MERGE_LEFT: lambda: self.merge(True),
+            AnnotationActions.MERGE_RIGHT: lambda: self.merge(False),
+            AnnotationActions.ACCEPT: self.accept,
+            AnnotationActions.ACCEPT_ALL: self.accept_all,
+            AnnotationActions.REJECT: self.reject,
+            AnnotationActions.MODIFY: self.modify,
+            AnnotationActions.CHANGE_FILTER: self.select_filter,
+            AnnotationActions.JUMP_NEXT: self.jump_next,
+            AnnotationActions.JUMP_PREVIOUS: self.jump_previous,
+            AnnotationActions.COPY: self.copy,
+            AnnotationActions.DELETE: self.delete,
+            AnnotationActions.PASTE: self.paste,
+            AnnotationActions.UNDO: self.undo,
+            AnnotationActions.REDO: self.redo,
+        }
+
+        if action in d:
+            d[action]()
+
+    # Class methods
     def accept(self):
         """
         Accept the current annotation.
         """
         pass
 
-    @qtc.pyqtSlot()
-    def modify(self) -> None:
+    def accept_all(self) -> None:
         """
-        Modify the current sample.
-        """
-        pass
-
-    @qtc.pyqtSlot()
-    def reject(self):
-        """
-        Reject the current annotation.
+        Accept all predicted annotations.
         """
         pass
 
-    @qtc.pyqtSlot()
-    def select_filter(self) -> None:
-        """
-        Select a filter to apply to the samples.
-        """
-        pass
-
-    # Class methods
     def add_to_undo_stack(self) -> None:
         """
         Add the current state to the undo stack.
         """
         pass
 
-    def update_sample_annotation(
-        self, sample: Sample, new_annotation: Annotation
-    ) -> None:
+    def annotate(self) -> None:
         """
-        Update the annotation of a sample.
-
-        Args:
-            sample: Sample to update.
-            new_annotation: New annotation.
+        Annotate the current sample.
         """
-        self.add_to_undo_stack()
-        sample.annotation = new_annotation
-        self.samples_changed.emit(self.samples, self.selected_sample)
-
-    @abstractmethod
-    def load_subclass(self) -> None:
-        """
-        Load the subclass.
-        """
-        raise NotImplementedError
+        pass
 
     def check_for_selected_sample(self, force_update=False) -> None:
         """
@@ -242,3 +200,111 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
                 self.samples_changed.emit(self.samples, sample)
         else:
             assert self.position == 0
+
+    def copy(self):
+        """
+        Copy the current annotation.
+        """
+        pass
+
+    def cut(self) -> None:
+        """
+        Split the current sample at the current position.
+        """
+        pass
+
+    def cut_and_annotate(self) -> None:
+        """
+        Split the current sample at the current position and annotate the new sample.
+        """
+        pass
+
+    def delete(self) -> None:
+        """
+        Delete the current sample.
+        """
+        pass
+
+    def jump_next(self) -> None:
+        """
+        Jump to the next sample.
+        """
+        pass
+
+    def jump_previous(self) -> None:
+        """
+        Jump to the previous sample.
+        """
+        pass
+
+    def merge(self, left: bool) -> None:
+        """
+        Merge the current sample with the sample on the left or right.
+
+        Args:
+            left: Merge with the sample on the left.
+        """
+        pass
+
+    def modify(self) -> None:
+        """
+        Modify the current sample.
+        """
+        pass
+
+    def paste(self) -> None:
+        """
+        Paste the current annotation.
+        """
+        pass
+
+    def redo(self) -> None:
+        """
+        Redo the last action.
+        """
+        pass
+
+    def reject(self):
+        """
+        Reject the current annotation.
+        """
+        pass
+
+    def reset(self):
+        """
+        Reset the annotation.
+        """
+        pass
+
+    def select_filter(self) -> None:
+        """
+        Select a filter to apply to the samples.
+        """
+        pass
+
+    def undo(self) -> None:
+        """
+        Undo the last action.
+        """
+        pass
+
+    def update_sample_annotation(
+        self, sample: Sample, new_annotation: Annotation
+    ) -> None:
+        """
+        Update the annotation of a sample.
+
+        Args:
+            sample: Sample to update.
+            new_annotation: New annotation.
+        """
+        self.add_to_undo_stack()
+        sample.annotation = new_annotation
+        self.samples_changed.emit(self.samples, self.selected_sample)
+
+    @abstractmethod
+    def load_subclass(self) -> None:
+        """
+        Load the subclass.
+        """
+        raise NotImplementedError

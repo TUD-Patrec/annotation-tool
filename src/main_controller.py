@@ -6,7 +6,6 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
-from src.annotation.modes import AnnotationMode
 from src.annotation.timeline import QTimeLine
 import src.network.controller as network
 from src.settings import settings
@@ -76,38 +75,14 @@ class MainApplication(qtw.QApplication):
         )
 
         # from GUI
+        self.gui.user_action.connect(self.playback.on_user_action)
+        self.gui.user_action.connect(self.annotation_controller.on_user_action)
         self.gui.save_pressed.connect(self.save_annotation)
         self.gui.load_annotation.connect(self.load_state)
-        self.gui.annotate_pressed.connect(self.annotation_controller.annotate)
-        self.gui.merge_left_pressed.connect(
-            lambda: self.annotation_controller.merge(True)
-        )
-        self.gui.merge_right_pressed.connect(
-            lambda: self.annotation_controller.merge(False)
-        )
-        self.gui.cut_pressed.connect(self.annotation_controller.cut)
-        self.gui.cut_and_annotate_pressed.connect(
-            self.annotation_controller.cut_and_annotate
-        )
-        self.gui.play_pause_pressed.connect(self.playback.play_stop_button.trigger)
-        self.gui.skip_frames.connect(lambda x, y: self.playback.skip_frames.emit(x, y))
-        self.gui.decrease_speed_pressed.connect(self.playback.decrease_speed)
-        self.gui.increase_speed_pressed.connect(self.playback.increase_speed)
-        self.gui.undo_pressed.connect(self.annotation_controller.undo)
-        self.gui.redo_pressed.connect(self.annotation_controller.redo)
-        self.gui.accept_pressed.connect(self.annotation_controller.accept)
-        self.gui.reject_pressed.connect(self.annotation_controller.reject)
-        self.gui.modify_pressed.connect(self.annotation_controller.modify)
-        self.gui.change_filter_pressed.connect(self.annotation_controller.select_filter)
         self.gui.settings_changed.connect(self.settings_changed)
         self.gui.settings_changed.connect(self.media_player.settings_changed)
         self.gui.exit_pressed.connect(self.media_player.shutdown)
-        self.gui.use_manual_annotation.connect(
-            lambda: self.annotation_controller.change_mode(AnnotationMode.MANUAL)
-        )
-        self.gui.use_retrieval_mode.connect(
-            lambda: self.annotation_controller.change_mode(AnnotationMode.RETRIEVAL)
-        )
+        self.gui.annotation_mode_changed.connect(self.annotation_controller.change_mode)
 
         # Init mediator
         self.mediator.add_receiver(self.timeline)

@@ -200,12 +200,42 @@ class QTimeLine(qtw.QWidget):
     # mouse scroll event
     def wheelEvent(self, e):
         if self.is_in:
-            if e.angleDelta().y() < 0:
-                self.zoom_out()
+            # check if control key is pressed
+            if e.modifiers() == qtc.Qt.ControlModifier:
+                big_skip = settings.big_skip
+                if e.angleDelta().y() > 0:
+                    new_pos = max(0, self.frame_idx - big_skip)
+                    if new_pos != self.frame_idx:
+                        self.set_position(new_pos)
+                        self.position_changed.emit(new_pos)
+                else:
+                    new_pos = min(self.n_frames - 1, self.frame_idx + big_skip)
+                    if new_pos != self.frame_idx:
+                        self.set_position(new_pos)
+                        self.position_changed.emit(new_pos)
             else:
-                self.zoom_in()
+                small_skip = settings.small_skip
+                if e.angleDelta().y() > 0:
+                    new_pos = max(0, self.frame_idx - small_skip)
+                    if new_pos != self.frame_idx:
+                        self.set_position(new_pos)
+                        self.position_changed.emit(new_pos)
+                else:
+                    new_pos = min(self.n_frames - 1, self.frame_idx + small_skip)
+                    if new_pos != self.frame_idx:
+                        self.set_position(new_pos)
+                        self.position_changed.emit(new_pos)
         else:
             e.ignore()
+
+    def keyPressEvent(self, e) -> None:
+        print(e.key())
+        # zoom in with ctrl +  and zoom out with ctrl -
+        if e.modifiers() == qtc.Qt.ControlModifier:
+            if e.key() == qtc.Qt.Key_Plus:
+                self.zoom_in()
+            elif e.key() == qtc.Qt.Key_Minus:
+                self.zoom_out()
 
     def mouseMoveEvent(self, e):
         self.pos = e.pos()

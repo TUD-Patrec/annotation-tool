@@ -1,5 +1,9 @@
+import enum
+
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
+
+from src.user_actions import ReplayActions
 
 from .qt_helper_widgets.lines import QHLine
 from .qt_helper_widgets.own_slider import OwnSlider
@@ -121,6 +125,32 @@ class QPlaybackWidget(qtw.QWidget):
 
     def decrease_speed(self):
         self.replay_speed_widget.minus_step()
+
+    def skip_forward(self):
+        self.skip_frames.emit(True, False)
+
+    def skip_backward(self):
+        self.skip_frames.emit(False, False)
+
+    def skip_forward_fast(self):
+        self.skip_frames.emit(True, True)
+
+    def skip_backward_fast(self):
+        self.skip_frames.emit(False, True)
+
+    @qtc.pyqtSlot(enum.Enum)
+    def on_user_action(self, action: ReplayActions):
+        d = {
+            ReplayActions.TOGGLE_PLAY_PAUSE: self.play_stop_button.trigger,
+            ReplayActions.SKIP_FRAMES: self.skip_forward,
+            ReplayActions.SKIP_FRAMES_FAR: self.skip_forward_fast,
+            ReplayActions.SKIP_FRAMES_BACK: self.skip_backward,
+            ReplayActions.SKIP_FRAMES_BACK_FAR: self.skip_backward_fast,
+            ReplayActions.INCREASE_SPEED: self.increase_speed,
+            ReplayActions.DECREASE_SPEED: self.decrease_speed,
+        }
+        if action in d:
+            d[action]()
 
 
 class SliderWidget(qtw.QWidget):
