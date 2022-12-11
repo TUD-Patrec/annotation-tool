@@ -239,8 +239,15 @@ class QPushButtonAdapted(qtw.QPushButton):
         self.element_name = element_name
         self.is_highlighted = False
 
-        self.checked_style = "border-color: green"
-        self.highlight_style = "border-color: gold"
+        # self.checked_style = "border-color: green"
+        # self.highlight_style = "border-color: gold"
+
+        self.checked_style = (
+            "border-color: green; border-width: 2px; border-style: solid;"
+        )
+        self.highlight_style = (
+            "border-color: gold; border-width: 2px; border-style: solid;"
+        )
         self.unchecked_style = ""
         self.setStyleSheet(self.unchecked_style)
 

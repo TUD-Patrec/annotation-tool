@@ -19,7 +19,7 @@ class QDisplaySample(qtw.QWidget):
         self.end_label = qtw.QLabel("End Frame:", alignment=qtc.Qt.AlignCenter)
         self.end_value = qtw.QLabel("", alignment=qtc.Qt.AlignCenter)
 
-        self.middle_widget = QShowAnnotation()
+        self.middle_widget = QShowAnnotation(self)
 
         self.bottom_left_widget = qtw.QWidget()
         self.bottom_left_widget.setLayout(qtw.QFormLayout())
@@ -41,6 +41,7 @@ class QDisplaySample(qtw.QWidget):
         vbox.addWidget(QHLine())
         vbox.addWidget(self.bottom_widget, alignment=qtc.Qt.AlignCenter)
 
+        vbox.setContentsMargins(0, 0, 0, 0)
         self.setLayout(vbox)
         self.setFixedWidth(400)
 
