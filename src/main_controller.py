@@ -88,6 +88,7 @@ class MainApplication(qtw.QApplication):
         self.mediator.add_receiver(self.media_player)
         self.mediator.add_receiver(self.playback)
         self.mediator.add_emitter(self.timeline)
+        self.mediator.add_emitter(self.annotation_controller)
         self.mediator.add_emitter(self.media_player)
         self.mediator.add_emitter(self.playback)
 

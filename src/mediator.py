@@ -38,13 +38,17 @@ class Mediator(qtc.QObject):
         assert receiver not in self.receivers
 
     def add_emitter(self, emitter):
-        assert isinstance(emitter, (QMediaWidget, QTimeLine, QPlaybackWidget))
+        assert isinstance(
+            emitter, (QMediaWidget, QTimeLine, QPlaybackWidget, AnnotationController)
+        )
         if isinstance(emitter, QMediaWidget):
             emitter.position_changed.connect(self.on_timeout)
         elif isinstance(emitter, QTimeLine):
             emitter.position_changed.connect(self.set_position)
         elif isinstance(emitter, QPlaybackWidget):
             emitter.skip_frames.connect(self.skip_frames)
+        elif isinstance(emitter, AnnotationController):
+            emitter.position_changed.connect(self.set_position)
         self.emitters.append(emitter)
 
     def remove_emitter(self, emitter):

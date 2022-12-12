@@ -159,6 +159,7 @@ class Annotation:
             deepcopy(self.scheme, memodict), deepcopy(self.annotation_vector, memodict)
         )
         assert self == new_anno
+        assert new_anno is not self
         return new_anno
 
     def __iter__(self):
