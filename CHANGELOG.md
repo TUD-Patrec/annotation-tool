@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). See also [RELEASE.md](RELEASE.md) for additional explanation.
 
+## v0.5.0 (2022-12-12)
+
+### Feature
+
+- **user_actions-&-timeline**: Added user_actions to simplify signal handling & Added scrolling to timeline
+- **timeline.py**: Updated zooming of timeline
+- **network_list.py**: Added network wrapper for adding/updating/deleting models
+- **timeline.py**: First primitive not yet functioning version of the scrollable timeline
+- **main.py**: High-DPI scaling is now used if selected by the user
+- **settings_dialog.py**: Improved the design of the settings
+- **annotation-list-and-settings-dialog**: Updated some GUI Dialoges
+- Implemented file based caching for persisting Annotations, Datasets, etc
+- **file_cache.py**: Added file based cache to replace __local_storage__
+- **video_reader.py**: Added pythonic video reading
+
+### Fix
+
+- **mocap.py**: Fixed scaling
+- **annotation_dialog-&-timeline**: Fixed handling of empty annotations
+- **networks**: Fixed network loading
+- Fixed some small bugs
+
+### Refactor
+
+- Resize annotation-displaying widget
+
 ## v0.4.0 (2022-11-11)
 
 ### Feature
