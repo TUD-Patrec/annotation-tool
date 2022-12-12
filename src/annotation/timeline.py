@@ -202,29 +202,10 @@ class QTimeLine(qtw.QWidget):
         if self.is_in:
             # check if control key is pressed
             if e.modifiers() == qtc.Qt.ControlModifier:
-                big_skip = settings.big_skip
                 if e.angleDelta().y() > 0:
-                    new_pos = max(0, self.frame_idx - big_skip)
-                    if new_pos != self.frame_idx:
-                        self.set_position(new_pos)
-                        self.position_changed.emit(new_pos)
+                    self.zoom_in()
                 else:
-                    new_pos = min(self.n_frames - 1, self.frame_idx + big_skip)
-                    if new_pos != self.frame_idx:
-                        self.set_position(new_pos)
-                        self.position_changed.emit(new_pos)
-            else:
-                small_skip = settings.small_skip
-                if e.angleDelta().y() > 0:
-                    new_pos = max(0, self.frame_idx - small_skip)
-                    if new_pos != self.frame_idx:
-                        self.set_position(new_pos)
-                        self.position_changed.emit(new_pos)
-                else:
-                    new_pos = min(self.n_frames - 1, self.frame_idx + small_skip)
-                    if new_pos != self.frame_idx:
-                        self.set_position(new_pos)
-                        self.position_changed.emit(new_pos)
+                    self.zoom_out()
         else:
             e.ignore()
 

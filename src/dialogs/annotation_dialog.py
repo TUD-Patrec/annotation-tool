@@ -5,6 +5,8 @@ import numpy as np
 from src.data_model import AnnotationScheme, Sample
 from src.data_model.annotation import Annotation
 
+preferred_size = None
+
 
 class QAnnotationDialog(qtw.QDialog):
     def __init__(
@@ -31,6 +33,10 @@ class QAnnotationDialog(qtw.QDialog):
         self.current_selection = np.zeros(self.N, dtype=np.uint8)
 
         self._set_annotation(sample.annotation)
+
+        if preferred_size is not None:
+            print("Setting preferred size")
+            self.resize(preferred_size)
 
     def _set_annotation(self, a):
         self.current_selection = np.copy(a.annotation_vector)
@@ -212,6 +218,7 @@ class QAnnotationDialog(qtw.QDialog):
         # Empty Annotation -> Reset Sample
         if not np.any(self.current_selection):
             self.__reset_annotation__()
+            return
         # Default Case
         else:
             if self.dependencies is None:
@@ -227,6 +234,11 @@ class QAnnotationDialog(qtw.QDialog):
 
     def __cancel_annotation__(self):
         self.close()
+
+    def resizeEvent(self, a0) -> None:
+        global preferred_size
+        preferred_size = self.size()
+        return super().resizeEvent(a0)
 
 
 class QPushButtonAdapted(qtw.QPushButton):

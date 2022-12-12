@@ -33,10 +33,10 @@ class QShowAnnotation(qtw.QWidget):
             if attribute.row != current_row:
                 current_row = attribute.row
                 list_widget = qtw.QListWidget()
+                list_widget.setMaximumHeight(50)
                 list_widget.setDisabled(False)
                 list_widget.setSelectionMode(qtw.QAbstractItemView.NoSelection)
                 list_widget.setItemAlignment(qtc.Qt.AlignCenter)
-                list_widget.setFixedHeight(50)
 
                 group_name = attribute.group_name.capitalize() + ":"
 
