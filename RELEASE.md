@@ -11,6 +11,7 @@ If you plan on releasing a new version follow these steps:
    git push --tags
    ```
    The GitLab CI/CD should take care of compiling and uploading the package to PyPI/TestPyPI.
+3. Also merge back `master` into `dev` to reflect the version update onto the development branch.
 
 ### Alpha and beta versions
 
