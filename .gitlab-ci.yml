@@ -9,13 +9,21 @@ image: python:3.9
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-.*/'
       when: manual
 
-.setup:
+.setup_poetry:
   script:
     - pip install --upgrade pip
     - pip install poetry
     - poetry config virtualenvs.create false
-    - poetry install
 
+.install:
+  script:
+    - !reference [.setup_poetry, script]
+    - poetry install --without=dev
+
+.install_dev:
+  script:
+    - !reference [.setup_poetry, script]
+    - poetry install
 
 .setup_pypi:
   script:
@@ -32,25 +40,25 @@ before_script:
 flake8 check:
   needs: []
   script:
-    - !reference [.setup, script]
+    - !reference [.install_dev, script]
     - poetry run flake8 "${CI_PROJECT_DIR}" --count --statistics
 
 black check:
   needs: []
   script:
-    - !reference [.setup, script]
+    - !reference [.install_dev, script]
     - poetry run black --check "${CI_PROJECT_DIR}"
 
 isort check:
   needs: []
   script:
-    - !reference [.setup, script]
+    - !reference [.install_dev, script]
     - poetry run isort --check --settings-path pyproject.toml "${CI_PROJECT_DIR}"
 
 publish pypi:
   needs: ["flake8 check", "black check", "isort check"]
   script:
-    - !reference [.setup, script]
+    - !reference [.install, script]
     - !reference [.setup_pypi, script]
     - poetry publish --build
   rules:
@@ -59,7 +67,7 @@ publish pypi:
 publish testpypi:
   needs: ["flake8 check", "black check", "isort check"]
   script:
-    - !reference [.setup, script]
+    - !reference [.install, script]
     - !reference [.setup_testpypi, script]
     - poetry publish --build -r testpypi
   rules:
@@ -68,7 +76,7 @@ publish testpypi:
 publish testpypi manually:
   needs: []
   script:
-    - !reference [.setup, script]
+    - !reference [.install, script]
     - !reference [.setup_testpypi, script]
     - poetry publish --build -r testpypi
   rules:
