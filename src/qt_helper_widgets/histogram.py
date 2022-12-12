@@ -7,6 +7,9 @@ import numpy as np
 matplotlib.use("Qt5Agg")
 
 
+fig = plt.figure(figsize=(8, 6), dpi=80)  # create a figure object
+
+
 class HistogramWidget(qtw.QWidget):
     def __init__(self, *args, **kwargs):
         super(HistogramWidget, self).__init__(*args, **kwargs)
@@ -15,8 +18,7 @@ class HistogramWidget(qtw.QWidget):
         self.data = None
         self.current_color = None
 
-        # figure to plot on
-        self.figure = plt.figure(figsize=(8, 6), dpi=80)
+        self.figure = fig
 
         # canvas Widget that displays the fig
         self.canvas = FigureCanvas(self.figure)

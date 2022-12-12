@@ -1,7 +1,7 @@
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
-from src.dataclasses import Sample
+from src.data_model import Sample
 from src.qt_helper_widgets.display_scheme import QShowAnnotation
 from src.qt_helper_widgets.lines import QHLine
 
@@ -19,7 +19,7 @@ class QDisplaySample(qtw.QWidget):
         self.end_label = qtw.QLabel("End Frame:", alignment=qtc.Qt.AlignCenter)
         self.end_value = qtw.QLabel("", alignment=qtc.Qt.AlignCenter)
 
-        self.middle_widget = QShowAnnotation()
+        self.middle_widget = QShowAnnotation(self)
 
         self.bottom_left_widget = qtw.QWidget()
         self.bottom_left_widget.setLayout(qtw.QFormLayout())
@@ -41,6 +41,7 @@ class QDisplaySample(qtw.QWidget):
         vbox.addWidget(QHLine())
         vbox.addWidget(self.bottom_widget, alignment=qtc.Qt.AlignCenter)
 
+        vbox.setContentsMargins(0, 0, 0, 0)
         self.setLayout(vbox)
         self.setFixedWidth(400)
 

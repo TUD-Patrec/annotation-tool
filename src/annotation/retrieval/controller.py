@@ -16,8 +16,9 @@ from src.annotation.retrieval.retrieval_backend.filter_dialog import QRetrievalF
 from src.annotation.retrieval.retrieval_backend.loader import RetrievalLoader
 from src.annotation.retrieval.retrieval_backend.query import Query
 from src.annotation.retrieval.tool_widget import RetrievalTools
-from src.dataclasses import Sample, Settings
+from src.data_model import Sample
 from src.dialogs.annotation_dialog import QAnnotationDialog
+from src.settings import settings
 
 
 class RetrievalAnnotation(AnnotationBaseClass):
@@ -38,8 +39,8 @@ class RetrievalAnnotation(AnnotationBaseClass):
         self.tool_widget.change_filter.connect(self.select_filter)
 
         # Constants
-        self.interval_size: int = Settings.instance().retrieval_segment_size
-        self.overlap: float = Settings.instance().retrieval_segment_overlap
+        self.interval_size: int = settings.retrieval_segment_size
+        self.overlap: float = settings.retrieval_segment_overlap
 
         # Control Attributes
         self.filter_criterion: FilterCriterion = FilterCriterion()  # empty filter
@@ -57,7 +58,6 @@ class RetrievalAnnotation(AnnotationBaseClass):
         self.loading_thread = RetrievalLoader(self)
         self.loading_thread.success.connect(self.loading_success)
         self.loading_thread.error.connect(self.loading_error)
-        self.loading_thread.start()
 
         self.progress_dialog = qtw.QProgressDialog(self.main_widget)
         # remove cancel button of progress_dialog
@@ -68,8 +68,9 @@ class RetrievalAnnotation(AnnotationBaseClass):
         self.progress_dialog.setWindowTitle("Loading")
         self.progress_dialog.setForegroundRole(qtg.QPalette.Highlight)
         self.loading_thread.progress.connect(self.progress_dialog.setValue)
-        self.progress_dialog.open()
         self.loading_thread.finished.connect(self.progress_dialog.close)
+        self.progress_dialog.open()
+        self.loading_thread.start()
 
     @qtc.pyqtSlot(Exception)
     def loading_error(self, e: Exception):

@@ -4,12 +4,12 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
-from src.dataclasses.settings import Settings
 from src.media.backend.player import AbstractMediaPlayer
 from src.media.backend.timer import Timer
 from src.media.backend.type_specific_player.mocap import MocapPlayer
 from src.media.backend.type_specific_player.video import VideoPlayer
 from src.media.media_types import MediaType, media_type_of
+from src.settings import settings
 
 
 class QMediaMainController(qtw.QWidget):
@@ -154,7 +154,6 @@ class QMediaMainController(qtw.QWidget):
 
     @qtc.pyqtSlot()
     def settings_changed(self):
-        settings = Settings.instance()
         for widget in self.replay_widgets:
             if isinstance(widget, MocapPlayer):
                 if widget.fps != settings.refresh_rate:

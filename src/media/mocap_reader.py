@@ -3,7 +3,11 @@ import os
 
 import numpy as np
 
-from src.media.media_base import MediaBase
+from .media_base import MediaReader
+
+
+def get_mocap(*args):
+    return load_mocap(*args)
 
 
 @lru_cache(maxsize=10)
@@ -119,7 +123,7 @@ def __normalize_lara_mocap__(array: np.array) -> np.array:
     return array
 
 
-class MocapReader(MediaBase):
+class MocapReader(MediaReader):
     """Class for reading mocap data."""
 
     def __init__(self, path: os.PathLike) -> None:
@@ -134,7 +138,7 @@ class MocapReader(MediaBase):
         """
 
         super().__init__(path)
-        self._data: np.ndarray = load_mocap(path)
+        self._n_frames = self.media.shape[0]
 
     def __get_frame__(self, idx: int) -> np.ndarray:
         """
@@ -152,4 +156,4 @@ class MocapReader(MediaBase):
         if idx < 0 or idx >= len(self):
             raise IndexError("Index out of range.")
 
-        return self._data[idx]
+        return self.media[idx]

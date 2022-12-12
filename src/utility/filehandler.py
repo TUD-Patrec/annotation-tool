@@ -1,67 +1,77 @@
 import csv
-from dataclasses import dataclass, field
+import fnmatch
 import functools
 import hashlib
 import json
 import logging
-import math
+import logging.config
 import os
 import pickle
 import string
-from typing import Tuple, Union
+from typing import List, Tuple, Union
 
-import cv2
 import numpy as np
 
-from src.dataclasses.settings import Settings
-from src.media.media_types import MediaType, media_type_of
-from src.media.mocap_reading import load_mocap
-from src.utility.decorators import Singleton
+
+def find_all(name: str, path: os.PathLike = None) -> list:
+    """Find all files with the given name in the given path. If no path is
+    given, the user's home directory is used.
+
+        Args:
+            name (str): Name of the file.
+            path (os.PathLike, optional): Path to search in. Defaults to None.
+
+        Returns:
+            list: List of all files with the given name.
+
+        Raises:
+            ValueError: If no path is given.
+    """
+    if name is None or name == "":
+        raise ValueError("name must not be empty")
+    if path is None:
+        path = os.path.join(os.path.expanduser("~"))
+    result = []
+    for root, dirs, files in os.walk(path):
+        if name in files:
+            result.append(os.path.join(root, name))
+    return result
 
 
-@Singleton
-@dataclass()
-class Paths:
-    _root: str = field(init=False, default=None)
-    _local_storage: str = field(init=False, default="__local__storage__")
-    _annotations: str = field(init=False, default="annotations")
-    _datasets: str = field(init=False, default="dataset_schemes")
-    _networks: str = field(init=False, default="networks")
-    _resources: str = field(init=False, default="resources")
-    _config: str = field(init=False, default="config.json")
+def find_all_p(pattern: str, path: os.PathLike) -> list:
+    """Find all files matching the given pattern in the given path.
+    If no path is given, the user's home directory is used.
 
-    @property
-    def root(self):
-        return self._root
+    Args:
+        pattern (str): Pattern to match.
+        path (os.PathLike): Path to search in.
 
-    @root.setter
-    def root(self, path):
-        if self._root is None and os.path.isdir(path):
-            self._root = path
+    Returns:
+        list: List of all files matching the given pattern.
+    """
+    result = []
+    for root, dirs, files in os.walk(path):
+        for name in files:
+            if fnmatch.fnmatch(name, pattern):
+                result.append(os.path.join(root, name))
+    return result
 
-    @property
-    def local_storage(self):
-        return os.path.join(self.root, self._local_storage)
 
-    @property
-    def annotations(self):
-        return os.path.join(self.local_storage, self._annotations)
+def find_first(name: str, path: os.PathLike = None) -> Union[str, None]:
+    """Find first file with the given name in the given path. If no path is
+    given, the user's home directory is used.
 
-    @property
-    def datasets(self):
-        return os.path.join(self.local_storage, self._datasets)
+    Args:
+        name (str): Name of the file.
+        path (os.PathLike, optional): Path to search in. Defaults to None.
 
-    @property
-    def networks(self):
-        return os.path.join(self.local_storage, self._networks)
-
-    @property
-    def resources(self):
-        return os.path.join(self.local_storage, self._resources)
-
-    @property
-    def config(self):
-        return os.path.join(self.local_storage, self._config)
+    Returns:
+        Union[str, None]: Path to the first file found or None.
+    """
+    for root, dirs, files in os.walk(path):
+        if name in files:
+            return os.path.join(root, name)
+    return None
 
 
 def is_non_zero_file(path: os.PathLike) -> bool:
@@ -245,17 +255,22 @@ def read_csv(
     return data
 
 
-def write_csv(path: os.PathLike, data: np.ndarray) -> None:
+def write_csv(path: os.PathLike, data: np.ndarray, header: List[str] = None) -> None:
     """Write numpy-array to file.
 
     Args:
         path (os.PathLike): Output path.
         data (np.ndarray): Array containing the data.
+        header (List[str], optional): Header for the csv-file.
     """
-    if np.issubdtype(data.dtype, np.integer):
-        np.savetxt(path, data, fmt="%d", delimiter=",")
+    if header is not None:
+        header = ",".join(header)
     else:
-        np.savetxt(path, data, delimiter=",")
+        header = ""
+    if np.issubdtype(data.dtype, np.integer):
+        np.savetxt(path, data, fmt="%d", delimiter=",", header=header)
+    else:
+        np.savetxt(path, data, delimiter=",", header=header)
 
 
 def write_pickle(path: os.PathLike, data: object) -> None:
@@ -339,65 +354,6 @@ def path_to_dirname(path: os.PathLike) -> os.PathLike:
         return dirname
 
 
-def meta_data(path: os.PathLike) -> Tuple[float, int, float]:
-    """Compute some useful information for the given media.
-
-    Args:
-        path (os.PathLike): Path to media that should be analysed.
-
-    Raises:
-        FileNotFoundError: Raised if the given path does
-            not lead to a non-zero file.
-
-    Returns:
-        Tuple[float, int, float]: Length of the media in seconds,
-            Total number of frames,
-            Framerate aka. sampling-rate.
-    """
-    if is_non_zero_file(path):
-        footprint = footprint_of_file(path)
-        return __meta_data__(path, footprint)
-    else:
-        raise FileNotFoundError
-
-
-@functools.lru_cache(maxsize=128)
-def __meta_data__(path: os.PathLike, _: str):
-    if media_type_of(path) == MediaType.MOCAP:
-        meta = __meta_data_of_mocap__(path)
-    elif media_type_of(path) == MediaType.VIDEO:
-        meta = __meta_data_of_video__(path)
-    else:
-        raise ValueError(f"Could not determine media-type for {path}")
-    return meta
-
-
-def __meta_data_of_mocap__(path: os.PathLike) -> Tuple[int, int, float]:
-    mocap = load_mocap(path)
-    frame_count = mocap.shape[0]
-    fps = Settings.instance().refresh_rate
-    return 1000 * int(frame_count / fps), frame_count, fps
-
-
-def __meta_data_of_video__(path: os.PathLike) -> Tuple[int, int, float]:
-    video = cv2.VideoCapture(path)
-    frame_count: int = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    frame_rate: float = video.get(cv2.CAP_PROP_FPS)
-    duration: float = frame_count / frame_rate
-    lower, upper = math.floor(duration), math.ceil(duration)
-
-    d_lower = abs(lower * frame_rate - frame_count)
-    d_upper = abs(upper * frame_rate - frame_count)
-
-    # picking the better choice
-    if d_lower < d_upper:
-        duration: int = 1000 * lower
-    else:
-        duration: int = 1000 * upper
-
-    return duration, frame_count, frame_rate
-
-
 def logging_config() -> dict:
     """Create basic configuration for logging.
 
@@ -432,29 +388,11 @@ def logging_config() -> dict:
 
 
 def init_logger():
+    from src.settings import settings
+
     """Initialize logger."""
     log_config_dict = logging_config()
     log_config_dict["handlers"]["screen_handler"]["level"] = (
-        "DEBUG" if Settings.instance().debugging_mode else "WARNING"
+        "DEBUG" if settings.debugging_mode else "WARNING"
     )
     logging.config.dictConfig(log_config_dict)
-
-
-# TODO
-def clean_folders():
-    """Check folders for unnessesary files and remove those."""
-    # paths: Paths = Paths.instance()
-    pass
-
-
-def init_folder_structure():
-    """Create all folders needed for the tool to work properly."""
-    clean_folders()
-
-    paths = Paths.instance()
-
-    create_dir(paths.local_storage)
-    create_dir(paths.annotations)
-    create_dir(paths.datasets)
-    create_dir(paths.networks)
-    create_dir(paths.resources)

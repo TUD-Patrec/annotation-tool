@@ -9,6 +9,7 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
 from src.main_controller import main
+from src.settings import settings
 from src.utility import filehandler
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -61,19 +62,12 @@ def enable_high_dpi_scaling():
 
 
 def start():
-    application_path = get_application_path()
-
-    # Injecting root_path
-    paths = filehandler.Paths.instance()
-    paths.root = application_path
-
-    # Init Folders and logger
-    filehandler.init_folder_structure()
     filehandler.init_logger()
+    # application_path = get_application_path()
+    # logging.info("Running relative to {}".format(application_path))
 
-    logging.info("Running relative to {}".format(application_path))
-
-    # enable_high_dpi_scaling()
+    if settings.high_dpi_scaling:
+        enable_high_dpi_scaling()
 
     main()
 

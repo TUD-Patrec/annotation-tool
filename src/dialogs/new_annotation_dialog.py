@@ -3,12 +3,11 @@ import os
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
-from src.dataclasses.globalstate import GlobalState
-from src.media.media_types import MediaType, media_type_of
-
-from ..dataclasses.settings import Settings
-from ..qt_helper_widgets.line_edit_adapted import QLineEditAdapted
-from ..utility import filehandler, functions
+from src.data_model import Dataset
+from src.data_model.globalstate import GlobalState
+from src.media.media_types import get_reader
+from src.qt_helper_widgets.line_edit_adapted import QLineEditAdapted
+from src.settings import settings
 
 
 class QNewAnnotationDialog(qtw.QDialog):
@@ -23,7 +22,6 @@ class QNewAnnotationDialog(qtw.QDialog):
         self.annotation_name.textChanged.connect(lambda _: self.check_enabled())
         form.addRow("Annotation name:", self.annotation_name)
 
-        self.datasets = functions.get_datasets()
         self.combobox = qtw.QComboBox()
         for data_description in self.datasets:
             self.combobox.addItem(data_description.name)
@@ -80,10 +78,23 @@ class QNewAnnotationDialog(qtw.QDialog):
     def open_pressed(self):
         self.check_enabled()
         if self.open_button.isEnabled():
-
-            media_type = media_type_of(self.line_edit.text())
-
-            if media_type == MediaType.UNKNOWN:
+            try:
+                media_reader = get_reader(self.line_edit.text())
+                if len(media_reader) < 1000:
+                    msg = qtw.QMessageBox(self)
+                    msg.setIcon(qtw.QMessageBox.Critical)
+                    msg.setText("Media too short.")
+                    msg.setInformativeText(
+                        "The selected media's length [={}] is too small.\nIt should at least consist of 1000 frames!".format(
+                            len(media_reader)
+                        )
+                    )
+                    msg.setWindowTitle("Error")
+                    msg.exec_()
+                    self.line_edit.setText("")
+                    self.check_enabled()
+                    return
+            except ValueError:
                 msg = qtw.QMessageBox(self)
                 msg.setIcon(qtw.QMessageBox.Critical)
                 msg.setText("Unknown media type.")
@@ -94,36 +105,20 @@ class QNewAnnotationDialog(qtw.QDialog):
                 self.check_enabled()
                 return
 
-            try:
-                _, n, _ = filehandler.meta_data(self.line_edit.text())
-                if n < 1000:
-                    msg = qtw.QMessageBox(self)
-                    msg.setIcon(qtw.QMessageBox.Critical)
-                    msg.setText("Media too short.")
-                    msg.setInformativeText(
-                        "The selected media's length [={}] is too small.\nIt should at least consist of 1000 frames!".format(
-                            n
-                        )
-                    )
-                    msg.setWindowTitle("Error")
-                    msg.exec_()
-                    self.line_edit.setText("")
-                    self.check_enabled()
-                    return
-
-            except FileNotFoundError:
-                pass
-
             idx = self.combobox.currentIndex()
 
-            dataset_description = self.datasets[idx]
+            dataset = self.datasets[idx]
 
-            annotator_id = Settings.instance().annotator_id
+            annotator_id = settings.annotator_id
             annotation = GlobalState(
                 annotator_id,
-                dataset_description,
+                dataset,
                 self.annotation_name.text(),
-                self.line_edit.text(),
+                media_reader,
             )
             self.close()
             self.load_annotation.emit(annotation)
+
+    @property
+    def datasets(self):
+        return Dataset.get_all()

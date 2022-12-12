@@ -5,7 +5,7 @@ import numpy as np
 from scipy import spatial
 
 from src.annotation.retrieval.retrieval_backend.element import RetrievalElement
-from src.dataclasses import Annotation
+from src.data_model import Annotation
 import src.network.controller as network
 
 
@@ -21,11 +21,12 @@ class RetrievalLoader(qtc.QThread):
     def run(self):
         intervals, classifications, retrieval_elements = self.load()
         self.success.emit(intervals, classifications, retrieval_elements)
-        # try:
-        #    intervals, classifications, retrieval_elements = self.load()
-        #    self.success.emit(intervals, classifications, retrieval_elements)
-        # except Exception as e:
-        #    self.error.emit(e)
+        return
+        try:
+            intervals, classifications, retrieval_elements = self.load()
+            self.success.emit(intervals, classifications, retrieval_elements)
+        except Exception as e:
+            self.error.emit(e)
 
     def load(
         self,

@@ -2,8 +2,10 @@ import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 import numpy as np
 
-from src.dataclasses import AnnotationScheme, Sample
-from src.dataclasses.annotation import Annotation
+from src.data_model import AnnotationScheme, Sample
+from src.data_model.annotation import Annotation
+
+preferred_size = None
 
 
 class QAnnotationDialog(qtw.QDialog):
@@ -31,6 +33,10 @@ class QAnnotationDialog(qtw.QDialog):
         self.current_selection = np.zeros(self.N, dtype=np.uint8)
 
         self._set_annotation(sample.annotation)
+
+        if preferred_size is not None:
+            print("Setting preferred size")
+            self.resize(preferred_size)
 
     def _set_annotation(self, a):
         self.current_selection = np.copy(a.annotation_vector)
@@ -212,6 +218,7 @@ class QAnnotationDialog(qtw.QDialog):
         # Empty Annotation -> Reset Sample
         if not np.any(self.current_selection):
             self.__reset_annotation__()
+            return
         # Default Case
         else:
             if self.dependencies is None:
@@ -228,6 +235,11 @@ class QAnnotationDialog(qtw.QDialog):
     def __cancel_annotation__(self):
         self.close()
 
+    def resizeEvent(self, a0) -> None:
+        global preferred_size
+        preferred_size = self.size()
+        return super().resizeEvent(a0)
+
 
 class QPushButtonAdapted(qtw.QPushButton):
     button_clicked = qtc.pyqtSignal(str, str, bool)
@@ -239,8 +251,15 @@ class QPushButtonAdapted(qtw.QPushButton):
         self.element_name = element_name
         self.is_highlighted = False
 
-        self.checked_style = "border-color: green"
-        self.highlight_style = "border-color: gold"
+        # self.checked_style = "border-color: green"
+        # self.highlight_style = "border-color: gold"
+
+        self.checked_style = (
+            "border-color: green; border-width: 2px; border-style: solid;"
+        )
+        self.highlight_style = (
+            "border-color: gold; border-width: 2px; border-style: solid;"
+        )
         self.unchecked_style = ""
         self.setStyleSheet(self.unchecked_style)
 

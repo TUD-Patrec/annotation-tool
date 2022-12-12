@@ -4,8 +4,9 @@ from typing import Union
 
 import numpy as np
 
-from src.dataclasses.annotation_scheme import AnnotationScheme
 from src.utility.decorators import returns
+
+from .annotation_scheme import AnnotationScheme
 
 
 def is_compatible(raw_annotation: Union[np.ndarray, dict], scheme: AnnotationScheme):
@@ -43,7 +44,9 @@ class Annotation:
             annotation = np.zeros(len(scheme), dtype=np.int8)
         else:
             assert isinstance(annotation, (np.ndarray, dict))
-            assert is_compatible(annotation, scheme)
+            assert is_compatible(
+                annotation, scheme
+            ), "Annotation is not compatible: \n {} \n {}".format(annotation, scheme)
 
         self._scheme = scheme
         self._annotation_dict = self._make_dict(annotation)

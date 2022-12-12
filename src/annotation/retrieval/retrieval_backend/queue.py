@@ -5,7 +5,7 @@ from typing import Dict, List, Union
 from sortedcontainers import SortedList
 
 from src.annotation.retrieval.retrieval_backend.element import RetrievalElement
-from src.dataclasses.priority_queue import PriorityQueue
+from src.utility.priority_queue import PriorityQueue
 
 
 @dataclass(order=True)

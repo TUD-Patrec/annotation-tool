@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Tuple, Union
 
-from src.dataclasses import Annotation, Sample
+from src.data_model import Annotation, Sample
 
 
 @dataclass(eq=True, unsafe_hash=True)

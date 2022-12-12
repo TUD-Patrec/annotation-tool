@@ -1,20 +1,18 @@
 import logging
 import logging.config
 import sys
-import time
 
 import PyQt5.QtCore as qtc
 import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
-from src.annotation.modes import AnnotationMode
 from src.annotation.timeline import QTimeLine
-from src.dataclasses.settings import Settings
 import src.network.controller as network
+from src.settings import settings
 import src.utility.breeze_resources  # noqa: F401
 
 from .annotation.controller import AnnotationController
-from .dataclasses.globalstate import GlobalState
+from .data_model.globalstate import GlobalState
 from .gui import GUI, LayoutPosition
 from .media.media import QMediaWidget
 from .mediator import Mediator
@@ -75,34 +73,14 @@ class MainApplication(qtw.QApplication):
         )
 
         # from GUI
+        self.gui.user_action.connect(self.playback.on_user_action)
+        self.gui.user_action.connect(self.annotation_controller.on_user_action)
         self.gui.save_pressed.connect(self.save_annotation)
         self.gui.load_annotation.connect(self.load_state)
-        self.gui.annotate_pressed.connect(self.annotation_controller.annotate)
-        self.gui.merge_left_pressed.connect(
-            lambda: self.annotation_controller.merge(True)
-        )
-        self.gui.merge_right_pressed.connect(
-            lambda: self.annotation_controller.merge(False)
-        )
-        self.gui.cut_pressed.connect(self.annotation_controller.cut)
-        self.gui.cut_and_annotate_pressed.connect(
-            self.annotation_controller.cut_and_annotate
-        )
-        self.gui.play_pause_pressed.connect(self.playback.play_stop_button.trigger)
-        self.gui.skip_frames.connect(lambda x, y: self.playback.skip_frames.emit(x, y))
-        self.gui.decrease_speed_pressed.connect(self.playback.decrease_speed)
-        self.gui.increase_speed_pressed.connect(self.playback.increase_speed)
-        self.gui.undo_pressed.connect(self.annotation_controller.undo)
-        self.gui.redo_pressed.connect(self.annotation_controller.redo)
         self.gui.settings_changed.connect(self.settings_changed)
         self.gui.settings_changed.connect(self.media_player.settings_changed)
         self.gui.exit_pressed.connect(self.media_player.shutdown)
-        self.gui.use_manual_annotation.connect(
-            lambda: self.annotation_controller.change_mode(AnnotationMode.MANUAL)
-        )
-        self.gui.use_retrieval_mode.connect(
-            lambda: self.annotation_controller.change_mode(AnnotationMode.RETRIEVAL)
-        )
+        self.gui.annotation_mode_changed.connect(self.annotation_controller.change_mode)
 
         # Init mediator
         self.mediator.add_receiver(self.timeline)
@@ -113,19 +91,23 @@ class MainApplication(qtw.QApplication):
         self.mediator.add_emitter(self.media_player)
         self.mediator.add_emitter(self.playback)
 
+        # ui
+        self.update_theme()
+        self.update_font()
+
     @qtc.pyqtSlot(GlobalState)
-    def load_state(self, state):
+    def load_state(self, state: GlobalState):
         if state is not None:
-            start = time.perf_counter()
-            duration, n_frames, fps = filehandler.meta_data(state.input_file)
-            logging.info(f"Loading meta_data took: {time.perf_counter() - start:.4f}s")
+            duration = state.media.duration
+            n_frames = state.media.n_frames
+
             FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
 
             # load media
-            self.media_player.load(state.input_file)
+            self.media_player.load(state.media.path)
 
             # update network module
-            network.update_file(state.input_file)
+            network.update_file(state.media.path)
 
             # save for later reuse
             self.n_frames = n_frames
@@ -153,7 +135,7 @@ class MainApplication(qtw.QApplication):
                 n_frames,
             )
 
-            self.mediator.set_position(0)
+            self.mediator.set_position(0, force_update=True)
 
             self.save_annotation()
 
@@ -171,25 +153,35 @@ class MainApplication(qtw.QApplication):
                 assert samples[-1].end_position + 1 == self.n_frames
             else:
                 assert self.n_frames == 0
-            self.global_state.samples = samples
-            self.global_state.to_disk()
+            self.global_state.samples = samples  # this also writes the update to disk
 
     @qtc.pyqtSlot()
     def settings_changed(self):
-        settings = Settings.instance()
-        app = qtw.QApplication.instance()
-
-        custom_font = qtg.QFont()
-        custom_font.setPointSize(settings.font)
-        app.setFont(custom_font)
-
         log_config_dict = filehandler.logging_config()
         log_config_dict["handlers"]["screen_handler"]["level"] = (
             "DEBUG" if settings.debugging_mode else "WARNING"
         )
         logging.config.dictConfig(log_config_dict)
 
-        toggle_stylesheet(settings.darkmode)
+        if self.global_state is not None:
+            FrameTimeMapper.instance().update(
+                n_frames=self.global_state.media.n_frames,
+                millis=self.global_state.media.duration,
+            )
+
+        self.timeline.update()
+
+    def update_theme(self):
+        return
+        darkmode = settings.darkmode
+        file = (
+            qtc.QFile(":/dark/stylesheet.qss")
+            if darkmode
+            else qtc.QFile(":/light/stylesheet.qss")
+        )
+        file.open(qtc.QFile.ReadOnly | qtc.QFile.Text)
+        stream = qtc.QTextStream(file)
+        self.setStyleSheet(stream.readAll())
 
         # hack for updating color of histogram in retrieval-widget
         from src.annotation.retrieval.controller import RetrievalAnnotation
@@ -199,54 +191,51 @@ class MainApplication(qtw.QApplication):
         ):
             self.annotation_controller.controller.main_widget.histogram.plot()
 
+    def update_font(self):
+        font = self.font()
+        font.setPointSize(settings.font_size)
+        self.setFont(font)
 
-def toggle_stylesheet(darkmode):
-    """
-    Toggle the stylesheet to use the desired path in the Qt resource
-    system (prefixed by `:/`) or generically (a path to a file on
-    system).
-
-    :path:      A full path to a resource or file on system
-    """
-
-    # get the QApplication instance,  or crash if not set
-    app = qtw.QApplication.instance()
-    if app is None:
-        raise RuntimeError("No Qt Application found.")
-
-    file = (
-        qtc.QFile(":/dark/stylesheet.qss")
-        if darkmode
-        else qtc.QFile(":/light/stylesheet.qss")
-    )
-    file.open(qtc.QFile.ReadOnly | qtc.QFile.Text)
-    stream = qtc.QTextStream(file)
-    app.setStyleSheet(stream.readAll())
+    def closeEvent(self, event):
+        self.save_annotation()
+        self.media_player.shutdown()
+        event.accept()
 
 
 def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)
 
 
-def main():
-    sys.excepthook = except_hook
+def make_app() -> qtg.QApplication:
+    from . import __version__
+
+    print("Starting application")
 
     app = MainApplication(sys.argv)
     app.setStyle("Fusion")
+    app.setApplicationName("Annotation Tool")
+    app.setApplicationVersion(__version__)
+    app.setOrganizationName("TU Dortmund")
+    app.setOrganizationDomain("tu-dortmund.de")
+    app.setQuitOnLastWindowClosed(True)
+    app.setApplicationDisplayName("Annotation Tool")
+    return app
 
-    settings = Settings.instance()
 
-    custom_font = qtg.QFont()
-    custom_font.setPointSize(settings.font)
-    app.setFont(custom_font)
+def get_app() -> qtg.QApplication:
+    print("Getting application")
+    if qtc.QCoreApplication.instance():
+        return qtc.QCoreApplication.instance()
+    else:
+        return make_app()
 
-    file = (
-        qtc.QFile(":/dark/stylesheet.qss")
-        if settings.darkmode
-        else qtc.QFile(":/light/stylesheet.qss")
-    )
-    file.open(qtc.QFile.ReadOnly | qtc.QFile.Text)
-    stream = qtc.QTextStream(file)
-    app.setStyleSheet(stream.readAll())
 
+def main():
+    # set font
+    font = qtg.QFont()
+    font.setPointSize(settings.font_size)
+    qtg.QApplication.setFont(font)
+
+    sys.excepthook = except_hook
+    app = make_app()
     sys.exit(app.exec_())

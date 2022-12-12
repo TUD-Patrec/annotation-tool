@@ -10,9 +10,9 @@ import PyQt5.QtCore as qtc
 
 from src.annotation.controller import AnnotationController
 from src.annotation.timeline import QTimeLine
-from src.dataclasses import Settings
 from src.media.media import QMediaWidget
 from src.playback import QPlaybackWidget
+from src.settings import settings
 
 
 class Mediator(qtc.QObject):
@@ -59,9 +59,9 @@ class Mediator(qtc.QObject):
         assert emitter not in self.emitters
 
     @qtc.pyqtSlot(int)
-    def set_position(self, x):
+    def set_position(self, x, force_update=False):
         check1 = (0 <= x < self.n_frames) or (x == 0 == self.n_frames)
-        check2 = x != self.position
+        check2 = x != self.position or force_update
         if check1 and check2:
             if self.looping:
                 x = min(self.upper, max(self.lower, x))
@@ -89,7 +89,6 @@ class Mediator(qtc.QObject):
 
     @qtc.pyqtSlot(bool, bool)
     def skip_frames(self, forward_step, fast):
-        settings = Settings.instance()
         n = settings.big_skip if fast else settings.small_skip
         if not forward_step:
             n *= -1

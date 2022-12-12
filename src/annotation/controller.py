@@ -1,3 +1,4 @@
+import enum
 from typing import List
 
 import PyQt5.QtCore as qtc
@@ -8,7 +9,8 @@ from src.annotation.annotation_base import AnnotationBaseClass
 from src.annotation.manual.controller import ManualAnnotation
 from src.annotation.modes import AnnotationMode
 from src.annotation.retrieval.controller import RetrievalAnnotation
-from src.dataclasses import AnnotationScheme, Sample
+from src.data_model import AnnotationScheme, Sample
+from src.user_actions import AnnotationActions
 
 
 class AnnotationController(qtc.QObject):
@@ -73,7 +75,7 @@ class AnnotationController(qtc.QObject):
         self,
         samples: List[Sample],
         scheme: AnnotationScheme,
-        dependencies: List[np.ndarray],
+        dependencies: np.ndarray,
         n_frames: int,
     ) -> None:
         """
@@ -123,56 +125,11 @@ class AnnotationController(qtc.QObject):
         self.controller.setEnabled(x)
 
     @qtc.pyqtSlot()
-    def undo(self) -> None:
-        """
-        Undo the last action.
-        """
-        self.controller.undo()
-
-    @qtc.pyqtSlot()
-    def redo(self) -> None:
-        """
-        Redo the last action.
-        """
-        self.controller.redo()
-
-    @qtc.pyqtSlot()
     def clear_undo_redo(self) -> None:
         """
         Clear the undo/redo stack.
         """
         self.controller.clear_undo_redo()
-
-    @qtc.pyqtSlot()
-    def annotate(self) -> None:
-        """
-        Annotate the current sample.
-        """
-        self.controller.annotate()
-
-    @qtc.pyqtSlot()
-    def cut(self) -> None:
-        """
-        Cut the current sample.
-        """
-        self.controller.cut()
-
-    @qtc.pyqtSlot()
-    def cut_and_annotate(self) -> None:
-        """
-        Cut and annotate the current sample.
-        """
-        self.controller.cut_and_annotate()
-
-    @qtc.pyqtSlot(bool)
-    def merge(self, left: bool) -> None:
-        """
-        Merge the current sample with the previous/next sample.
-
-        Args:
-            left: Whether to merge with the previous sample.
-        """
-        self.controller.merge(left)
 
     @qtc.pyqtSlot(Sample)
     def insert_sample(self, sample: Sample) -> None:
@@ -183,3 +140,13 @@ class AnnotationController(qtc.QObject):
             sample: The sample to insert.
         """
         self.controller.insert_sample(sample)
+
+    @qtc.pyqtSlot(enum.Enum)
+    def on_user_action(self, action: AnnotationActions) -> None:
+        """
+        Handle user actions.
+
+        Args:
+            action: The user action.
+        """
+        self.controller.on_user_action(action)

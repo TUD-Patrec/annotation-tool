@@ -1,9 +1,12 @@
-import logging
+import enum
 
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
+from src.user_actions import ReplayActions
+
 from .qt_helper_widgets.lines import QHLine
+from .qt_helper_widgets.own_slider import OwnSlider
 
 
 class QPlaybackWidget(qtw.QWidget):
@@ -56,7 +59,7 @@ class QPlaybackWidget(qtw.QWidget):
         forward_button.triggered.connect(lambda _: self.skip_frames.emit(True, True))
         self.forward_button = forward_button
 
-        self.replay_speed_widget = QReplaySpeedSlider(self)
+        self.replay_speed_widget = SliderWidget(self)
         self.replay_speed_widget.valueChanged.connect(
             lambda x: self.replay_speed_changed.emit(x / 100)
         )
@@ -103,8 +106,7 @@ class QPlaybackWidget(qtw.QWidget):
     @qtc.pyqtSlot()
     def reset(self):
         self.pause()
-        self.replay_speed_widget.current = 100
-        self.replay_speed_widget.plus_step()
+        self.replay_speed_widget.reset_slider()
 
     @qtc.pyqtSlot()
     def play(self):
@@ -124,26 +126,67 @@ class QPlaybackWidget(qtw.QWidget):
     def decrease_speed(self):
         self.replay_speed_widget.minus_step()
 
+    def skip_forward(self):
+        self.skip_frames.emit(True, False)
 
-class QReplaySpeedSlider(qtw.QSlider):
+    def skip_backward(self):
+        self.skip_frames.emit(False, False)
+
+    def skip_forward_fast(self):
+        self.skip_frames.emit(True, True)
+
+    def skip_backward_fast(self):
+        self.skip_frames.emit(False, True)
+
+    @qtc.pyqtSlot(enum.Enum)
+    def on_user_action(self, action: ReplayActions):
+        d = {
+            ReplayActions.TOGGLE_PLAY_PAUSE: self.play_stop_button.trigger,
+            ReplayActions.SKIP_FRAMES: self.skip_forward,
+            ReplayActions.SKIP_FRAMES_FAR: self.skip_forward_fast,
+            ReplayActions.SKIP_FRAMES_BACK: self.skip_backward,
+            ReplayActions.SKIP_FRAMES_BACK_FAR: self.skip_backward_fast,
+            ReplayActions.INCREASE_SPEED: self.increase_speed,
+            ReplayActions.DECREASE_SPEED: self.decrease_speed,
+        }
+        if action in d:
+            d[action]()
+
+
+class SliderWidget(qtw.QWidget):
+    valueChanged = qtc.pyqtSignal(int)
+
     def __init__(self, *args, **kwargs):
-        super(QReplaySpeedSlider, self).__init__(*args, **kwargs)
-        self.setMinimum(10)
-        self.setMaximum(100)
-        self.setSingleStep(10)
-        self.setTickInterval(10)
+        super(SliderWidget, self).__init__(*args, **kwargs)
+        self.label = qtw.QLabel("100")
+        self.label.setAlignment(qtc.Qt.AlignCenter)
 
-        self.setTickPosition(qtw.QSlider.TicksLeft)
-        self.setValue(100)
+        self.slider = OwnSlider()
+        self.slider.setOrientation(qtc.Qt.Horizontal)
+        self.slider.setRange(10, 200)
+        self.slider.setTickPosition(qtw.QSlider.TicksBelow)
+        self.slider.setSingleStep(10)
+        self.slider.setTickInterval(25)
+        self.slider.valueChanged.connect(self.slider_changed)
+        self.slider.setValue(100)
 
+        self.layout = qtw.QVBoxLayout(self)
+        self.layout.addWidget(self.slider)
+        self.layout.addWidget(self.label)
+
+    @qtc.pyqtSlot(int)
+    def slider_changed(self, value):
+        self.label.setText(f"{value}%")
+        self.valueChanged.emit(value)
+
+    @qtc.pyqtSlot()
+    def reset_slider(self):
+        self.slider.setValue(100)
+
+    @qtc.pyqtSlot()
     def plus_step(self):
-        new_value = min(self.maximum(), self.value() + 10)
-        self.setValue(new_value)
-        logging.info(self.value())
-        self.valueChanged.emit(self.value())
+        self.slider.plus_step()
 
+    @qtc.pyqtSlot()
     def minus_step(self):
-        new_value = max(self.minimum(), self.value() - 10)
-        self.setValue(new_value)
-        logging.info(self.value())
-        self.valueChanged.emit(self.value())
+        self.slider.minus_step()
