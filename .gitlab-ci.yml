@@ -16,12 +16,6 @@ image: python:3.9
     - poetry config virtualenvs.create false
     - poetry install
 
-      # .setup_win:
-      #   script:
-      #     - /usr/win64/bin/python -m pip install --upgrade pip
-      #     - /usr/win64/bin/python -m pip install poetry
-      #     - /usr/win64/bin/python -m poetry config virtualenvs.create false
-      #     - /usr/win64/bin/python -m poetry install
 
 .setup_pypi:
   script:
@@ -79,37 +73,3 @@ publish testpypi manually:
     - poetry publish --build -r testpypi
   rules:
     - !reference [.default_rules, manual-version]
-
-      # build linux executable:
-      #   needs: ["flake8 check", "black check", "isort check"]
-      #   variables:
-      #     SRCDIR: "$CI_PROJECT_DIR"
-      #     PLATFORMS: "linux"
-      #   image:
-      #     name: fydeinc/pyinstaller
-      #     entrypoint: ["/bin/sh", "-l", "-c"]
-      #   script:
-      #     - !reference [.setup, script]
-      #     - /entrypoint.sh --onefile --noconsole --name annotation-tool main.py
-      #     - mv "dist/linux/annotation-tool" "${CI_PROJECT_DIR}/annotation-tool-linux"
-      #     - 'if [[ ! -z "${OWNCLOUD_KEY}" ]]; then curl -k -T annotation-tool-linux -u "${SCIEBO_KEY}:${SCIEBO_PASSWORD}" -H "X-Requested-With: XMLHttpRequest" https://tu-dortmund.sciebo.de/public.php/webdav/annotation-tool-linux; fi'
-      #   rules:
-      #     - !reference [.default_rules, master-version]
-      #     - !reference [.default_rules, manual-version]
-      #
-      # build windows executable:
-      #   needs: ["flake8 check", "black check", "isort check"]
-      #   variables:
-      #     SRCDIR: "$CI_PROJECT_DIR"
-      #     PLATFORMS: "windows"
-      #   image:
-      #     name: fydeinc/pyinstaller
-      #     entrypoint: ["/bin/sh", "-l", "-c"]
-      #   script:
-      #     - !reference [.setup_win, script]
-      #     - /entrypoint.sh --onefile --noconsole --name annotation-tool main.py
-      #     - mv "dist/windows/annotation-tool.exe" "${CI_PROJECT_DIR}/annotation-tool-windows.exe"
-      #     - 'if [[ ! -z "${OWNCLOUD_KEY}" ]]; then curl -k -T annotation-tool-windows.exe -u "${SCIEBO_KEY}:${SCIEBO_PASSWORD}" -H "X-Requested-With: XMLHttpRequest" https://tu-dortmund.sciebo.de/public.php/webdav/annotation-tool-windows.exe; fi'
-      #   rules:
-      #     - !reference [.default_rules, master-version]
-      #     - !reference [.default_rules, manual-version]
