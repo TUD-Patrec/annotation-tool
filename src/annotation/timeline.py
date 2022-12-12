@@ -209,15 +209,6 @@ class QTimeLine(qtw.QWidget):
         else:
             e.ignore()
 
-    def keyPressEvent(self, e) -> None:
-        print(e.key())
-        # zoom in with ctrl +  and zoom out with ctrl -
-        if e.modifiers() == qtc.Qt.ControlModifier:
-            if e.key() == qtc.Qt.Key_Plus:
-                self.zoom_in()
-            elif e.key() == qtc.Qt.Key_Minus:
-                self.zoom_out()
-
     def mouseMoveEvent(self, e):
         self.pos = e.pos()
 

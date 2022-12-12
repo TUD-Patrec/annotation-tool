@@ -1,4 +1,5 @@
 import PyQt5.QtCore as qtc
+import PyQt5.QtWidgets as qtw
 import numpy as np
 import pyqtgraph.opengl as gl
 
@@ -11,11 +12,11 @@ class MocapPlayer(AbstractMediaPlayer):
         super().__init__(*args, **kwargs)
         self.media_backend = MocapBackend(self)  # setting parent to self
         self.media_backend.right_mouse_btn_clicked.connect(self.open_context_menu)
-        self.layout().addWidget(self.media_backend)
 
     def load(self, path):
         media = MocapReader(path)
         self.media_backend.media = media
+        self.layout().addWidget(self.media_backend)
         self.fps = media.fps
         self.n_frames = len(media)
         self.update_media_position(UpdateReason.INIT)
@@ -41,6 +42,8 @@ class MocapBackend(gl.GLViewWidget):
 
         self.zgrid = gl.GLGridItem()
         self.addItem(self.zgrid)
+
+        print(f"self.parent(): {self.parent()}")
 
         self.current_skeleton = gl.GLLinePlotItem(
             pos=np.array([[0, 0, 0], [0, 0, 0]]),
@@ -69,6 +72,14 @@ class MocapBackend(gl.GLViewWidget):
         self.mousePos = lpos
         if ev.button() == qtc.Qt.RightButton:
             self.right_mouse_btn_clicked.emit()
+
+    def devicePixelRatio(self):
+        """
+        Overwriting this method to prevent the GLViewWidget from using the devicePixelRatio
+        returned by the QOpenGLWidget. This is necessary because QtOpenGL.QGLWidget.devicePixelRatio(self)
+        returns 1 a.t.m., even if the application uses scaling != 1.0.
+        """
+        return qtw.QApplication.primaryScreen().devicePixelRatio()
 
 
 def _fix_skeleton_height(skeleton: np.ndarray) -> np.ndarray:

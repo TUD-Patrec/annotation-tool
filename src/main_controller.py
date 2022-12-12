@@ -20,8 +20,6 @@ from .playback import QPlaybackWidget
 from .utility import filehandler
 from .utility.functions import FrameTimeMapper
 
-main_application = None
-
 
 class MainApplication(qtw.QApplication):
     update_media_pos = qtc.pyqtSignal(int)
@@ -194,7 +192,6 @@ class MainApplication(qtw.QApplication):
             self.annotation_controller.controller.main_widget.histogram.plot()
 
     def update_font(self):
-        print(self.styleSheet())
         font = self.font()
         font.setPointSize(settings.font_size)
         self.setFont(font)
@@ -212,19 +209,21 @@ def except_hook(cls, exception, traceback):
 def make_app() -> qtg.QApplication:
     from . import __version__
 
+    print("Starting application")
+
     app = MainApplication(sys.argv)
     app.setStyle("Fusion")
     app.setApplicationName("Annotation Tool")
     app.setApplicationVersion(__version__)
     app.setOrganizationName("TU Dortmund")
     app.setOrganizationDomain("tu-dortmund.de")
-    app.setWindowIcon(qtg.QIcon(":/icons/icon.png"))
     app.setQuitOnLastWindowClosed(True)
     app.setApplicationDisplayName("Annotation Tool")
     return app
 
 
 def get_app() -> qtg.QApplication:
+    print("Getting application")
     if qtc.QCoreApplication.instance():
         return qtc.QCoreApplication.instance()
     else:

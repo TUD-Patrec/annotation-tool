@@ -43,7 +43,9 @@ class AbstractMediaPlayer(qtw.QWidget):
         self._reference_fps = None
         self._reference_N = None
 
-        self.setLayout(qtw.QVBoxLayout(self))
+        self.setLayout(qtw.QHBoxLayout(self))
+        self.layout().setContentsMargins(0, 0, 0, 0)
+        self.layout().setSpacing(0)
 
         # distinct between primary player and added ones
         self._is_main_replay_widget = is_main
