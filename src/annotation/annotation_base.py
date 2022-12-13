@@ -1,6 +1,6 @@
 from abc import abstractmethod
 import enum
-from typing import List
+from typing import List, Optional
 
 import PyQt5.QtCore as qtc
 import numpy as np
@@ -139,6 +139,7 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
             AnnotationActions.JUMP_PREVIOUS: self.jump_previous,
             AnnotationActions.COPY: self.copy,
             AnnotationActions.DELETE: self.delete,
+            AnnotationActions.RESET: self.reset,
             AnnotationActions.PASTE: self.paste,
             AnnotationActions.UNDO: self.undo,
             AnnotationActions.REDO: self.redo,
@@ -203,12 +204,11 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
             assert self.position == 0
 
     @property
-    def selected_sample(self):
-        return (
-            self.samples[self.selected_sample_idx]
-            if self.selected_sample_idx is not None
-            else None
-        )
+    def selected_sample(self) -> Optional[Sample]:
+        if self.selected_sample_idx is not None:
+            return self.samples[self.selected_sample_idx]
+        else:
+            return None
 
     def copy(self):
         """

@@ -147,3 +147,11 @@ class ManualAnnotation(AnnotationBaseClass):
             else:
                 self.setPosition(self.selected_sample.start_position)
                 self.position_changed.emit(self.position)
+
+    def delete(self) -> None:
+        self.reset()
+
+    def reset(self):
+        if self.enabled:
+            empty_annotation = self.selected_sample.annotation.get_empty_copy()
+            self.update_sample_annotation(self.selected_sample, empty_annotation)
