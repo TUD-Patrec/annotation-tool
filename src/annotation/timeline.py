@@ -123,7 +123,6 @@ class QTimeLine(qtw.QWidget):
         # Set variables
         self.backgroundColor = qtg.QColor(60, 63, 65)
         self.textColor = qtg.QColor(187, 187, 187)
-        self.font = qtg.QFont("Decorative", settings.font_size)
         self.clicking = False  # Check if mouse left button is being pressed
         self.is_in = False  # check if user is in the widget
 
@@ -132,6 +131,10 @@ class QTimeLine(qtw.QWidget):
 
         # Constants
         self.setMinimumHeight(200)
+
+    @property
+    def font(self):
+        return qtg.QFont("Decorative", settings.font_size)
 
     @qtc.pyqtSlot(int)
     def set_range(self, n):

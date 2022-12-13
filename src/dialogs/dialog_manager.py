@@ -28,8 +28,17 @@ class DialogManager:
     def open_dialog(self, dialog):
         if self.__open_dialog__ is None:
             self.__open_dialog__ = dialog
-            dialog.open()
             dialog.finished.connect(self.__free_dialog__)
+
+            # let dialog be minimized
+            dialog.setWindowFlags(
+                dialog.windowFlags() | qtc.Qt.WindowMinimizeButtonHint
+            )
+
+            # keep dialog on top
+            dialog.setWindowFlags(dialog.windowFlags() | qtc.Qt.WindowStaysOnTopHint)
+
+            dialog.show()
         else:
             if self.strategy == DialogOpenStrategy.SUBSTITUTE:
                 self.__open_dialog__.close()  # Close current dialog

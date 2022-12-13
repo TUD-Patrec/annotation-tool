@@ -3,8 +3,8 @@ import logging.config
 import sys
 
 import PyQt5.QtCore as qtc
-import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
+import qdarkstyle
 
 from src.annotation.timeline import QTimeLine
 import src.network.controller as network
@@ -92,10 +92,6 @@ class MainApplication(qtw.QApplication):
         self.mediator.add_emitter(self.media_player)
         self.mediator.add_emitter(self.playback)
 
-        # ui
-        self.update_theme()
-        self.update_font()
-
     @qtc.pyqtSlot(GlobalState)
     def load_state(self, state: GlobalState):
         if state is not None:
@@ -173,16 +169,13 @@ class MainApplication(qtw.QApplication):
         self.timeline.update()
 
     def update_theme(self):
-        return
-        darkmode = settings.darkmode
-        file = (
-            qtc.QFile(":/dark/stylesheet.qss")
-            if darkmode
-            else qtc.QFile(":/light/stylesheet.qss")
-        )
-        file.open(qtc.QFile.ReadOnly | qtc.QFile.Text)
-        stream = qtc.QTextStream(file)
-        self.setStyleSheet(stream.readAll())
+        font = self.font()
+        font.setPointSize(settings.font_size)
+        self.setFont(font)
+        if settings.darkmode:
+            self.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+        else:
+            self.setStyleSheet("")
 
         # hack for updating color of histogram in retrieval-widget
         from src.annotation.retrieval.controller import RetrievalAnnotation
@@ -191,11 +184,6 @@ class MainApplication(qtw.QApplication):
             self.annotation_controller.controller, RetrievalAnnotation
         ):
             self.annotation_controller.controller.main_widget.histogram.plot()
-
-    def update_font(self):
-        font = self.font()
-        font.setPointSize(settings.font_size)
-        self.setFont(font)
 
     def closeEvent(self, event):
         self.save_annotation()
@@ -207,36 +195,9 @@ def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)
 
 
-def make_app() -> qtg.QApplication:
-    from . import __version__
-
-    print("Starting application")
-
+def main():
+    sys.excepthook = except_hook
     app = MainApplication(sys.argv)
     app.setStyle("Fusion")
-    app.setApplicationName("Annotation Tool")
-    app.setApplicationVersion(__version__)
-    app.setOrganizationName("TU Dortmund")
-    app.setOrganizationDomain("tu-dortmund.de")
-    app.setQuitOnLastWindowClosed(True)
-    app.setApplicationDisplayName("Annotation Tool")
-    return app
-
-
-def get_app() -> qtg.QApplication:
-    print("Getting application")
-    if qtc.QCoreApplication.instance():
-        return qtc.QCoreApplication.instance()
-    else:
-        return make_app()
-
-
-def main():
-    # set font
-    font = qtg.QFont()
-    font.setPointSize(settings.font_size)
-    qtg.QApplication.setFont(font)
-
-    sys.excepthook = except_hook
-    app = make_app()
+    app.update_theme()
     sys.exit(app.exec_())

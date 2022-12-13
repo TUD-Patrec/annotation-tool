@@ -21,6 +21,7 @@ from .data_model.globalstate import GlobalState
 from .dialogs.dialog_manager import DialogManager
 from .dialogs.edit_datasets import QEditDatasets
 from .dialogs.load_annotation_dialog import QLoadExistingAnnotationDialog
+from .dialogs.local_files import LocalFilesDialog
 from .dialogs.network_list import NetworksDialog
 from .dialogs.new_annotation_dialog import QNewAnnotationDialog
 from .dialogs.settings_dialog import SettingsDialog
@@ -199,7 +200,8 @@ class GUI(qtw.QMainWindow, DialogManager):
         pass  # TODO
 
     def open_local_files(self):
-        pass  # TODO
+        dialog = LocalFilesDialog()
+        self.open_dialog(dialog)
 
     def create_new_annotation(self):
         dialog = QNewAnnotationDialog()
