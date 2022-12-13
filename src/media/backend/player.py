@@ -6,7 +6,6 @@ import PyQt5.QtGui as qtg
 import PyQt5.QtWidgets as qtw
 
 from src.utility import filehandler
-from src.utility.decorators import accepts, returns
 
 
 class UpdateReason(Enum):
@@ -38,6 +37,7 @@ class AbstractMediaPlayer(qtw.QWidget):
         self._N = None
         self._position = 0
         self._offset = 0
+        self._play_forward = True
 
         # reference informations
         self._reference_fps = None
@@ -49,12 +49,6 @@ class AbstractMediaPlayer(qtw.QWidget):
 
         # distinct between primary player and added ones
         self._is_main_replay_widget = is_main
-
-        # Thread saftey
-        self._mutex_fps = qtc.QMutex()
-        self._mutex_n_frames = qtc.QMutex()
-        self._mutex_position = qtc.QMutex()
-        self._mutex_offset = qtc.QMutex()
 
     def set_reference_player(self, p):
         self._reference_fps = p.fps
@@ -121,12 +115,20 @@ class AbstractMediaPlayer(qtw.QWidget):
     @qtc.pyqtSlot(qtw.QWidget)
     def on_timeout(self, w):
         if self is w:
-            if self.position + 1 < self.N_FRAMES():
-                self.position += 1
-                self.confirm_update(UpdateReason.TIMEOUT)  # TODO fix
-                self.update_media_position(UpdateReason.SETPOS)  # TODO fix
+            if self.play_forward:
+                if self.position + 1 < self.N_FRAMES():
+                    self.position += 1
+                    self.confirm_update(UpdateReason.TIMEOUT)  # TODO fix
+                    self.update_media_position(UpdateReason.SETPOS)  # TODO fix
+                else:
+                    self.confirm_update(UpdateReason.TIMEOUT)
             else:
-                self.confirm_update(UpdateReason.TIMEOUT)
+                if self.position > 0:
+                    self.position -= 1
+                    self.confirm_update(UpdateReason.TIMEOUT)
+                    self.update_media_position(UpdateReason.SETPOS)
+                else:
+                    self.confirm_update(UpdateReason.TIMEOUT)
 
     @qtc.pyqtSlot(qtw.QWidget, int)
     def set_position(self, w, new_pos):
@@ -186,101 +188,63 @@ class AbstractMediaPlayer(qtw.QWidget):
     def update_media_position(self, reason: UpdateReason):
         raise NotImplementedError
 
-    # Thread safe getter and setter
-    # Settings properties is only allowed from the main GUI-Thread - see assertions
     @property
-    @returns((int, float))
     def fps(self):
-        self._mutex_fps.lock()
-        x = self._fps
-        self._mutex_fps.unlock()
-        return x
+        return self._fps
 
     @fps.setter
-    @accepts(qtw.QWidget, (int, float))
     def fps(self, x):
         assert qtc.QThread.currentThread() is self.thread()
         assert 0 < x
-        self._mutex_fps.lock()
         self._fps = x
-        self._mutex_fps.unlock()
 
     @property
-    @returns(int)
     def position(self):
-        self._mutex_position.lock()
-        x = self._position
-        self._mutex_position.unlock()
-        return x
+        return self._position
 
     @position.setter
-    @accepts(qtw.QWidget, int)
     def position(self, x):
         assert qtc.QThread.currentThread() is self.thread()
         assert 0 <= x
-        self._mutex_position.lock()
         self._position = x
-        self._mutex_position.unlock()
 
     @property
-    @returns(int)
     def n_frames(self):
-        self._mutex_n_frames.lock()
-        x = self._N
-        self._mutex_n_frames.unlock()
-        return x
+        return self._N
 
     @n_frames.setter
-    @accepts(qtw.QWidget, int)
     def n_frames(self, x):
         assert qtc.QThread.currentThread() is self.thread()
         assert 0 <= x
-        self._mutex_n_frames.lock()
         self._N = x
-        self._mutex_n_frames.unlock()
 
     @property
-    @returns(int)
     def offset(self):
-        self._mutex_offset.lock()
-        x = self._offset
-        self._mutex_offset.unlock()
-        return x
+        return self._offset
 
     @offset.setter
-    @accepts(qtw.QWidget, int)
     def offset(self, x):
         assert qtc.QThread.currentThread() is self.thread()
-        self._mutex_offset.lock()
         self._offset = x
-        self._mutex_offset.unlock()
 
     @property
-    @returns(bool)
+    def play_forward(self):
+        assert qtc.QThread.currentThread() is self.thread()
+        return self._play_forward
+
+    @play_forward.setter
+    def play_forward(self, x):
+        assert qtc.QThread.currentThread() is self.thread()
+        self._play_forward = x
+
+    @property
     def is_main_replay_widget(self):
         return self._is_main_replay_widget
 
     @property
-    @returns(int)
     def reference_fps(self):
         return self._reference_fps
 
     @property
-    @returns(int)
     def reference_N(self):
         return self._reference_N
-
-    @property
-    @returns(int)
-    def lower_bound(self):
-        return self._loop_lower
-
-    @property
-    @returns(int)
-    def upper_bound(self):
-        return self._loop_upper
-
-    @property
-    @returns(bool)
-    def is_looping(self):
-        return self._looping
