@@ -91,7 +91,7 @@ class QLoadExistingAnnotationDialog(qtw.QDialog):
 
     def select_input_source(self):
         file_path, _ = qtw.QFileDialog.getOpenFileName(
-            directory="", filter="Video MoCap (*.mp4 *.avi *.csv)"
+            parent=self, directory="", filter="Video MoCap (*.mp4 *.avi *.csv)"
         )
         if filehandler.is_non_zero_file(file_path):
             hash = filehandler.footprint_of_file(file_path)

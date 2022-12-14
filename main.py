@@ -8,9 +8,6 @@ import warnings
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
-from src.settings import settings
-from src.utility import filehandler
-
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
@@ -64,8 +61,12 @@ def apply_pixel_scaling():
 
 
 def start():
+    from src.settings import settings
+
     if settings.high_dpi_scaling:
         enable_high_dpi_scaling()
+
+    from src.utility import filehandler
 
     filehandler.init_logger()
 

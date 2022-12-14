@@ -38,7 +38,7 @@ class DialogManager:
             # keep dialog on top
             dialog.setWindowFlags(dialog.windowFlags() | qtc.Qt.WindowStaysOnTopHint)
 
-            dialog.show()
+            dialog.open()
         else:
             if self.strategy == DialogOpenStrategy.SUBSTITUTE:
                 self.__open_dialog__.close()  # Close current dialog

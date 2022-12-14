@@ -3,6 +3,8 @@ import logging.config
 import sys
 
 import PyQt5.QtCore as qtc
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor, QPalette
 import PyQt5.QtWidgets as qtw
 import qdarkstyle
 
@@ -169,21 +171,60 @@ class MainApplication(qtw.QApplication):
         self.timeline.update()
 
     def update_theme(self):
+        self.setStyle("Fusion")
+
+        if settings.darkmode:
+            # # Now use a palette to switch to dark colors:
+            dark_palette = QPalette()
+            dark_palette.setColor(QPalette.Window, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.WindowText, Qt.white)
+            dark_palette.setColor(QPalette.Base, QColor(35, 35, 35))
+            dark_palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.ToolTipBase, QColor(25, 25, 25))
+            dark_palette.setColor(QPalette.ToolTipText, Qt.white)
+            dark_palette.setColor(QPalette.Text, Qt.white)
+            dark_palette.setColor(QPalette.Button, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.ButtonText, Qt.white)
+            dark_palette.setColor(QPalette.BrightText, Qt.red)
+            dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
+            dark_palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
+            dark_palette.setColor(QPalette.HighlightedText, QColor(35, 35, 35))
+            dark_palette.setColor(QPalette.Active, QPalette.Button, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.Disabled, QPalette.ButtonText, Qt.darkGray)
+            dark_palette.setColor(QPalette.Disabled, QPalette.WindowText, Qt.darkGray)
+            dark_palette.setColor(QPalette.Disabled, QPalette.Text, Qt.darkGray)
+            dark_palette.setColor(QPalette.Disabled, QPalette.Light, QColor(53, 53, 53))
+            self.setPalette(dark_palette)
+        else:
+            self.setPalette(self.style().standardPalette())
+
+        return
+
         font = self.font()
         font.setPointSize(settings.font_size)
         self.setFont(font)
-        if settings.darkmode:
-            self.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-        else:
-            self.setStyleSheet("")
 
-        # hack for updating color of histogram in retrieval-widget
-        from src.annotation.retrieval.controller import RetrievalAnnotation
+        # TODO fix
+        if settings.darkmode is None:
+            # TODO this will never be true -> for testing
+            if settings.darkmode:
+                self.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+            else:
+                from qdarkstyle.light.palette import LightPalette
 
-        if self.annotation_controller is not None and isinstance(
-            self.annotation_controller.controller, RetrievalAnnotation
-        ):
-            self.annotation_controller.controller.main_widget.histogram.plot()
+                self.setStyleSheet(
+                    qdarkstyle._load_stylesheet(qt_api="pyqt5", palette=LightPalette)
+                )
+
+        # TODO fix
+        if settings.darkmode is None:
+            # hack for updating color of histogram in retrieval-widget
+            from src.annotation.retrieval.controller import RetrievalAnnotation
+
+            if self.annotation_controller is not None and isinstance(
+                self.annotation_controller.controller, RetrievalAnnotation
+            ):
+                self.annotation_controller.controller.main_widget.histogram.plot()
 
     def closeEvent(self, event):
         self.save_annotation()
@@ -198,6 +239,14 @@ def except_hook(cls, exception, traceback):
 def main():
     sys.excepthook = except_hook
     app = MainApplication(sys.argv)
+
+    # set font for app
+    font = app.font()
+    font.setPointSize(settings.font_size)
+    app.setFont(font)
+
+    # styles: 'Breeze', 'Oxygen', 'QtCurve', 'Windows', 'Fusion'
     app.setStyle("Fusion")
+
     app.update_theme()
     sys.exit(app.exec_())

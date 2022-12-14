@@ -339,6 +339,15 @@ def path_to_filename(path: os.PathLike) -> str:
         return filename.split(".")[0]
 
 
+def home_path() -> os.PathLike:
+    """Get path to home-directory.
+
+    Returns:
+        os.PathLike: Path to home-directory.
+    """
+    return os.path.expanduser("~")
+
+
 def path_to_dirname(path: os.PathLike) -> os.PathLike:
     """Grab path to parent-directory of some path.
 

@@ -15,9 +15,6 @@ class SettingsDialog(qtw.QDialog):
 
     def init_ui(self):
         self.setWindowTitle("Settings")
-        self.setWindowFlags(
-            qtc.Qt.WindowCloseButtonHint | qtc.Qt.WindowMinimizeButtonHint
-        )
         self.setFixedSize(400, 300)
 
         self.layout = qtw.QVBoxLayout()

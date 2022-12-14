@@ -84,13 +84,13 @@ class GlobalStateWidget(qtw.QWidget):
 
     def export(self):
         # open export dialog
-        self.exp_dialog = ExportAnnotationDialog(self.global_state)
-        self.exp_dialog.exec_()
-        self.exp_dialog.deleteLater()
+        dlg = ExportAnnotationDialog(self.global_state, self)
+        dlg.exec_()
+        dlg.deleteLater()
 
     def delete(self):
         # ask for confirmation
-        msg = qtw.QMessageBox()
+        msg = qtw.QMessageBox(self)
         msg.setIcon(qtw.QMessageBox.Warning)
         msg.setText("Do you really want to delete this Annotation-Object?")
         msg.setInformativeText("This action cannot be undone.")
@@ -99,6 +99,7 @@ class GlobalStateWidget(qtw.QWidget):
         msg.setDefaultButton(qtw.QMessageBox.No)
         msg.buttonClicked.connect(self.delete_confirmation)
         msg.exec_()
+        msg.deleteLater()
 
     def delete_confirmation(self, button):
         # check if yes in button text
