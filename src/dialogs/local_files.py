@@ -14,6 +14,9 @@ class LocalFilesDialog(qtw.QDialog):
         self.setWindowTitle("Local Files")
         self.setLayout(qtw.QGridLayout(self))
 
+        # layout - spread second column
+        self.layout().setColumnStretch(1, 1)
+
         # create list widget
         self.list_widget = qtw.QListWidget()
         self.populate_list_widget()

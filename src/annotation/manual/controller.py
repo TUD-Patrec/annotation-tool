@@ -83,7 +83,7 @@ class ManualAnnotation(AnnotationBaseClass):
                 self.samples.insert(idx, s1)
                 self.samples.insert(idx + 1, s2)
 
-                self.check_for_selected_sample()
+                self.check_for_selected_sample(force_update=True)
 
     def cut_and_annotate(self):
         if self.enabled:
@@ -110,7 +110,7 @@ class ManualAnnotation(AnnotationBaseClass):
                 self.samples.remove(other_sample)
                 self.samples.insert(min(sample_idx, other_idx), merged_sample)
 
-                self.check_for_selected_sample()
+                self.check_for_selected_sample(force_update=True)
 
     def insert_sample(self, new_sample):
         pass

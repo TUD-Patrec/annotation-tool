@@ -35,7 +35,6 @@ class QAnnotationDialog(qtw.QDialog):
         self._set_annotation(sample.annotation)
 
         if preferred_size is not None:
-            print("Setting preferred size")
             self.resize(preferred_size)
 
     def _set_annotation(self, a):
@@ -207,7 +206,6 @@ class QAnnotationDialog(qtw.QDialog):
         else:
             attr_vec = self.get_current_vector()
             x = np.equal(attr_vec, arr).all(axis=1).any()
-            # print('VALID = ', x)
             self.accept_button.setEnabled(x)
 
     def __reset_annotation__(self):
@@ -250,9 +248,6 @@ class QPushButtonAdapted(qtw.QPushButton):
         self.group_name = group_name
         self.element_name = element_name
         self.is_highlighted = False
-
-        # self.checked_style = "border-color: green"
-        # self.highlight_style = "border-color: gold"
 
         self.checked_style = (
             "border-color: green; border-width: 2px; border-style: solid;"
