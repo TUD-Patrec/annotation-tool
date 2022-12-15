@@ -32,7 +32,7 @@ class QRetrievalWidget(qtw.QWidget):
 
         self.histogram = HistogramWidget()
         self.histogram.ensurePolished()  # updates style of the widget before presenting
-        self.histogram.plot()
+        self.histogram.plot_data()
 
         # self.similarity_label = qtw.QLabel(self)
         self.progress_label = qtw.QLabel(format_progress(0, 0), self)
@@ -104,6 +104,6 @@ class QRetrievalWidget(qtw.QWidget):
         data = query.similarity_distribution
 
         if data.shape[0] > 0:
-            self.histogram.plot(data, sim)
+            self.histogram.plot_data(data, sim)
         else:
             self.histogram.reset()

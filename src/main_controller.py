@@ -198,12 +198,11 @@ class MainApplication(qtw.QApplication):
         else:
             self.setPalette(self.style().standardPalette())
 
-        return
-
         font = self.font()
         font.setPointSize(settings.font_size)
         self.setFont(font)
 
+        return
         # TODO fix
         if settings.darkmode is None:
             # TODO this will never be true -> for testing
@@ -224,7 +223,7 @@ class MainApplication(qtw.QApplication):
             if self.annotation_controller is not None and isinstance(
                 self.annotation_controller.controller, RetrievalAnnotation
             ):
-                self.annotation_controller.controller.main_widget.histogram.plot()
+                self.annotation_controller.controller.main_widget.histogram.plot_data()
 
     def closeEvent(self, event):
         self.save_annotation()
