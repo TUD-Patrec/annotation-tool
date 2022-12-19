@@ -8,10 +8,6 @@ import warnings
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qtw
 
-from src.main_controller import main
-from src.settings import settings
-from src.utility import filehandler
-
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
@@ -37,13 +33,14 @@ def resource_path(relative_path):
 
 
 def enable_high_dpi_scaling():
-
     # adjust scaling to high dpi monitors
     if hasattr(qtc.Qt, "AA_EnableHighDpiScaling"):
         qtw.QApplication.setAttribute(qtc.Qt.AA_EnableHighDpiScaling, True)
     if hasattr(qtc.Qt, "AA_UseHighDpiPixmaps"):
         qtw.QApplication.setAttribute(qtc.Qt.AA_UseHighDpiPixmaps, True)
 
+
+def apply_pixel_scaling():
     # Adjust scaling for windows
     if platform == "win32":
         # Query DPI Awareness (Windows 10 and 8)
@@ -59,15 +56,21 @@ def enable_high_dpi_scaling():
         errorCode = ctypes.windll.shcore.SetProcessDpiAwareness(PROCESS_DPI_UNAWARE)
         if errorCode == 0:
             logging.info("Running DPI-unaware")
+        else:
+            logging.warning("Could not set DPI-unaware")
 
 
 def start():
-    filehandler.init_logger()
-    # application_path = get_application_path()
-    # logging.info("Running relative to {}".format(application_path))
+    from src.settings import settings
 
     if settings.high_dpi_scaling:
         enable_high_dpi_scaling()
+
+    from src.utility import filehandler
+
+    filehandler.init_logger()
+
+    from src.main_controller import main
 
     main()
 

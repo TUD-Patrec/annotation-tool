@@ -26,7 +26,6 @@ packages = [
 python = ">=3.8,<4"
 distinctipy = "*"
 filetype = "*"
-matplotlib = "3.5.0"
 numpy = "*"
 opencv-python = "~4.5.3.56"
 PyOpenGL = "*"
@@ -39,6 +38,7 @@ scipy = "*"
 torch = "~1.12.0"
 sortedcontainers = "^2.4.0"
 fcache = "^0.4.7"
+qdarkstyle = "^3.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "*"

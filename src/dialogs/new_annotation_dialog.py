@@ -58,7 +58,7 @@ class QNewAnnotationDialog(qtw.QDialog):
 
     def select_input_source(self):
         filename, _ = qtw.QFileDialog.getOpenFileName(
-            directory="", filter="Video MoCap (*.mp4 *.avi *.csv)"
+            parent=self, directory="", filter="Video MoCap (*.mp4 *.avi *.csv)"
         )
         self.line_edit.setText(filename)
 

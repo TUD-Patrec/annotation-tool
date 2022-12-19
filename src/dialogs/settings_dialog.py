@@ -15,9 +15,6 @@ class SettingsDialog(qtw.QDialog):
 
     def init_ui(self):
         self.setWindowTitle("Settings")
-        self.setWindowFlags(
-            qtc.Qt.WindowCloseButtonHint | qtc.Qt.WindowMinimizeButtonHint
-        )
         self.setFixedSize(400, 300)
 
         self.layout = qtw.QVBoxLayout()
@@ -139,10 +136,6 @@ class AppearanceSettingsDialog(qtw.QDialog):
         super().__init__(*args, **kwargs)
         self.init_ui()
 
-        from src.main_controller import get_app
-
-        self.app = get_app()
-
     def init_ui(self):
         self.setWindowTitle("Appearance Settings")
         self.setFixedSize(400, 300)
@@ -241,7 +234,7 @@ class AppearanceSettingsDialog(qtw.QDialog):
     def change_theme(self):
         is_darkmode = bool(self.theme_combobox.currentIndex())
         settings.darkmode = is_darkmode
-        self.app.update_theme()
+        qtw.QApplication.instance().update_theme()
 
     def preferred_width_changed(self, value):
         # grab the main window
@@ -254,7 +247,7 @@ class AppearanceSettingsDialog(qtw.QDialog):
 
     def change_font_size(self, value):
         settings.font_size = value
-        self.app.update_font()
+        qtw.QApplication.instance().update_theme()
 
     def change_high_dpi_scaling(self, value):
         settings.high_dpi_scaling = bool(value)

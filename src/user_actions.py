@@ -52,15 +52,15 @@ ActionToShortcut = {
     AnnotationActions.REJECT: QKeySequence("R"),
     AnnotationActions.MODIFY: QKeySequence("M"),
     AnnotationActions.CHANGE_FILTER: QKeySequence(""),
-    AnnotationActions.JUMP_PREVIOUS: QKeySequence("Shift+Left"),
-    AnnotationActions.JUMP_NEXT: QKeySequence("Shift+Right"),
+    AnnotationActions.JUMP_PREVIOUS: QKeySequence("Ctrl+Left"),
+    AnnotationActions.JUMP_NEXT: QKeySequence("Ctrl+Right"),
     AnnotationActions.RESET: QKeySequence("Ctrl+R"),
     ReplayActions.TOGGLE_PLAY_PAUSE: QKeySequence("Space"),
     ReplayActions.TOGGLE_FORWARD_BACKWARD: QKeySequence("B"),
     ReplayActions.SKIP_FRAMES: QKeySequence("Right"),
     ReplayActions.SKIP_FRAMES_BACK: QKeySequence("Left"),
-    ReplayActions.SKIP_FRAMES_FAR: QKeySequence("Ctrl+Right"),
-    ReplayActions.SKIP_FRAMES_BACK_FAR: QKeySequence("Ctrl+Left"),
+    ReplayActions.SKIP_FRAMES_FAR: QKeySequence("Shift+Right"),
+    ReplayActions.SKIP_FRAMES_BACK_FAR: QKeySequence("Shift+Left"),
 }
 
 

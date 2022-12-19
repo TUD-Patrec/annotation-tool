@@ -19,7 +19,7 @@ class AnnotationController(qtc.QObject):
     right_widget_changed = qtc.pyqtSignal(qtw.QWidget)
     tool_widget_changed = qtc.pyqtSignal(qtw.QWidget)
     samples_changed = qtc.pyqtSignal(list, Sample)
-    sync_position = qtc.pyqtSignal()
+    position_changed = qtc.pyqtSignal(int)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -51,6 +51,7 @@ class AnnotationController(qtc.QObject):
             self.controller.start_loop.connect(self.start_loop)
             self.controller.stop_loop.connect(self.stop_loop)
             self.controller.samples_changed.connect(self.samples_changed)
+            self.controller.position_changed.connect(self.position_changed)
             self.tool_widget_changed.emit(self.controller.tool_widget)
             self.right_widget_changed.emit(self.controller.main_widget)
 

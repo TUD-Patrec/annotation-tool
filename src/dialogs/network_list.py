@@ -94,7 +94,7 @@ class NetworkWidget(qtw.QWidget):
 
     def on_delete_clicked(self):
         # ask for confirmation
-        msg_box = qtw.QMessageBox()
+        msg_box = qtw.QMessageBox(self)
         msg_box.setText("Do you really want to delete this network?")
         msg_box.setStandardButtons(qtw.QMessageBox.Yes | qtw.QMessageBox.No)
         msg_box.setDefaultButton(qtw.QMessageBox.No)
@@ -266,7 +266,7 @@ class NetworksDialog(qtw.QDialog):
         self.network_list_widget.update()
 
     def on_create_clicked(self):
-        create_dialog = CreateNetworkDialog()
+        create_dialog = CreateNetworkDialog(self)
         if create_dialog.exec():
             name = create_dialog.get_name()
             path = create_dialog.get_path()

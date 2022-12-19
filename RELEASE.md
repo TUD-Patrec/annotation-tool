@@ -11,6 +11,8 @@ If you plan on releasing a new version follow these steps:
    git push --tags
    ```
    The GitLab CI/CD should take care of compiling and uploading the package to PyPI/TestPyPI.
+3. Also merge back `master` into `dev` to reflect the version update onto the development branch.
+4. Create a new release on the _Deployments -> Releases_ page in GitLab to trigger any notifications for subscribed users.
 
 ### Alpha and beta versions
 
@@ -20,8 +22,10 @@ Alpha and beta versions life on `dev`. If you want to publish a pre-release, fol
 
 The CI/CD pipeline needs API keys to be able to upload the compiled package to PyPI/TestPyPI. These API keys can be changed/added under *Settings -> CI/CD -> Variables*. Currently we have the following variables defined:
 
+<!--
 - `SCIEBO_KEY`: If you share a folder in sciebo you get a URL similar to `<sciebo server url>/index.php/s/<sciebo key>`. The part marked with `<sciebo key>` should be saved in `SCIEBO_KEY`.
 - `SCIEBO_PASSWORD`: You should also create a password for the shared URL. The very same password get's stored in this variable.
+-->
 - `TESTPYPI_TOKEN`: This is the API token to upload the project to TestPyPI.
 - `PYPI_TOKEN`: This is the API token to upload the project to PyPI.
 

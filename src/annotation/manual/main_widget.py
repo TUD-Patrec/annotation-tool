@@ -41,7 +41,6 @@ class QDisplaySample(qtw.QWidget):
         vbox.addWidget(QHLine())
         vbox.addWidget(self.bottom_widget, alignment=qtc.Qt.AlignCenter)
 
-        vbox.setContentsMargins(0, 0, 0, 0)
         self.setLayout(vbox)
         self.setFixedWidth(400)
 

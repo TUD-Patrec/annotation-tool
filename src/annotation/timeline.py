@@ -99,13 +99,11 @@ class Scaling:
             new_ratio = self.ratio_f
             if new_ratio == current_ratio:
                 self.idx -= 1
-            print("increase", self.ratio_f)
 
     def decrease(self):
         """Zoom in."""
         if self.idx > -len(self.negative_scales):
             self.idx -= 1
-            print("decrease", self.ratio_f)
 
 
 class QTimeLine(qtw.QWidget):
@@ -125,7 +123,6 @@ class QTimeLine(qtw.QWidget):
         # Set variables
         self.backgroundColor = qtg.QColor(60, 63, 65)
         self.textColor = qtg.QColor(187, 187, 187)
-        self.font = qtg.QFont("Decorative", settings.font_size)
         self.clicking = False  # Check if mouse left button is being pressed
         self.is_in = False  # check if user is in the widget
 
@@ -134,6 +131,10 @@ class QTimeLine(qtw.QWidget):
 
         # Constants
         self.setMinimumHeight(200)
+
+    @property
+    def font(self):
+        return qtg.QFont("Decorative", settings.font_size)
 
     @qtc.pyqtSlot(int)
     def set_range(self, n):
@@ -206,6 +207,16 @@ class QTimeLine(qtw.QWidget):
                     self.zoom_in()
                 else:
                     self.zoom_out()
+            elif e.modifiers() == qtc.Qt.ShiftModifier:
+                n_frames = self.scaler.pixel_to_frame(25)
+                if e.angleDelta().y() > 0:
+                    self.set_position(max(self.frame_idx - n_frames, 0))
+                    self.position_changed.emit(self.frame_idx)
+                else:
+                    self.set_position(min(self.frame_idx + n_frames, self.n_frames - 1))
+                    self.position_changed.emit(self.frame_idx)
+
+                self.update()
         else:
             e.ignore()
 

@@ -1,6 +1,6 @@
 from abc import abstractmethod
 import enum
-from typing import List
+from typing import List, Optional
 
 import PyQt5.QtCore as qtc
 import numpy as np
@@ -13,6 +13,7 @@ from src.user_actions import AnnotationActions
 class AnnotationBaseClass(qtc.QObject, DialogManager):
     start_loop = qtc.pyqtSignal(int, int)
     stop_loop = qtc.pyqtSignal()
+    position_changed = qtc.pyqtSignal(int)
     samples_changed = qtc.pyqtSignal(list, Sample)
 
     def __init__(self, *args, **kwargs):
@@ -26,11 +27,12 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
         self.position = 0
         self.n_frames = 0
         self.samples = []
-        self.selected_sample = None
+        self.selected_sample_idx = None
         self.scheme = None
         self.dependencies = None
         self.enabled = False
         self.mode = None
+        self.copied_annotation = None
 
         # Constants
         self.MAX_UNDO_STACK_SIZE = 50
@@ -62,7 +64,6 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
         self.dependencies = dependencies
         self.n_frames = n_frames
         self.position = 0
-        self.copied_annotation = None
         self.clear_undo_redo()
         self.check_for_selected_sample(force_update=True)
         self.load_subclass()
@@ -138,6 +139,7 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
             AnnotationActions.JUMP_PREVIOUS: self.jump_previous,
             AnnotationActions.COPY: self.copy,
             AnnotationActions.DELETE: self.delete,
+            AnnotationActions.RESET: self.reset,
             AnnotationActions.PASTE: self.paste,
             AnnotationActions.UNDO: self.undo,
             AnnotationActions.REDO: self.redo,
@@ -196,10 +198,17 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
                 raise RuntimeError(f"Could not find sample at position {self.position}")
 
             if force_update or self.selected_sample is not sample:
-                self.selected_sample = sample
+                self.selected_sample_idx = mid
                 self.samples_changed.emit(self.samples, sample)
         else:
             assert self.position == 0
+
+    @property
+    def selected_sample(self) -> Optional[Sample]:
+        if self.selected_sample_idx is not None:
+            return self.samples[self.selected_sample_idx]
+        else:
+            return None
 
     def copy(self):
         """

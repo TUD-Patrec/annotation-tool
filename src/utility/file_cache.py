@@ -1,4 +1,5 @@
 import functools
+import os
 from typing import List, Optional, Type, Union
 
 from fcache.cache import FileCache
@@ -6,6 +7,23 @@ from fcache.cache import FileCache
 _file_cache = FileCache("annotation-tool", flag="c")
 _cache_directory = _file_cache.cache_dir
 print(f"Cache directory: {_cache_directory}")
+
+
+def get_dir() -> str:
+    """
+    Returns the path to the cache directory.
+    """
+    return _cache_directory
+
+
+def get_size_in_bytes() -> int:
+    """
+    Returns the size of the cache in bytes.
+    """
+    return sum(
+        os.path.getsize(os.path.join(_cache_directory, f))
+        for f in os.listdir(_cache_directory)
+    )
 
 
 def get_next_id() -> str:
@@ -93,7 +111,7 @@ def wrap_setattr(func):
     return wrapper
 
 
-def get_all(cls) -> List[object]:
+def get_all_of_class(cls) -> List[object]:
     """
     Returns a list of all objects of type cls in the cache.
     The elements are sorted by their cache_id.
@@ -103,12 +121,29 @@ def get_all(cls) -> List[object]:
     return all
 
 
-def del_all(cls) -> None:
+def del_all_of_class(cls) -> None:
     """
     Deletes all objects of type cls from the cache.
     """
     for obj in get_by_type(cls):
         delete(obj)
+
+
+def get_all() -> List[object]:
+    """
+    Returns a list of all objects in the cache.
+    """
+    _all = list(_file_cache.values())
+    _all.sort(key=lambda x: int(x.cache_id))
+    return _all
+
+
+def clear() -> None:
+    """
+    Clears the cache.
+    """
+    _file_cache.clear()
+    _file_cache.sync()
 
 
 def cached(cls):
@@ -132,7 +167,7 @@ def cached(cls):
     cls.delete = delete
     cls.sync = write
     cls.synchronize = write
-    cls.get_all = functools.partial(get_all, cls.__name__)
-    cls.del_all = functools.partial(del_all, cls.__name__)
+    cls.get_all = functools.partial(get_all_of_class, cls.__name__)
+    cls.del_all = functools.partial(del_all_of_class, cls.__name__)
 
     return cls

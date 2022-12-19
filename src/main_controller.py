@@ -3,8 +3,10 @@ import logging.config
 import sys
 
 import PyQt5.QtCore as qtc
-import PyQt5.QtGui as qtg
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor, QPalette
 import PyQt5.QtWidgets as qtw
+import qdarkstyle
 
 from src.annotation.timeline import QTimeLine
 import src.network.controller as network
@@ -88,12 +90,9 @@ class MainApplication(qtw.QApplication):
         self.mediator.add_receiver(self.media_player)
         self.mediator.add_receiver(self.playback)
         self.mediator.add_emitter(self.timeline)
+        self.mediator.add_emitter(self.annotation_controller)
         self.mediator.add_emitter(self.media_player)
         self.mediator.add_emitter(self.playback)
-
-        # ui
-        self.update_theme()
-        self.update_font()
 
     @qtc.pyqtSlot(GlobalState)
     def load_state(self, state: GlobalState):
@@ -172,29 +171,59 @@ class MainApplication(qtw.QApplication):
         self.timeline.update()
 
     def update_theme(self):
-        return
-        darkmode = settings.darkmode
-        file = (
-            qtc.QFile(":/dark/stylesheet.qss")
-            if darkmode
-            else qtc.QFile(":/light/stylesheet.qss")
-        )
-        file.open(qtc.QFile.ReadOnly | qtc.QFile.Text)
-        stream = qtc.QTextStream(file)
-        self.setStyleSheet(stream.readAll())
+        self.setStyle("Fusion")
 
-        # hack for updating color of histogram in retrieval-widget
-        from src.annotation.retrieval.controller import RetrievalAnnotation
+        if settings.darkmode:
+            # # Now use a palette to switch to dark colors:
+            dark_palette = QPalette()
+            dark_palette.setColor(QPalette.Window, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.WindowText, Qt.white)
+            dark_palette.setColor(QPalette.Base, QColor(35, 35, 35))
+            dark_palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.ToolTipBase, QColor(25, 25, 25))
+            dark_palette.setColor(QPalette.ToolTipText, Qt.white)
+            dark_palette.setColor(QPalette.Text, Qt.white)
+            dark_palette.setColor(QPalette.Button, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.ButtonText, Qt.white)
+            dark_palette.setColor(QPalette.BrightText, Qt.red)
+            dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
+            dark_palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
+            dark_palette.setColor(QPalette.HighlightedText, QColor(35, 35, 35))
+            dark_palette.setColor(QPalette.Active, QPalette.Button, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.Disabled, QPalette.ButtonText, Qt.darkGray)
+            dark_palette.setColor(QPalette.Disabled, QPalette.WindowText, Qt.darkGray)
+            dark_palette.setColor(QPalette.Disabled, QPalette.Text, Qt.darkGray)
+            dark_palette.setColor(QPalette.Disabled, QPalette.Light, QColor(53, 53, 53))
+            self.setPalette(dark_palette)
+        else:
+            self.setPalette(self.style().standardPalette())
 
-        if self.annotation_controller is not None and isinstance(
-            self.annotation_controller.controller, RetrievalAnnotation
-        ):
-            self.annotation_controller.controller.main_widget.histogram.plot()
-
-    def update_font(self):
         font = self.font()
         font.setPointSize(settings.font_size)
         self.setFont(font)
+
+        return
+        # TODO fix
+        if settings.darkmode is None:
+            # TODO this will never be true -> for testing
+            if settings.darkmode:
+                self.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+            else:
+                from qdarkstyle.light.palette import LightPalette
+
+                self.setStyleSheet(
+                    qdarkstyle._load_stylesheet(qt_api="pyqt5", palette=LightPalette)
+                )
+
+        # TODO fix
+        if settings.darkmode is None:
+            # hack for updating color of histogram in retrieval-widget
+            from src.annotation.retrieval.controller import RetrievalAnnotation
+
+            if self.annotation_controller is not None and isinstance(
+                self.annotation_controller.controller, RetrievalAnnotation
+            ):
+                self.annotation_controller.controller.main_widget.histogram.plot_data()
 
     def closeEvent(self, event):
         self.save_annotation()
@@ -206,36 +235,17 @@ def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)
 
 
-def make_app() -> qtg.QApplication:
-    from . import __version__
-
-    print("Starting application")
-
-    app = MainApplication(sys.argv)
-    app.setStyle("Fusion")
-    app.setApplicationName("Annotation Tool")
-    app.setApplicationVersion(__version__)
-    app.setOrganizationName("TU Dortmund")
-    app.setOrganizationDomain("tu-dortmund.de")
-    app.setQuitOnLastWindowClosed(True)
-    app.setApplicationDisplayName("Annotation Tool")
-    return app
-
-
-def get_app() -> qtg.QApplication:
-    print("Getting application")
-    if qtc.QCoreApplication.instance():
-        return qtc.QCoreApplication.instance()
-    else:
-        return make_app()
-
-
 def main():
-    # set font
-    font = qtg.QFont()
-    font.setPointSize(settings.font_size)
-    qtg.QApplication.setFont(font)
-
     sys.excepthook = except_hook
-    app = make_app()
+    app = MainApplication(sys.argv)
+
+    # set font for app
+    font = app.font()
+    font.setPointSize(settings.font_size)
+    app.setFont(font)
+
+    # styles: 'Breeze', 'Oxygen', 'QtCurve', 'Windows', 'Fusion'
+    app.setStyle("Fusion")
+
+    app.update_theme()
     sys.exit(app.exec_())
