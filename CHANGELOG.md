@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). See also [RELEASE.md](RELEASE.md) for additional explanation.
 
+## v0.6.0 (2022-12-19)
+
+### Feature
+
+- **histogram.py**: Switch from matplotlib to pyqtgraph
+- **local_files.py**: Added dialog for displaying local files
+- **manual_annotation**: Added reset/delete action
+- **annotation/controller.py**: Added copy&paste and jump-(next/prev) features
+
+### Fix
+
+- **histogram.py**: Fix histogram
+- **annotation/manual/controller.py**: Fixed missing some timeline updates
+- **main.py**: Fixed imports & high-dpi scaling
+
+### Refactor
+
+- **hist_copy.py**: Removed unnecessary module
+- **player.py**: Removed unecessary assertions
+
 ## v0.5.0 (2022-12-12)
 
 ### Feature
