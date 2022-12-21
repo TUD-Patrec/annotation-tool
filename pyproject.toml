@@ -23,17 +23,17 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<4"
+python = "^3.8,<3.11"
 distinctipy = "*"
 filetype = "*"
-numpy = "*"
+numpy = "~1.23.5"
 opencv-python = "~4.5.3.56"
 PyOpenGL = "*"
 PyQt5 = [
     { version = "~5.14.2", markers = "sys_platform != 'win32'" },
     { version = "^5.15", markers = "sys_platform == 'win32'" },
 ]
-pyqtgraph = "0.11.0"
+pyqtgraph = "^0.12.4"
 scipy = "*"
 torch = "~1.12.0"
 sortedcontainers = "^2.4.0"
@@ -44,12 +44,18 @@ qdarkstyle = "^3.1"
 black = "*"
 flake8 = "*"
 isort = "^5"
-pyinstaller = "*"
+pyinstaller = "~5.4"
 toml = "*"
 pre-commit = "^2.20.0"
 commitizen = "^2.37.0"
 cz-conventional-commits-ronmckay = "<1"
 pylint = "^2.15.5"
+
+[tool.poetry.group.build]
+optional = true
+
+[tool.poetry.group.build.dependencies]
+pyinstaller = "~5.4"
 
 [tool.poetry.scripts]
 annotation-tool = 'main:start'
