@@ -46,8 +46,8 @@ clean:
 	rm -rf build dist __pycache__ *.spec
 
 build-linux:
-	docker run --rm -e "PLATFORMS=linux" -v $(shell pwd):/src --entrypoint='/bin/sh' fydeinc/pyinstaller -c 'pip install --upgrade pip && pip install poetry && poetry config virtualenvs.create false && poetry install && /entrypoint.sh --onefile --noconsole --name annotation-tool /src/main.py'
+	docker run --rm -e "PLATFORMS=linux" -v $(CURDIR):/src --entrypoint="/bin/sh" fydeinc/pyinstaller -c "pip install --upgrade pip && pip install poetry && poetry config virtualenvs.create false && poetry install --without=dev --with=build && /entrypoint.sh --onefile --name annotation-tool /src/main.py"
 
 build-windows:
-	docker run --rm -e "PLATFORMS=windows" -v $(shell pwd):/src --entrypoint='/bin/sh' fydeinc/pyinstaller -c '/usr/win64/bin/python -m pip install --upgrade pip && /usr/win64/bin/python -m pip install poetry && /usr/win64/bin/python -m poetry config virtualenvs.create false && /usr/win64/bin/python -m poetry install && /entrypoint.sh --onefile --noconsole --name annotation-tool /src/main.py'
+	docker run --rm -e "PLATFORMS=windows" -v $(CURDIR):/src --entrypoint="/bin/sh" fydeinc/pyinstaller -c "/usr/win64/bin/python -m pip install --upgrade pip && /usr/win64/bin/python -m pip install poetry && /usr/win64/bin/python -m poetry config virtualenvs.create false && /usr/win64/bin/python -m poetry install --without=dev --with=build && /entrypoint.sh --onefile --name annotation-tool /src/main.py"
 
