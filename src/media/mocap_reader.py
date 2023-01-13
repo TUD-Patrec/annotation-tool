@@ -27,8 +27,6 @@ def load_mocap(path: os.PathLike, data_type: np.dtype = np.float32) -> np.ndarra
     """
     try:
         array = __load_lara_mocap__(path)
-        print("array.shape", array.shape)
-        print("memory size = ", array.nbytes / 1024 / 1024, "MB")
         return array.astype(data_type)
     except TypeError as e:
         raise TypeError("Loading mocap failed.") from e

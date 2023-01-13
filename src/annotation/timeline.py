@@ -130,7 +130,7 @@ class QTimeLine(qtw.QWidget):
         self.setAutoFillBackground(True)  # background
 
         # Constants
-        self.setMinimumHeight(200)
+        self.setMinimumSize(600, 200)
 
     @property
     def font(self):

@@ -43,8 +43,6 @@ class MocapBackend(gl.GLViewWidget):
         self.zgrid = gl.GLGridItem()
         self.addItem(self.zgrid)
 
-        print(f"self.parent(): {self.parent()}")
-
         self.current_skeleton = gl.GLLinePlotItem(
             pos=np.array([[0, 0, 0], [0, 0, 0]]),
             color=np.array([[0, 0, 0, 0], [0, 0, 0, 0]]),

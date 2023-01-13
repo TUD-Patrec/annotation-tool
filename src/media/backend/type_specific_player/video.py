@@ -102,8 +102,6 @@ class VideoPlayer(AbstractMediaPlayer):
     def shutdown(self):
         assert qtc.QThread.currentThread() is self.thread()
         self.stop_worker.emit()
-        self.worker_thread.quit()
-        self.worker_thread.wait()
 
 
 class VideoHelper(qtc.QObject):

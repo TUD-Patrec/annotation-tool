@@ -1,3 +1,4 @@
+import logging
 import time
 
 import PyQt5.QtCore as qtc
@@ -70,9 +71,8 @@ class Timer(qtc.QObject):
                     self.just_paused = False
                 else:
                     if len(self.subscribers) > 1:
-                        assert (
-                            self.subscribers_in_sync()
-                        ), "SUBSCRIBERS ARE OUT OF SYNC!"
+                        if not self.subscribers_in_sync():
+                            logging.error("Not all subscribers in sync!")
                 time.sleep(self.ACTIVE_IDLE_TIME)
                 self._inner_reset()
                 continue
