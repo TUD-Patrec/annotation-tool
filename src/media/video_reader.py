@@ -41,6 +41,8 @@ def get_cv(path: os.PathLike) -> cv2.VideoCapture:
 
 
 class VideoReader(MediaReader):
+    """Class for reading video data."""
+
     def __init__(self, path: os.PathLike) -> None:
         super().__init__(path)
 
@@ -70,6 +72,9 @@ class VideoReader(MediaReader):
         else:
             logging.error(f"cannot read frame {idx} from {self.path}.")
             return None
+
+    def __read_media__(self):
+        return get_cv(self.path)
 
     @property
     def current_position(self):

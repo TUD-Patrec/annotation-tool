@@ -101,7 +101,9 @@ class QMediaMainController(qtw.QWidget):
         self.grid.removeWidget(widget)
         self.vbox.removeWidget(widget)
         self.unsubscribe.emit(widget)
-        logging.info("Removed widget, now have %d widgets", len(self.replay_widgets))
+        logging.info(
+            "Removed widget, there are %d widgets left", len(self.replay_widgets)
+        )
 
     @qtc.pyqtSlot()
     def play(self):

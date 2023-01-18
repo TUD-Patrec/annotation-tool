@@ -1,4 +1,5 @@
 import abc
+import logging
 import os
 from typing import Optional, Union
 
@@ -6,6 +7,8 @@ import cv2 as cv
 import numpy as np
 
 import src.utility.filehandler as filehandler
+
+__next_id__ = 0
 
 
 class MediaReader:
@@ -131,6 +134,13 @@ class MediaReader:
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def __read_media__(self):
+        """
+        Reads the media file.
+        """
+        raise NotImplementedError
+
     @property
     def media(self):
         """
@@ -142,7 +152,7 @@ class MediaReader:
 
 class Memoizer:
     def __init__(self):
-        self._cache = []
+        self._cache = {}
 
     def __call__(self, mr: MediaReader) -> Union[cv.VideoCapture, np.ndarray]:
         """
@@ -154,23 +164,15 @@ class Memoizer:
         Returns:
             The memorized version of the MediaReader.
         """
-        # check if vr already registered
-        for (reader, memorized_vr) in self._cache:
-            if reader is mr:
-                return memorized_vr
-        else:
-            from .mocap_reader import MocapReader, get_mocap
-            from .video_reader import VideoReader, get_cv
+        if not isinstance(mr, MediaReader):
+            raise TypeError("Invalid argument type.")
+        key = id(mr)
+        if key not in self._cache:
+            media = mr.__read_media__()
+            self._cache[key] = media
+            self.log_cache()
 
-            if isinstance(mr, VideoReader):
-                memorized_vr = get_cv(mr.path)
-            elif isinstance(mr, MocapReader):
-                memorized_vr = np.copy(get_mocap(mr.path))
-            else:
-                raise TypeError("Invalid MediaReader type.")
-            self._cache.append((mr, memorized_vr))
-
-            return memorized_vr
+        return self._cache[key]
 
     def remove(self, mr: MediaReader) -> None:
         """
@@ -179,14 +181,13 @@ class Memoizer:
         Args:
             mr: The MediaReader to remove.
         """
-        for (reader, memorized_vr) in self._cache:
-            if reader is mr:
-                self._cache.remove((reader, memorized_vr))
+        key = id(mr)
+        if key in self._cache:
+            del self._cache[key]
+            self.log_cache()
 
-                if isinstance(memorized_vr, cv.VideoCapture):
-                    memorized_vr.release()
-                    print("Released VideoCapture object.")
-                break
+    def log_cache(self):
+        logging.debug(f"Cache size: {len(self._cache)}")
 
 
 memoizer = Memoizer()

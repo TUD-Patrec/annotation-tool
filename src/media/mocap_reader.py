@@ -155,3 +155,6 @@ class MocapReader(MediaReader):
             raise IndexError("Index out of range.")
 
         return self.media[idx]
+
+    def __read_media__(self):
+        return np.copy(load_mocap(self.path))

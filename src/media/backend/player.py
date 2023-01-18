@@ -54,12 +54,7 @@ class AbstractMediaPlayer(qtw.QWidget):
         self._reference_fps = p.fps
         self._reference_N = p.N
 
-    def mousePressEvent(self, e):
-        # rightclick = context_menu
-        if e.button() == qtc.Qt.RightButton:
-            self.open_context_menu()
-
-    def open_context_menu(self):
+    def contextMenuEvent(self, e):
         menu = qtw.QMenu(self)
         menu.addAction("Add another input source", self.add_input)
 

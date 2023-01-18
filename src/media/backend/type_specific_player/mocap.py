@@ -11,7 +11,6 @@ class MocapPlayer(AbstractMediaPlayer):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.media_backend = MocapBackend(self)  # setting parent to self
-        self.media_backend.right_mouse_btn_clicked.connect(self.open_context_menu)
 
     def load(self, path):
         media = MocapReader(path)
@@ -64,12 +63,6 @@ class MocapBackend(gl.GLViewWidget):
         skeleton = _calculate_skeleton(array)
         skeleton = _fix_skeleton_height(skeleton)
         return skeleton
-
-    def mousePressEvent(self, ev):
-        lpos = ev.position() if hasattr(ev, "position") else ev.localPos()
-        self.mousePos = lpos
-        if ev.button() == qtc.Qt.RightButton:
-            self.right_mouse_btn_clicked.emit()
 
     def devicePixelRatio(self):
         """
