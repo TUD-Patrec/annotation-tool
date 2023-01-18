@@ -1,8 +1,8 @@
 import enum
 from typing import List
 
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtWidgets as qtw
 import numpy as np
 
 from src.annotation.annotation_base import AnnotationBaseClass

@@ -1,8 +1,8 @@
 import os
 import sys
 
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtWidgets as qtw
 
 from src.qt_helper_widgets.lines import QHLine
 from src.utility.file_cache import get_all, get_dir, get_size_in_bytes
@@ -40,7 +40,9 @@ class LocalFilesDialog(qtw.QDialog):
         self.path_label = qtw.QLabel("Path to local files:")
         self.path_value_label = qtw.QLabel(f"{get_dir()}")
         self.path_value_label.setWordWrap(True)
-        self.path_value_label.setTextInteractionFlags(qtc.Qt.TextSelectableByMouse)
+        self.path_value_label.setTextInteractionFlags(
+            qtc.Qt.TextInteractionFlag.TextSelectableByMouse
+        )
         self.layout().addWidget(self.path_label, 3, 0)
         self.layout().addWidget(self.path_value_label, 3, 1)
 

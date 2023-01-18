@@ -1,6 +1,6 @@
 import enum
 
-import PyQt5.QtCore as qtc
+import PyQt6.QtCore as qtc
 
 
 class DialogOpenStrategy(enum.Enum):
@@ -18,8 +18,8 @@ class DialogManager:
         # and restore window with keeping maximized/normal state
         self.__open_dialog__
         self.__open_dialog__.setWindowState(
-            self.__open_dialog__.windowState() & ~qtc.Qt.WindowMinimized
-            | qtc.Qt.WindowActive
+            self.__open_dialog__.windowState() & ~qtc.Qt.WindowState.WindowMinimized
+            | qtc.Qt.WindowState.WindowActive
         )
 
         # this will activate the window
@@ -32,11 +32,13 @@ class DialogManager:
 
             # let dialog be minimized
             dialog.setWindowFlags(
-                dialog.windowFlags() | qtc.Qt.WindowMinimizeButtonHint
+                dialog.windowFlags() | qtc.Qt.WindowType.WindowMinimizeButtonHint
             )
 
             # keep dialog on top
-            dialog.setWindowFlags(dialog.windowFlags() | qtc.Qt.WindowStaysOnTopHint)
+            dialog.setWindowFlags(
+                dialog.windowFlags() | qtc.Qt.WindowType.WindowStaysOnTopHint
+            )
 
             dialog.open()
         else:

@@ -1,8 +1,8 @@
 import os
 
-import PyQt5.QtCore as qtc
-import PyQt5.QtGui as qtg
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtGui as qtg
+import PyQt6.QtWidgets as qtw
 
 from src.data_model import Model, get_unique_name, make_model
 from src.media import MediaType
@@ -79,7 +79,7 @@ class NetworkWidget(qtw.QWidget):
 
     def on_path_clicked(self, event: qtg.QMouseEvent):
         file_dialog = qtw.QFileDialog(self)
-        file_dialog.setFileMode(qtw.QFileDialog.ExistingFile)
+        file_dialog.setFileMode(qtw.QFileDialog.FileMode.ExistingFile)
         file_dialog.setNameFilter("Network (*.pt *.pth)")
         if file_dialog.exec():
             file_path = file_dialog.selectedFiles()[0]
@@ -96,9 +96,11 @@ class NetworkWidget(qtw.QWidget):
         # ask for confirmation
         msg_box = qtw.QMessageBox(self)
         msg_box.setText("Do you really want to delete this network?")
-        msg_box.setStandardButtons(qtw.QMessageBox.Yes | qtw.QMessageBox.No)
-        msg_box.setDefaultButton(qtw.QMessageBox.No)
-        if msg_box.exec() == qtw.QMessageBox.Yes:
+        msg_box.setStandardButtons(
+            qtw.QMessageBox.StandardButton.Yes | qtw.QMessageBox.StandardButton.No
+        )
+        msg_box.setDefaultButton(qtw.QMessageBox.StandardButton.No)
+        if msg_box.exec() == qtw.QMessageBox.StandardButton.Yes:
             self.model.delete()
             self.deleted.emit()
 
@@ -147,8 +149,8 @@ class NetworkListWidget(qtw.QWidget):
 
             # make frame around the widget
             frame = qtw.QFrame()
-            frame.setFrameShape(qtw.QFrame.StyledPanel)
-            frame.setFrameShadow(qtw.QFrame.Raised)
+            frame.setFrameShape(qtw.QFrame.Shape.StyledPanel)
+            frame.setFrameShadow(qtw.QFrame.Shadow.Raised)
             frame_layout = qtw.QVBoxLayout(frame)
             frame_layout.addWidget(widget)
 
@@ -201,27 +203,30 @@ class CreateNetworkDialog(qtw.QDialog):
 
         # buttons
         self.button_box = qtw.QDialogButtonBox(
-            qtw.QDialogButtonBox.Ok | qtw.QDialogButtonBox.Cancel
+            qtw.QDialogButtonBox.StandardButton.Ok
+            | qtw.QDialogButtonBox.StandardButton.Cancel
         )
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         self.layout.addWidget(self.button_box)
 
         # disable ok button
-        self.button_box.button(qtw.QDialogButtonBox.Ok).setEnabled(False)
+        self.button_box.button(qtw.QDialogButtonBox.StandardButton.Ok).setEnabled(False)
 
         self.setLayout(self.layout)
 
     def on_path_clicked(self, event: qtg.QMouseEvent):
         file_dialog = qtw.QFileDialog(self)
-        file_dialog.setFileMode(qtw.QFileDialog.ExistingFile)
+        file_dialog.setFileMode(qtw.QFileDialog.FileMode.ExistingFile)
         file_dialog.setNameFilter("Network (*.pt *.pth)")
         if file_dialog.exec():
             file_path = file_dialog.selectedFiles()[0]
             self.path_edit.setText(file_path)
 
             # enable ok button
-            self.button_box.button(qtw.QDialogButtonBox.Ok).setEnabled(True)
+            self.button_box.button(qtw.QDialogButtonBox.StandardButton.Ok).setEnabled(
+                True
+            )
 
     def get_name(self) -> str:
         return self.name_edit.text()
@@ -274,13 +279,3 @@ class NetworksDialog(qtw.QDialog):
             media_type = create_dialog.get_media_type()
             make_model(path, sampling_rate, media_type, name)
             self.update()
-
-
-# make test application with dialog
-if __name__ == "__main__":
-    import sys
-
-    app = qtw.QApplication(sys.argv)
-    dialog = NetworksDialog()
-    dialog.show()
-    app.exec_()

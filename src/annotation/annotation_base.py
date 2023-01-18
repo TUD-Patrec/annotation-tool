@@ -2,7 +2,7 @@ from abc import abstractmethod
 import enum
 from typing import List, Optional
 
-import PyQt5.QtCore as qtc
+import PyQt6.QtCore as qtc
 import numpy as np
 
 from src.data_model import Annotation, AnnotationScheme, Sample

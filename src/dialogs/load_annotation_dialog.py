@@ -1,7 +1,7 @@
 import os
 
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtWidgets as qtw
 
 from ..data_model import Dataset
 from ..data_model.globalstate import GlobalState

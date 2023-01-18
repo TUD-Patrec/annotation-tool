@@ -1,15 +1,15 @@
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtWidgets as qtw
 
 
 class OwnSlider(qtw.QSlider):
     def __init__(self):
-        super(OwnSlider, self).__init__(qtc.Qt.Horizontal)
+        super(OwnSlider, self).__init__(qtc.Qt.Orientation.Horizontal)
 
     def keyPressEvent(self, event) -> None:
-        if event.key() == qtc.Qt.Key_Up:
+        if event.key() == qtc.Qt.Key.Key_Right:
             self.plus_step()
-        elif event.key() == qtc.Qt.Key_Down:
+        elif event.key() == qtc.Qt.Key.Key_Left:
             self.minus_step()
         else:
             super(OwnSlider, self).keyPressEvent(event)

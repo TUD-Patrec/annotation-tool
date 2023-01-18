@@ -1,8 +1,8 @@
 import logging
 
-import PyQt5.QtCore as qtc
-import PyQt5.QtGui as qtg
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtGui as qtg
+import PyQt6.QtWidgets as qtw
 
 from src.media.backend.player import AbstractMediaPlayer
 from src.media.backend.timer import Timer
@@ -11,6 +11,52 @@ from src.media.backend.type_specific_player.video import VideoPlayer
 from src.media.media_types import MediaType, media_type_of
 from src.settings import settings
 
+media_proxy_map = {}
+
+
+class MediaProxy(qtc.QObject):
+    ACK_timeout: qtc.pyqtSignal = qtc.pyqtSignal(qtc.QObject)
+    ACK_setpos: qtc.pyqtSignal = qtc.pyqtSignal(qtc.QObject)
+    set_position = qtc.pyqtSignal(int)
+    timeout = qtc.pyqtSignal()
+
+    def __init__(self, media_widget: AbstractMediaPlayer):
+        super().__init__()
+        self.id = id(media_widget)
+        self.fps = media_widget.fps
+        self.position = media_widget.position
+
+        media_proxy_map[id(media_widget)] = (self, media_widget)
+
+        media_widget.ACK_timeout.connect(self.forward_ACK_timeout)
+        media_widget.ACK_setpos.connect(self.forward_ACK_setpos)
+        self.timeout.connect(media_widget.on_timeout)
+        self.set_position.connect(media_widget.set_position)
+
+    @qtc.pyqtSlot(qtc.QObject)
+    def on_timeout_(self, proxy):
+        if proxy is self:
+            self.timeout.emit()
+
+    @qtc.pyqtSlot(qtc.QObject, int)
+    def set_position_(self, proxy, position):
+        if proxy is self:
+            self.set_position.emit(position)
+
+    @qtc.pyqtSlot()
+    def forward_ACK_timeout(self):
+        self.position = self.media_widget.position
+        self.ACK_timeout.emit(self)
+
+    @qtc.pyqtSlot()
+    def forward_ACK_setpos(self):
+        self.position = self.media_widget.position
+        self.ACK_setpos.emit(self)
+
+    @property
+    def media_widget(self):
+        return media_proxy_map[self.id][1]
+
 
 class QMediaMainController(qtw.QWidget):
     position_changed = qtc.pyqtSignal(int)
@@ -18,8 +64,8 @@ class QMediaMainController(qtw.QWidget):
     setPaused = qtc.pyqtSignal(bool)
     stop = qtc.pyqtSignal()
     replay_speed_changed = qtc.pyqtSignal(float)
-    subscribe = qtc.pyqtSignal(qtw.QWidget)
-    unsubscribe = qtc.pyqtSignal(qtw.QWidget)
+    subscribe = qtc.pyqtSignal(qtc.QObject)
+    unsubscribe = qtc.pyqtSignal(qtc.QObject)
     reset = qtc.pyqtSignal()
 
     cleaned_up = qtc.pyqtSignal()
@@ -86,8 +132,12 @@ class QMediaMainController(qtw.QWidget):
     def widget_loaded(self, widget: AbstractMediaPlayer):
         widget.new_input_wanted.connect(self.add_replay_widget)
         self.replay_widgets.append(widget)
+
+        proxy = MediaProxy(widget)
+
         logging.info("WIDGET LOADED")
-        self.subscribe.emit(widget)
+        self.subscribe.emit(proxy)
+        logging.info("WIDGET SUBSCRIBED")
 
     @qtc.pyqtSlot(AbstractMediaPlayer)
     def widget_failed(self, widget):
@@ -100,10 +150,11 @@ class QMediaMainController(qtw.QWidget):
         self.replay_widgets.remove(widget)
         self.grid.removeWidget(widget)
         self.vbox.removeWidget(widget)
-        self.unsubscribe.emit(widget)
-        logging.info(
-            "Removed widget, there are %d widgets left", len(self.replay_widgets)
-        )
+
+        proxy = media_proxy_map.get(id(widget))[0]
+        if proxy:
+            self.unsubscribe.emit(proxy)
+            del media_proxy_map[id(widget)]
 
     @qtc.pyqtSlot()
     def play(self):

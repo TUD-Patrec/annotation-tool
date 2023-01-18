@@ -1,5 +1,5 @@
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtWidgets as qtw
 import numpy as np
 import pyqtgraph.opengl as gl
 

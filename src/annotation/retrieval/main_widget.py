@@ -1,7 +1,7 @@
 from typing import Union
 
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtWidgets as qtw
 
 from src.annotation.retrieval.retrieval_backend.element import RetrievalElement
 from src.annotation.retrieval.retrieval_backend.query import Query
@@ -47,12 +47,14 @@ class QRetrievalWidget(qtw.QWidget):
 
         vbox.addWidget(self.filter_widget)
         vbox.addWidget(QHLine())
-        vbox.addWidget(self.main_widget, alignment=qtc.Qt.AlignCenter, stretch=1)
+        vbox.addWidget(
+            self.main_widget, alignment=qtc.Qt.AlignmentFlag.AlignCenter, stretch=1
+        )
         vbox.addWidget(QHLine())
 
-        vbox.addWidget(self.histogram, alignment=qtc.Qt.AlignCenter)
+        vbox.addWidget(self.histogram, alignment=qtc.Qt.AlignmentFlag.AlignCenter)
         vbox.addWidget(QHLine())
-        vbox.addWidget(self.footer_widget, alignment=qtc.Qt.AlignCenter)
+        vbox.addWidget(self.footer_widget, alignment=qtc.Qt.AlignmentFlag.AlignCenter)
 
         self.setLayout(vbox)
         self.setFixedWidth(400)

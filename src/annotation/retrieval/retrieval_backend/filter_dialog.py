@@ -1,5 +1,5 @@
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtWidgets as qtw
 import numpy as np
 
 from src.annotation.retrieval.retrieval_backend.filter import FilterCriterion
@@ -32,7 +32,7 @@ class QRetrievalFilter(qtw.QDialog):
                 is_checked = self.old_filter.filter_array[idx] == 1
                 if is_checked:
                     combo_box.model().item(scheme_element.column).setCheckState(
-                        qtc.Qt.Checked
+                        qtc.Qt.CheckState.Checked
                     )
 
             last_element = scheme_element

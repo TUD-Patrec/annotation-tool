@@ -1,6 +1,6 @@
-import PyQt5.QtCore as qtc
-from PyQt5.QtGui import QFontMetrics, QPalette, QStandardItem
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+from PyQt6.QtGui import QFontMetrics, QPalette, QStandardItem
+import PyQt6.QtWidgets as qtw
 
 
 class CheckableComboBox(qtw.QComboBox):
@@ -43,7 +43,7 @@ class CheckableComboBox(qtw.QComboBox):
     def eventFilter(self, object, event):
 
         if object == self.lineEdit():
-            if event.type() == qtc.QEvent.MouseButtonRelease:
+            if event.type() == qtc.QEvent.Type.MouseButtonRelease:
                 if self.closeOnLineEditClick:
                     self.hidePopup()
                 else:
@@ -52,14 +52,14 @@ class CheckableComboBox(qtw.QComboBox):
             return False
 
         if object == self.view().viewport():
-            if event.type() == qtc.QEvent.MouseButtonRelease:
+            if event.type() == qtc.QEvent.Type.MouseButtonRelease:
                 index = self.view().indexAt(event.pos())
                 item = self.model().item(index.row())
 
-                if item.checkState() == qtc.Qt.Checked:
-                    item.setCheckState(qtc.Qt.Unchecked)
+                if item.checkState() == qtc.Qt.CheckState.Checked:
+                    item.setCheckState(qtc.Qt.CheckState.Unchecked)
                 else:
-                    item.setCheckState(qtc.Qt.Checked)
+                    item.setCheckState(qtc.Qt.CheckState.Checked)
                 return True
         return False
 
@@ -83,14 +83,14 @@ class CheckableComboBox(qtw.QComboBox):
     def updateText(self):
         texts = []
         for i in range(self.model().rowCount()):
-            if self.model().item(i).checkState() == qtc.Qt.Checked:
+            if self.model().item(i).checkState() == qtc.Qt.CheckState.Checked:
                 texts.append(self.model().item(i).text())
         text = ", ".join(texts)
 
         # Compute elided text (with "...")
         metrics = QFontMetrics(self.lineEdit().font())
         elidedText = metrics.elidedText(
-            text, qtc.Qt.ElideRight, self.lineEdit().width()
+            text, qtc.Qt.TextElideMode.ElideRight, self.lineEdit().width()
         )
         self.lineEdit().setText(elidedText)
 
@@ -101,8 +101,10 @@ class CheckableComboBox(qtw.QComboBox):
             item.setData(text)
         else:
             item.setData(data)
-        item.setFlags(qtc.Qt.ItemIsEnabled | qtc.Qt.ItemIsUserCheckable)
-        item.setData(qtc.Qt.Unchecked, qtc.Qt.CheckStateRole)
+        item.setFlags(
+            qtc.Qt.ItemFlag.ItemIsEnabled | qtc.Qt.ItemFlag.ItemIsUserCheckable
+        )
+        item.setData(qtc.Qt.CheckState.Unchecked, qtc.Qt.ItemDataRole.CheckStateRole)
         self.model().appendRow(item)
 
     def addItems(self, texts, datalist=None):
@@ -117,6 +119,6 @@ class CheckableComboBox(qtw.QComboBox):
         # Return the list of selected items data
         res = []
         for i in range(self.model().rowCount()):
-            if self.model().item(i).checkState() == qtc.Qt.Checked:
+            if self.model().item(i).checkState() == qtc.Qt.CheckState.Checked:
                 res.append(self.model().item(i).data())
         return res

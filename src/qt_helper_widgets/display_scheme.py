@@ -1,7 +1,7 @@
 from textwrap import wrap
 
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtWidgets as qtw
 
 
 def format_str(s, characters_per_line, line_start=""):
@@ -23,7 +23,11 @@ class QShowAnnotation(qtw.QWidget):
         self.reset_layout()
 
         if annotation is None or annotation.is_empty():
-            label = qtw.QLabel("No annotation to show.", alignment=qtc.Qt.AlignCenter)
+            label = qtw.QLabel(
+                "No annotation to show.",
+                self,
+                alignment=qtc.Qt.AlignmentFlag.AlignCenter,
+            )
             self.form.addWidget(label)
             return
 
@@ -35,8 +39,10 @@ class QShowAnnotation(qtw.QWidget):
                 list_widget = qtw.QListWidget()
                 list_widget.setFixedSize(200, 50)
                 list_widget.setDisabled(False)
-                list_widget.setSelectionMode(qtw.QAbstractItemView.NoSelection)
-                list_widget.setItemAlignment(qtc.Qt.AlignCenter)
+                list_widget.setSelectionMode(
+                    qtw.QAbstractItemView.SelectionMode.NoSelection
+                )
+                list_widget.setItemAlignment(qtc.Qt.AlignmentFlag.AlignCenter)
 
                 group_name = attribute.group_name.capitalize() + ":"
 
@@ -44,7 +50,7 @@ class QShowAnnotation(qtw.QWidget):
 
             if attribute.value == 1:
                 list_item = qtw.QListWidgetItem(attribute.element_name)
-                list_item.setTextAlignment(qtc.Qt.AlignCenter)
+                list_item.setTextAlignment(qtc.Qt.AlignmentFlag.AlignCenter)
                 list_widget.addItem(list_item)
 
             list_widget.sortItems()

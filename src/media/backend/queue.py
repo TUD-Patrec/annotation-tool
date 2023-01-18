@@ -1,13 +1,9 @@
-from src.media.backend.player import AbstractMediaPlayer
-
-
 class FairQueue:
     def __init__(self) -> None:
         self.items = []
         self.count = 0
 
     def push(self, item):
-        assert isinstance(item, AbstractMediaPlayer)
         for idx, (elem_2, _) in enumerate(self.items):
             if item == elem_2:
                 self._increase_item(idx)

@@ -1,6 +1,6 @@
-import PyQt5.QtCore as qtc
-import PyQt5.QtGui as qtg
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtGui as qtg
+import PyQt6.QtWidgets as qtw
 import cv2
 import numpy as np
 
@@ -17,14 +17,16 @@ class VideoPlayer(AbstractMediaPlayer):
         super().__init__(*args, **kwargs)
 
         self.lblVid = qtw.QLabel(self)
-        self.lblVid.setSizePolicy(qtw.QSizePolicy.Ignored, qtw.QSizePolicy.Ignored)
-        self.lblVid.setAlignment(qtc.Qt.AlignCenter)
+        self.lblVid.setSizePolicy(
+            qtw.QSizePolicy.Policy.Ignored, qtw.QSizePolicy.Policy.Ignored
+        )
+        self.lblVid.setAlignment(qtc.Qt.AlignmentFlag.AlignCenter)
         self.layout().addWidget(self.lblVid)
         self.current_img = None
 
         # design
         p = self.palette()
-        p.setColor(self.backgroundRole(), qtc.Qt.black)
+        p.setColor(self.backgroundRole(), qtc.Qt.GlobalColor.black)
         self.setPalette(p)
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.setAutoFillBackground(True)
@@ -44,7 +46,9 @@ class VideoPlayer(AbstractMediaPlayer):
             qtw.QWidget.resizeEvent(self, event)
             self.lblVid.resize(event.size())
             img = self.current_img.scaled(
-                self.lblVid.size(), qtc.Qt.KeepAspectRatio, qtc.Qt.SmoothTransformation
+                self.lblVid.size(),
+                qtc.Qt.AspectRatioMode.KeepAspectRatio,
+                qtc.Qt.TransformationMode.SmoothTransformation,
             )
             pix = qtg.QPixmap.fromImage(img)
             self.lblVid.setPixmap(pix)
@@ -64,7 +68,7 @@ class VideoPlayer(AbstractMediaPlayer):
             return
 
         self.current_img = qtg.QImage(
-            frame, w, h, bytes_per_line, qtg.QImage.Format_RGB888
+            frame, w, h, bytes_per_line, qtg.QImage.Format.Format_RGB888
         )
         assert not self.current_img.isNull()
 
@@ -146,10 +150,13 @@ class VideoHelper(qtc.QObject):
             bytes_per_line = ch * w
 
             current_img = qtg.QImage(
-                frame, w, h, bytes_per_line, qtg.QImage.Format_RGB888
+                frame, w, h, bytes_per_line, qtg.QImage.Format.Format_RGB888
             )
             img = current_img.scaled(
-                width, height, qtc.Qt.KeepAspectRatio, qtc.Qt.SmoothTransformation
+                width,
+                height,
+                qtc.Qt.AspectRatioMode.KeepAspectRatio,
+                qtc.Qt.TransformationMode.SmoothTransformation,
             )
 
             self.image_ready.emit(img, frame, w, h, bytes_per_line, update_reason)

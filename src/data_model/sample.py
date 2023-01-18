@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-import PyQt5.QtGui as qtg
+import PyQt6.QtGui as qtg
 
 from src.utility.colormapper import ColorMapper
 from src.utility.decorators import accepts, returns

@@ -1,5 +1,5 @@
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtWidgets as qtw
 
 from src.settings import settings
 
@@ -92,23 +92,23 @@ class SettingsDialog(qtw.QDialog):
     def change_appearance(self):
         dlg = AppearanceSettingsDialog(self)
         dlg.window_size_changed.connect(self.window_size_changed.emit)
-        dlg.exec_()
+        dlg.exec()
         dlg.deleteLater()
 
     def change_media(self):
         dlg = MediaSettingsDialog(self)
         dlg.settings_changed.connect(self.settings_changed.emit)
-        dlg.exec_()
+        dlg.exec()
         dlg.deleteLater()
 
     def change_navigation(self):
         dlg = NavigationSettingsDialog(self)
-        dlg.exec_()
+        dlg.exec()
         dlg.deleteLater()
 
     def change_retrieval_mode(self):
         dlg = RetrievalSettingsDialog(self)
-        dlg.exec_()
+        dlg.exec()
         dlg.deleteLater()
 
     def reset_settings(self):
@@ -272,7 +272,7 @@ class MediaSettingsDialog(qtw.QDialog):
         self.fallback_fps_layout = qtw.QHBoxLayout()
         self.fallback_fps_label = qtw.QLabel("Fallback FPS:")
         # slider for fallback FPS
-        self.fallback_fps_slider = qtw.QSlider(qtc.Qt.Horizontal)
+        self.fallback_fps_slider = qtw.QSlider(qtc.Qt.Orientation.Horizontal)
         self.fallback_fps_slider.setRange(1, 250)
         # display the current value of the slider
         self.fallback_display = qtw.QLabel(str(settings.refresh_rate))

@@ -1,7 +1,7 @@
 import os
 
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtWidgets as qtw
 
 from src.data_model import Dataset
 from src.data_model.globalstate import GlobalState
@@ -82,7 +82,7 @@ class QNewAnnotationDialog(qtw.QDialog):
                 media_reader = get_reader(self.line_edit.text())
                 if len(media_reader) < 1000:
                     msg = qtw.QMessageBox(self)
-                    msg.setIcon(qtw.QMessageBox.Critical)
+                    msg.setIcon(qtw.QMessageBox.Icon.Critical)
                     msg.setText("Media too short.")
                     msg.setInformativeText(
                         "The selected media's length [={}] is too small.\nIt should at least consist of 1000 frames!".format(
@@ -96,7 +96,7 @@ class QNewAnnotationDialog(qtw.QDialog):
                     return
             except ValueError:
                 msg = qtw.QMessageBox(self)
-                msg.setIcon(qtw.QMessageBox.Critical)
+                msg.setIcon(qtw.QMessageBox.Icon.Critical)
                 msg.setText("Unknown media type.")
                 msg.setInformativeText("The selected media type is not supported.")
                 msg.setWindowTitle("Error")

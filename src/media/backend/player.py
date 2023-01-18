@@ -1,9 +1,9 @@
 from abc import abstractmethod
 from enum import Enum
 
-import PyQt5.QtCore as qtc
-import PyQt5.QtGui as qtg
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtGui as qtg
+import PyQt6.QtWidgets as qtw
 
 from src.utility import filehandler
 
@@ -107,35 +107,33 @@ class AbstractMediaPlayer(qtw.QWidget):
     # TODO self.position + 1 needs to happen after the position update
     #  -> else while waiting for update the position
     # can get updated multiple times -> offsync
-    @qtc.pyqtSlot(qtw.QWidget)
-    def on_timeout(self, w):
-        if self is w:
-            if self.play_forward:
-                if self.position + 1 < self.N_FRAMES():
-                    self.position += 1
-                    self.confirm_update(UpdateReason.TIMEOUT)  # TODO fix
-                    self.update_media_position(UpdateReason.SETPOS)  # TODO fix
-                else:
-                    self.confirm_update(UpdateReason.TIMEOUT)
+    @qtc.pyqtSlot()
+    def on_timeout(self):
+        if self.play_forward:
+            if self.position + 1 < self.N_FRAMES():
+                self.position += 1
+                self.confirm_update(UpdateReason.TIMEOUT)  # TODO fix
+                self.update_media_position(UpdateReason.SETPOS)  # TODO fix
             else:
-                if self.position > 0:
-                    self.position -= 1
-                    self.confirm_update(UpdateReason.TIMEOUT)
-                    self.update_media_position(UpdateReason.SETPOS)
-                else:
-                    self.confirm_update(UpdateReason.TIMEOUT)
-
-    @qtc.pyqtSlot(qtw.QWidget, int)
-    def set_position(self, w, new_pos):
-        if self is w:
-            new_pos = self.translate_frame_position(new_pos)
-
-            if new_pos != self.position:
-                self.position = new_pos
+                self.confirm_update(UpdateReason.TIMEOUT)
+        else:
+            if self.position > 0:
+                self.position -= 1
+                self.confirm_update(UpdateReason.TIMEOUT)
                 self.update_media_position(UpdateReason.SETPOS)
             else:
-                # Short circuting if no position change has happened
-                self.confirm_update(UpdateReason.SETPOS)
+                self.confirm_update(UpdateReason.TIMEOUT)
+
+    @qtc.pyqtSlot(int)
+    def set_position(self, new_pos):
+        new_pos = self.translate_frame_position(new_pos)
+
+        if new_pos != self.position:
+            self.position = new_pos
+            self.update_media_position(UpdateReason.SETPOS)
+        else:
+            # Short circuting if no position change has happened
+            self.confirm_update(UpdateReason.SETPOS)
 
     @qtc.pyqtSlot()
     def ack_timeout(self):

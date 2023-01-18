@@ -1,8 +1,8 @@
 from functools import partial
 import logging
 
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtWidgets as qtw
 import numpy as np
 
 from src.data_model import Dataset
@@ -19,7 +19,7 @@ class QEditDatasets(qtw.QDialog):
 
         self.scroll_widget = QAdaptiveScrollArea(self)
         self.scroll_widget.setSizePolicy(
-            qtw.QSizePolicy.Expanding, qtw.QSizePolicy.Expanding
+            qtw.QSizePolicy.Policy.Expanding, qtw.QSizePolicy.Policy.Expanding
         )
 
         vbox.addWidget(self.make_header())
@@ -86,19 +86,19 @@ class QEditDatasets(qtw.QDialog):
         row_widget.setLayout(hbox)
 
         id_lbl = qtw.QLabel("ID")
-        id_lbl.setAlignment(qtc.Qt.AlignCenter)
+        id_lbl.setAlignment(qtc.Qt.AlignmentFlag.AlignCenter)
         hbox.addWidget(id_lbl)
 
         name_lbl = qtw.QLabel("Name")
-        name_lbl.setAlignment(qtc.Qt.AlignCenter)
+        name_lbl.setAlignment(qtc.Qt.AlignmentFlag.AlignCenter)
         hbox.addWidget(name_lbl)
 
         dependencies_lbl = qtw.QLabel("Dependencies")
-        dependencies_lbl.setAlignment(qtc.Qt.AlignCenter)
+        dependencies_lbl.setAlignment(qtc.Qt.AlignmentFlag.AlignCenter)
         hbox.addWidget(dependencies_lbl)
 
         remove_lbl = qtw.QLabel("Remove")
-        remove_lbl.setAlignment(qtc.Qt.AlignCenter)
+        remove_lbl.setAlignment(qtc.Qt.AlignmentFlag.AlignCenter)
         hbox.addWidget(remove_lbl)
 
         return row_widget
@@ -110,18 +110,18 @@ class QEditDatasets(qtw.QDialog):
         dataset = Dataset.get_all()[id]
 
         idx_label = qtw.QLabel(str(id + 1))
-        idx_label.setAlignment(qtc.Qt.AlignCenter)
+        idx_label.setAlignment(qtc.Qt.AlignmentFlag.AlignCenter)
         hbox.addWidget(idx_label)
 
         name_label = qtw.QLabel(dataset.name)
-        name_label.setAlignment(qtc.Qt.AlignCenter)
+        name_label.setAlignment(qtc.Qt.AlignmentFlag.AlignCenter)
         hbox.addWidget(name_label)
 
         dependencies_exist = (
             "loaded" if dataset.dependencies is not None else "not loaded"
         )
         dependencies_label = qtw.QLabel(dependencies_exist)
-        dependencies_label.setAlignment(qtc.Qt.AlignCenter)
+        dependencies_label.setAlignment(qtc.Qt.AlignmentFlag.AlignCenter)
         hbox.addWidget(dependencies_label)
 
         remove_btn = qtw.QPushButton()
@@ -139,7 +139,9 @@ class QEditDatasets(qtw.QDialog):
 
         for idx, _ in enumerate(Dataset.get_all()):
             row = self._make_row(idx)
-            row.setSizePolicy(qtw.QSizePolicy.Expanding, qtw.QSizePolicy.Expanding)
+            row.setSizePolicy(
+                qtw.QSizePolicy.Policy.Expanding, qtw.QSizePolicy.Policy.Expanding
+            )
             self.scroll_widget.addItem(row)
 
     def add_pressed(self):
@@ -187,10 +189,12 @@ class QEditDatasets(qtw.QDialog):
         dataset_name = dataset.name
 
         msg = qtw.QMessageBox(self)
-        msg.setIcon(qtw.QMessageBox.Question)
+        msg.setIcon(qtw.QMessageBox.Icon.Question)
         msg.setText('Are you sure you want to delete "{}"?'.format(dataset_name))
 
-        msg.setStandardButtons(qtw.QMessageBox.Yes | qtw.QMessageBox.No)
+        msg.setStandardButtons(
+            qtw.QMessageBox.StandardButton.Yes | qtw.QMessageBox.StandardButton.No
+        )
         msg.buttonClicked.connect(lambda x: self.msgbtn(x, dataset))
 
         msg.show()

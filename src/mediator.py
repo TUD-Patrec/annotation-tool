@@ -6,7 +6,7 @@ This module is meant to abstract all the tasks which need to happen in the backg
 
 """
 
-import PyQt5.QtCore as qtc
+import PyQt6.QtCore as qtc
 
 from src.annotation.controller import AnnotationController
 from src.annotation.timeline import QTimeLine

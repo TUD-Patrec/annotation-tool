@@ -1,8 +1,8 @@
 import os
 import shutil
 
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtWidgets as qtw
 
 from src.data_model.globalstate import GlobalState
 from src.utility import filehandler
@@ -85,20 +85,22 @@ class GlobalStateWidget(qtw.QWidget):
     def export(self):
         # open export dialog
         dlg = ExportAnnotationDialog(self.global_state, self)
-        dlg.exec_()
+        dlg.exec()
         dlg.deleteLater()
 
     def delete(self):
         # ask for confirmation
         msg = qtw.QMessageBox(self)
-        msg.setIcon(qtw.QMessageBox.Warning)
+        msg.setIcon(qtw.QMessageBox.Icon.Warning)
         msg.setText("Do you really want to delete this Annotation-Object?")
         msg.setInformativeText("This action cannot be undone.")
         msg.setWindowTitle("Delete Annotation-Object")
-        msg.setStandardButtons(qtw.QMessageBox.Yes | qtw.QMessageBox.No)
-        msg.setDefaultButton(qtw.QMessageBox.No)
+        msg.setStandardButtons(
+            qtw.QMessageBox.StandardButton.Yes | qtw.QMessageBox.StandardButton.No
+        )
+        msg.setDefaultButton(qtw.QMessageBox.StandardButton.No)
         msg.buttonClicked.connect(self.delete_confirmation)
-        msg.exec_()
+        msg.exec()
         msg.deleteLater()
 
     def delete_confirmation(self, button):
@@ -141,8 +143,8 @@ class GlobalStateList(qtw.QWidget):
 
             # make frame around the widget
             frame = qtw.QFrame()
-            frame.setFrameShape(qtw.QFrame.StyledPanel)
-            frame.setFrameShadow(qtw.QFrame.Raised)
+            frame.setFrameShape(qtw.QFrame.Shape.StyledPanel)
+            frame.setFrameShadow(qtw.QFrame.Shadow.Raised)
             frame_layout = qtw.QVBoxLayout(frame)
             frame_layout.addWidget(widget)
 
@@ -162,7 +164,7 @@ class GlobalStatesDialog(qtw.QDialog):
         self.scroll_global_states = GlobalStateList()
         self.grid.addWidget(self.scroll_global_states)
 
-        self.button_box = qtw.QDialogButtonBox(qtw.QDialogButtonBox.Ok)
+        self.button_box = qtw.QDialogButtonBox(qtw.QDialogButtonBox.StandardButton.Ok)
         self.button_box.accepted.connect(self.accept)
         self.grid.addWidget(self.button_box)
 
@@ -217,7 +219,7 @@ class ExportAnnotationDialog(qtw.QDialog):
 
         # Export Buttond and Cancel Button
         self.button_box = qtw.QDialogButtonBox(
-            qtw.QDialogButtonBox.Ok | qtw.QDialogButtonBox.Cancel
+            qtw.QDialogButtonBox.Ok | qtw.QDialogButtonBox.StandardButton.Cancel
         )
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)

@@ -1,6 +1,6 @@
 from enum import Enum
 
-from PyQt5.QtGui import QKeySequence
+from PyQt6.QtGui import QKeySequence
 
 from src.annotation.modes import AnnotationMode
 
@@ -38,11 +38,11 @@ class ReplayActions(Enum):
 
 
 ActionToShortcut = {
-    AnnotationActions.COPY: QKeySequence.Copy,
-    AnnotationActions.PASTE: QKeySequence.Paste,
-    AnnotationActions.DELETE: QKeySequence.Delete,
-    AnnotationActions.UNDO: QKeySequence.Undo,
-    AnnotationActions.REDO: QKeySequence.Redo,
+    AnnotationActions.COPY: QKeySequence.StandardKey.Copy,
+    AnnotationActions.PASTE: QKeySequence.StandardKey.Paste,
+    AnnotationActions.DELETE: QKeySequence.StandardKey.Delete,
+    AnnotationActions.UNDO: QKeySequence.StandardKey.Undo,
+    AnnotationActions.REDO: QKeySequence.StandardKey.Redo,
     AnnotationActions.ANNOTATE: QKeySequence("A"),
     AnnotationActions.CUT: QKeySequence("C"),
     AnnotationActions.CUT_ANNOTATE: QKeySequence("X"),

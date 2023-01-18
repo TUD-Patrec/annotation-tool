@@ -2,9 +2,9 @@ import enum
 from functools import partial
 import logging
 
-import PyQt5.QtCore as qtc
-import PyQt5.QtGui as qtg
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtGui as qtg
+import PyQt6.QtWidgets as qtw
 
 from src.annotation.modes import AnnotationMode
 from src.dialogs.annotation_list import GlobalStatesDialog
@@ -73,7 +73,7 @@ class GUI(qtw.QMainWindow, DialogManager):
             self.widgets[LayoutPosition.BOTTOM_MIDDLE],
             1,
             1,
-            alignment=qtc.Qt.AlignBottom,
+            alignment=qtc.Qt.AlignmentFlag.AlignBottom,
         )
 
         self.grid.setColumnStretch(1, 1)
@@ -117,8 +117,8 @@ class GUI(qtw.QMainWindow, DialogManager):
             if shortcut is not None:
                 menu.addAction(
                     action.name.capitalize(),
-                    fun,
                     shortcut,
+                    fun,
                 )
             else:
                 menu.addAction(
@@ -142,13 +142,17 @@ class GUI(qtw.QMainWindow, DialogManager):
     def file_menu(self):
         menu = self.menuBar()
         file_menu = menu.addMenu("&File")
-        file_menu.addAction("New", self.create_new_annotation, qtg.QKeySequence.New)
-
         file_menu.addAction(
-            "Open", self.load_existing_annotation, qtg.QKeySequence.Open
+            "New", qtg.QKeySequence.StandardKey.New, self.create_new_annotation
         )
 
-        file_menu.addAction("Save", self.save_pressed, qtg.QKeySequence.Save)
+        file_menu.addAction(
+            "Open", qtg.QKeySequence.StandardKey.Open, self.load_existing_annotation
+        )
+
+        file_menu.addAction(
+            "Save", qtg.QKeySequence.StandardKey.Save, self.save_pressed
+        )
 
         file_menu.addAction("Annotations", self.list_annotations)
 
@@ -159,7 +163,7 @@ class GUI(qtw.QMainWindow, DialogManager):
             self.open_networks,
         )
 
-        file_menu.addAction("Exit", self._exit, qtg.QKeySequence.Close)
+        file_menu.addAction("Exit", qtg.QKeySequence.StandardKey.Close, self._exit)
 
     def annotation_mode_menu(self):
         menu = self.menuBar()
@@ -168,15 +172,17 @@ class GUI(qtw.QMainWindow, DialogManager):
 
         annotation_menu = menu.addMenu("&Annotation Mode")
 
-        ag = qtw.QActionGroup(self)
+        ag = qtg.QActionGroup(self)
         ag.setExclusive(True)
 
-        a = ag.addAction(qtw.QAction("Manual Annotation", self, checkable=True))
+        a = ag.addAction(qtg.QAction("Manual Annotation", self))
+        a.setCheckable(True)
         a.setChecked(True)
         a.toggled.connect(lambda: self.update_annotation_mode(AnnotationMode.MANUAL))
         annotation_menu.addAction(a)
 
-        a = ag.addAction(qtw.QAction("Retrieval Mode", self, checkable=True))
+        a = ag.addAction(qtg.QAction("Retrieval Mode", self))
+        a.setCheckable(True)
         a.toggled.connect(lambda: self.update_annotation_mode(AnnotationMode.RETRIEVAL))
         annotation_menu.addAction(a)
 

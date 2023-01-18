@@ -1,6 +1,6 @@
 import random
 
-import PyQt5.QtGui as qtg
+import PyQt6.QtGui as qtg
 from distinctipy import distinctipy
 
 from src.data_model.annotation import Annotation

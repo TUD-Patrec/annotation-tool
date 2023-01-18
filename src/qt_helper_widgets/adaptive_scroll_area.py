@@ -1,5 +1,5 @@
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtWidgets as qtw
 
 
 class QAdaptiveScrollArea(qtw.QWidget):
@@ -14,12 +14,13 @@ class QAdaptiveScrollArea(qtw.QWidget):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = qtw.QWidget()
         self.vBoxLayout = qtw.QVBoxLayout(self.scrollAreaWidgetContents)
-        self.vBoxLayout.setAlignment(qtc.Qt.AlignLeft)
+        self.vBoxLayout.setAlignment(qtc.Qt.AlignmentFlag.AlignLeft)
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         self.layout.addWidget(self.scrollArea)
 
-        # self.scrollArea.setVerticalScrollBarPolicy(qtc.Qt.ScrollBarAlwaysOn)
-        self.scrollArea.setHorizontalScrollBarPolicy(qtc.Qt.ScrollBarAlwaysOff)
+        self.scrollArea.setHorizontalScrollBarPolicy(
+            qtc.Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
 
         for item in self.items:
             self.vBoxLayout.addWidget(item)
@@ -30,7 +31,7 @@ class QAdaptiveScrollArea(qtw.QWidget):
 
         self.scrollAreaWidgetContents = qtw.QWidget()
         self.vBoxLayout = qtw.QVBoxLayout(self.scrollAreaWidgetContents)
-        self.vBoxLayout.setAlignment(qtc.Qt.AlignLeft)
+        self.vBoxLayout.setAlignment(qtc.Qt.AlignmentFlag.AlignLeft)
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
 
         for item in self.items:

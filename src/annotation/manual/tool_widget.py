@@ -1,5 +1,5 @@
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtWidgets as qtw
 
 
 class ManualAnnotationTools(qtw.QWidget):

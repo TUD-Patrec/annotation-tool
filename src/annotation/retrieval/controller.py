@@ -2,9 +2,9 @@ from copy import deepcopy
 import logging
 from typing import List, Tuple
 
-import PyQt5.QtCore as qtc
-import PyQt5.QtGui as qtg
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtGui as qtg
+import PyQt6.QtWidgets as qtw
 import numpy as np
 
 from src.annotation.annotation_base import AnnotationBaseClass
@@ -62,11 +62,15 @@ class RetrievalAnnotation(AnnotationBaseClass):
         self.progress_dialog = qtw.QProgressDialog(self.main_widget)
         # remove cancel button of progress_dialog
         self.progress_dialog.setCancelButton(None)
-        self.progress_dialog.setWindowFlag(qtc.Qt.WindowCloseButtonHint, False)
-        self.progress_dialog.setWindowFlag(qtc.Qt.WindowContextHelpButtonHint, False)
+        self.progress_dialog.setWindowFlag(
+            qtc.Qt.WindowType.WindowCloseButtonHint, False
+        )
+        self.progress_dialog.setWindowFlag(
+            qtc.Qt.WindowType.WindowContextHelpButtonHint, False
+        )
         self.progress_dialog.setLabelText("Loading intervals...")
         self.progress_dialog.setWindowTitle("Loading")
-        self.progress_dialog.setForegroundRole(qtg.QPalette.Highlight)
+        self.progress_dialog.setForegroundRole(qtg.QPalette.ColorRole.Highlight)
         self.loading_thread.progress.connect(self.progress_dialog.setValue)
         self.loading_thread.finished.connect(self.progress_dialog.close)
         self.progress_dialog.open()
@@ -78,12 +82,12 @@ class RetrievalAnnotation(AnnotationBaseClass):
         logging.error(repr(e))
 
         msg = qtw.QMessageBox()
-        msg.setIcon(qtw.QMessageBox.Critical)
+        msg.setIcon(qtw.QMessageBox.Icon.Critical)
         msg.setText("Running the network failed!")
         txt = "Retrieval Mode could not be loaded.\nCheck if the network is actually loaded and reload after!"  # noqa: E501
         msg.setInformativeText(txt)
         msg.setWindowTitle("Error")
-        msg.exec_()
+        msg.exec()
 
         self.setEnabled(False)
 

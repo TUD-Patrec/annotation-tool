@@ -1,5 +1,5 @@
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtWidgets as qtw
 import numpy as np
 
 from src.data_model import AnnotationScheme, Sample
@@ -50,7 +50,7 @@ class QAnnotationDialog(qtw.QDialog):
         self.scroll_widgets.append(new_scroll_widget)
 
         lbl = qtw.QLabel()
-        lbl.setAlignment(qtc.Qt.AlignCenter)
+        lbl.setAlignment(qtc.Qt.AlignmentFlag.AlignCenter)
         lbl.setText(last_elem.group_name.upper() + ":")
 
         self.top_widget.layout.addWidget(lbl, last_elem.row, 0)

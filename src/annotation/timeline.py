@@ -1,9 +1,9 @@
 from collections import namedtuple
 from typing import Tuple
 
-import PyQt5.QtCore as qtc
-import PyQt5.QtGui as qtg
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtGui as qtg
+import PyQt6.QtWidgets as qtw
 
 from src.data_model.sample import Sample
 from src.settings import settings
@@ -202,12 +202,12 @@ class QTimeLine(qtw.QWidget):
     def wheelEvent(self, e):
         if self.is_in:
             # check if control key is pressed
-            if e.modifiers() == qtc.Qt.ControlModifier:
+            if e.modifiers() == qtc.Qt.KeyboardModifier.ControlModifier:
                 if e.angleDelta().y() > 0:
                     self.zoom_in()
                 else:
                     self.zoom_out()
-            elif e.modifiers() == qtc.Qt.ShiftModifier:
+            elif e.modifiers() == qtc.Qt.KeyboardModifier.ShiftModifier:
                 n_frames = self.scaler.pixel_to_frame(25)
                 if e.angleDelta().y() > 0:
                     self.set_position(max(self.frame_idx - n_frames, 0))
@@ -235,7 +235,7 @@ class QTimeLine(qtw.QWidget):
         self.update()
 
     def mousePressEvent(self, e):
-        if e.button() == qtc.Qt.LeftButton:
+        if e.button() == qtc.Qt.MouseButton.LeftButton:
             x = e.pos().x()
             self.frame_idx = self.scaler.pixel_to_frame(x) + self.lower
             self.position_changed.emit(self.frame_idx)
@@ -245,7 +245,7 @@ class QTimeLine(qtw.QWidget):
         self.update()
 
     def mouseReleaseEvent(self, e):
-        if e.button() == qtc.Qt.LeftButton:
+        if e.button() == qtc.Qt.MouseButton.LeftButton:
             self.clicking = False  # Set clicking check to false
 
     def enterEvent(self, e):
@@ -281,7 +281,7 @@ class QTimeLine(qtw.QWidget):
         qp.begin(self)
         qp.setPen(self.textColor)
         qp.setFont(self.font)
-        qp.setRenderHint(qtg.QPainter.Antialiasing)
+        qp.setRenderHint(qtg.QPainter.RenderHint.Antialiasing)
 
         # Draw time
         pos = dist
@@ -301,7 +301,7 @@ class QTimeLine(qtw.QWidget):
                 0,
                 WIDTH_TEXT,
                 HEIGHT_TEXT,
-                qtc.Qt.AlignHCenter,
+                qtc.Qt.AlignmentFlag.AlignHCenter,
                 str(frame_idx),
             )
             lower_text_y = (
@@ -315,14 +315,14 @@ class QTimeLine(qtw.QWidget):
                 lower_text_y,
                 WIDTH_TEXT,
                 HEIGHT_TEXT,
-                qtc.Qt.AlignHCenter,
+                qtc.Qt.AlignmentFlag.AlignHCenter,
                 time_stamp,
             )
 
             pos += dist
 
         # Draw horizontal lines
-        qp.setPen(qtg.QPen(qtc.Qt.darkCyan, 5, qtc.Qt.SolidLine))
+        qp.setPen(qtg.QPen(qtc.Qt.GlobalColor.darkCyan, 5, qtc.Qt.PenStyle.SolidLine))
         qp.drawLine(0, MARGIN_HORIZONTAL_LINES, self.width(), 40)
         lower_horizontal_line_y = (
             MARGIN_HORIZONTAL_LINES + 2 * MARGIN_SAMPLE + HEIGHT_SAMPLE
@@ -422,8 +422,8 @@ class QTimeLine(qtw.QWidget):
         qp.setClipPath(path)
 
         # Draw pointer
-        qp.setPen(qtc.Qt.darkCyan)
-        qp.setBrush(qtg.QBrush(qtc.Qt.darkCyan))
+        qp.setPen(qtc.Qt.GlobalColor.darkCyan)
+        qp.setBrush(qtg.QBrush(qtc.Qt.GlobalColor.darkCyan))
 
         qp.drawPolygon(poly)
         qp.drawLine(line)

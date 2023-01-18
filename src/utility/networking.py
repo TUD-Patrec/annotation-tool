@@ -2,8 +2,8 @@ import os
 import sys
 import urllib.request as request
 
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtWidgets as qtw
 
 
 class DownloadDialog(qtw.QDialog):

@@ -29,10 +29,7 @@ filetype = "*"
 numpy = "~1.23.5"
 opencv-python = "~4.5.3.56"
 PyOpenGL = "*"
-PyQt5 = [
-    { version = "~5.14.2", markers = "sys_platform != 'win32'" },
-    { version = "^5.15", markers = "sys_platform == 'win32'" },
-]
+PyQt6 = "*"
 pyqtgraph = "^0.12.4"
 scipy = "*"
 torch = "~1.12.0"

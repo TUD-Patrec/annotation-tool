@@ -1,7 +1,8 @@
 import enum
 
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtGui as qtg
+import PyQt6.QtWidgets as qtw
 
 from src.user_actions import ReplayActions
 
@@ -19,42 +20,48 @@ class QPlaybackWidget(qtw.QWidget):
         self.n_frames = 0
 
         super(QPlaybackWidget, self).__init__(*args, **kwargs)
-        back_button = qtw.QAction("Skip backward (fast)", self)
+        back_button = qtg.QAction("Skip backward (fast)", self)
         back_button.setStatusTip("Skip backward (fast)")
-        back_button.setIcon(self.style().standardIcon(qtw.QStyle.SP_MediaSkipBackward))
+        back_button.setIcon(
+            self.style().standardIcon(qtw.QStyle.StandardPixmap.SP_MediaSkipBackward)
+        )
         back_button.triggered.connect(lambda _: self.skip_frames.emit(False, True))
         self.back_button = back_button
 
-        slow_back_button = qtw.QAction("Skip backward", self)
+        slow_back_button = qtg.QAction("Skip backward", self)
         slow_back_button.setStatusTip("Skip backward")
-        slow_back_button.setIcon(self.style().standardIcon(qtw.QStyle.SP_ArrowBack))
+        slow_back_button.setIcon(
+            self.style().standardIcon(qtw.QStyle.StandardPixmap.SP_ArrowBack)
+        )
         slow_back_button.triggered.connect(
             lambda _: self.skip_frames.emit(False, False)
         )
         self.slow_back_button = slow_back_button
 
-        play_stop_button = qtw.QAction("Play/Pause", self)
+        play_stop_button = qtg.QAction("Play/Pause", self)
         play_stop_button.setText("Start")
         play_stop_button.setStatusTip("Play/Pause")
         play_stop_button.setCheckable(True)
-        play_stop_button.setIcon(self.style().standardIcon(qtw.QStyle.SP_MediaPlay))
+        play_stop_button.setIcon(
+            self.style().standardIcon(qtw.QStyle.StandardPixmap.SP_MediaPlay)
+        )
         play_stop_button.triggered.connect(lambda _: self.play_stop_clicked())
         self.play_stop_button = play_stop_button
 
-        slow_forward_button = qtw.QAction("Skip forward", self)
+        slow_forward_button = qtg.QAction("Skip forward", self)
         slow_forward_button.setStatusTip("Skip forward")
         slow_forward_button.setIcon(
-            self.style().standardIcon(qtw.QStyle.SP_ArrowForward)
+            self.style().standardIcon(qtw.QStyle.StandardPixmap.SP_ArrowForward)
         )
         slow_forward_button.triggered.connect(
             lambda _: self.skip_frames.emit(True, False)
         )
         self.slow_forward_button = slow_forward_button
 
-        forward_button = qtw.QAction("Skip forward (fast)", self)
+        forward_button = qtg.QAction("Skip forward (fast)", self)
         forward_button.setStatusTip("Skip forward (fast)")
         forward_button.setIcon(
-            self.style().standardIcon(qtw.QStyle.SP_MediaSkipForward)
+            self.style().standardIcon(qtw.QStyle.StandardPixmap.SP_MediaSkipForward)
         )
         forward_button.triggered.connect(lambda _: self.skip_frames.emit(True, True))
         self.forward_button = forward_button
@@ -65,10 +72,10 @@ class QPlaybackWidget(qtw.QWidget):
         )
 
         self.lbl = qtw.QLabel("0\n0")
-        self.lbl.setAlignment(qtc.Qt.AlignCenter)
+        self.lbl.setAlignment(qtc.Qt.AlignmentFlag.AlignCenter)
 
         self.toolbar = qtw.QToolBar("SomeTitle", self)
-        self.toolbar.setOrientation(qtc.Qt.Vertical)
+        self.toolbar.setOrientation(qtc.Qt.Orientation.Vertical)
 
         self.toolbar.addAction(back_button)
         self.toolbar.addAction(slow_back_button)
@@ -77,12 +84,20 @@ class QPlaybackWidget(qtw.QWidget):
         self.toolbar.addAction(forward_button)
 
         vbox = qtw.QVBoxLayout(self)
-        vbox.addWidget(self.toolbar, stretch=1, alignment=qtc.Qt.AlignCenter)
-        vbox.addWidget(qtw.QLabel("Replay\nSpeed"), alignment=qtc.Qt.AlignCenter)
-        vbox.addWidget(self.replay_speed_widget, alignment=qtc.Qt.AlignCenter)
+        vbox.addWidget(
+            self.toolbar, stretch=1, alignment=qtc.Qt.AlignmentFlag.AlignCenter
+        )
+        vbox.addWidget(
+            qtw.QLabel("Replay\nSpeed"), alignment=qtc.Qt.AlignmentFlag.AlignCenter
+        )
+        vbox.addWidget(
+            self.replay_speed_widget, alignment=qtc.Qt.AlignmentFlag.AlignCenter
+        )
         vbox.addWidget(QHLine())
-        vbox.addWidget(qtw.QLabel("Position"), alignment=qtc.Qt.AlignCenter)
-        vbox.addWidget(self.lbl, alignment=qtc.Qt.AlignCenter)
+        vbox.addWidget(
+            qtw.QLabel("Position"), alignment=qtc.Qt.AlignmentFlag.AlignCenter
+        )
+        vbox.addWidget(self.lbl, alignment=qtc.Qt.AlignmentFlag.AlignCenter)
         self.setLayout(vbox)
 
     @qtc.pyqtSlot(int)
@@ -95,7 +110,11 @@ class QPlaybackWidget(qtw.QWidget):
 
     def play_stop_clicked(self):
         playing = self.play_stop_button.isChecked()
-        icon_ = qtw.QStyle.SP_MediaPause if playing else qtw.QStyle.SP_MediaPlay
+        icon_ = (
+            qtw.QStyle.StandardPixmap.SP_MediaPause
+            if playing
+            else qtw.QStyle.StandardPixmap.SP_MediaPlay
+        )
         self.play_stop_button.setIcon(self.style().standardIcon(icon_))
         self.play_stop_button.setText("Pause" if playing else "Start")
         if playing:
@@ -159,12 +178,12 @@ class SliderWidget(qtw.QWidget):
     def __init__(self, *args, **kwargs):
         super(SliderWidget, self).__init__(*args, **kwargs)
         self.label = qtw.QLabel("100")
-        self.label.setAlignment(qtc.Qt.AlignCenter)
+        self.label.setAlignment(qtc.Qt.AlignmentFlag.AlignCenter)
 
         self.slider = OwnSlider()
-        self.slider.setOrientation(qtc.Qt.Horizontal)
+        self.slider.setOrientation(qtc.Qt.Orientation.Horizontal)
         self.slider.setRange(10, 200)
-        self.slider.setTickPosition(qtw.QSlider.TicksBelow)
+        self.slider.setTickPosition(qtw.QSlider.TickPosition.TicksBelow)
         self.slider.setSingleStep(10)
         self.slider.setTickInterval(25)
         self.slider.valueChanged.connect(self.slider_changed)

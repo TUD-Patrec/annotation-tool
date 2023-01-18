@@ -1,5 +1,5 @@
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtWidgets as qtw
 
 from src.data_model import Sample
 from src.qt_helper_widgets.display_scheme import QShowAnnotation
@@ -12,12 +12,18 @@ class QDisplaySample(qtw.QWidget):
         self.init_UI()
 
     def init_UI(self):
-        self.top_widget = qtw.QLabel("CURRENT SAMPLE", alignment=qtc.Qt.AlignCenter)
+        self.top_widget = qtw.QLabel(
+            "CURRENT SAMPLE", alignment=qtc.Qt.AlignmentFlag.AlignCenter
+        )
 
-        self.start_label = qtw.QLabel("Start Frame:", alignment=qtc.Qt.AlignCenter)
-        self.start_value = qtw.QLabel("", alignment=qtc.Qt.AlignCenter)
-        self.end_label = qtw.QLabel("End Frame:", alignment=qtc.Qt.AlignCenter)
-        self.end_value = qtw.QLabel("", alignment=qtc.Qt.AlignCenter)
+        self.start_label = qtw.QLabel(
+            "Start Frame:", alignment=qtc.Qt.AlignmentFlag.AlignCenter
+        )
+        self.start_value = qtw.QLabel("", alignment=qtc.Qt.AlignmentFlag.AlignCenter)
+        self.end_label = qtw.QLabel(
+            "End Frame:", alignment=qtc.Qt.AlignmentFlag.AlignCenter
+        )
+        self.end_value = qtw.QLabel("", alignment=qtc.Qt.AlignmentFlag.AlignCenter)
 
         self.middle_widget = QShowAnnotation(self)
 
@@ -35,11 +41,13 @@ class QDisplaySample(qtw.QWidget):
         self.bottom_widget.layout().addWidget(self.bottom_right_widget)
 
         vbox = qtw.QVBoxLayout()
-        vbox.addWidget(self.top_widget, alignment=qtc.Qt.AlignCenter)
+        vbox.addWidget(self.top_widget, alignment=qtc.Qt.AlignmentFlag.AlignCenter)
         vbox.addWidget(QHLine())
-        vbox.addWidget(self.middle_widget, alignment=qtc.Qt.AlignCenter, stretch=1)
+        vbox.addWidget(
+            self.middle_widget, alignment=qtc.Qt.AlignmentFlag.AlignCenter, stretch=1
+        )
         vbox.addWidget(QHLine())
-        vbox.addWidget(self.bottom_widget, alignment=qtc.Qt.AlignCenter)
+        vbox.addWidget(self.bottom_widget, alignment=qtc.Qt.AlignmentFlag.AlignCenter)
 
         self.setLayout(vbox)
         self.setFixedWidth(400)

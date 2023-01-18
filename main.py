@@ -5,8 +5,8 @@ import sys
 from sys import platform
 import warnings
 
-import PyQt5.QtCore as qtc
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+import PyQt6.QtWidgets as qtw
 
 warnings.filterwarnings("ignore", category=UserWarning)
 

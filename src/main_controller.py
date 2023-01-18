@@ -2,10 +2,10 @@ import logging
 import logging.config
 import sys
 
-import PyQt5.QtCore as qtc
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QPalette
-import PyQt5.QtWidgets as qtw
+import PyQt6.QtCore as qtc
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor, QPalette
+import PyQt6.QtWidgets as qtw
 import qdarkstyle
 
 from src.annotation.timeline import QTimeLine
@@ -176,24 +176,46 @@ class MainApplication(qtw.QApplication):
         if settings.darkmode:
             # # Now use a palette to switch to dark colors:
             dark_palette = QPalette()
-            dark_palette.setColor(QPalette.Window, QColor(53, 53, 53))
-            dark_palette.setColor(QPalette.WindowText, Qt.white)
-            dark_palette.setColor(QPalette.Base, QColor(35, 35, 35))
-            dark_palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
-            dark_palette.setColor(QPalette.ToolTipBase, QColor(25, 25, 25))
-            dark_palette.setColor(QPalette.ToolTipText, Qt.white)
-            dark_palette.setColor(QPalette.Text, Qt.white)
-            dark_palette.setColor(QPalette.Button, QColor(53, 53, 53))
-            dark_palette.setColor(QPalette.ButtonText, Qt.white)
-            dark_palette.setColor(QPalette.BrightText, Qt.red)
-            dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
-            dark_palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
-            dark_palette.setColor(QPalette.HighlightedText, QColor(35, 35, 35))
-            dark_palette.setColor(QPalette.Active, QPalette.Button, QColor(53, 53, 53))
-            dark_palette.setColor(QPalette.Disabled, QPalette.ButtonText, Qt.darkGray)
-            dark_palette.setColor(QPalette.Disabled, QPalette.WindowText, Qt.darkGray)
-            dark_palette.setColor(QPalette.Disabled, QPalette.Text, Qt.darkGray)
-            dark_palette.setColor(QPalette.Disabled, QPalette.Light, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.ColorGroup.Window, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.ColorGroup.WindowText, Qt.GlobalColor.white)
+            dark_palette.setColor(QPalette.ColorGroup.Base, QColor(35, 35, 35))
+            dark_palette.setColor(QPalette.ColorGroup.AlternateBase, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.ColorGroup.ToolTipBase, QColor(25, 25, 25))
+            dark_palette.setColor(QPalette.ColorGroup.ToolTipText, Qt.GlobalColor.white)
+            dark_palette.setColor(QPalette.ColorGroup.Text, Qt.GlobalColor.white)
+            dark_palette.setColor(QPalette.ColorGroup.Button, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.ColorGroup.ButtonText, Qt.GlobalColor.white)
+            dark_palette.setColor(QPalette.ColorGroup.BrightText, Qt.GlobalColor.red)
+            dark_palette.setColor(QPalette.ColorGroup.Link, QColor(42, 130, 218))
+            dark_palette.setColor(QPalette.ColorGroup.Highlight, QColor(42, 130, 218))
+            dark_palette.setColor(
+                QPalette.ColorGroup.HighlightedText, QColor(35, 35, 35)
+            )
+            dark_palette.setColor(
+                QPalette.ColorGroup.Active,
+                QPalette.ColorGroup.Button,
+                QColor(53, 53, 53),
+            )
+            dark_palette.setColor(
+                QPalette.ColorGroup.Disabled,
+                QPalette.ColorGroup.ButtonText,
+                Qt.GlobalColor.darkGray,
+            )
+            dark_palette.setColor(
+                QPalette.ColorGroup.Disabled,
+                QPalette.ColorGroup.WindowText,
+                Qt.GlobalColor.darkGray,
+            )
+            dark_palette.setColor(
+                QPalette.ColorGroup.Disabled,
+                QPalette.ColorGroup.Text,
+                Qt.GlobalColor.darkGray,
+            )
+            dark_palette.setColor(
+                QPalette.ColorGroup.Disabled,
+                QPalette.ColorGroup.Light,
+                QColor(53, 53, 53),
+            )
             self.setPalette(dark_palette)
         else:
             self.setPalette(self.style().standardPalette())
@@ -248,4 +270,4 @@ def main():
     app.setStyle("Fusion")
 
     app.update_theme()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

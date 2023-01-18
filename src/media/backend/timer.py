@@ -1,9 +1,8 @@
 import logging
 import time
 
-import PyQt5.QtCore as qtc
+import PyQt6.QtCore as qtc
 
-from src.media.backend.player import AbstractMediaPlayer
 from src.media.backend.queue import FairQueue
 
 
@@ -13,8 +12,8 @@ def time_in_millis():
 
 
 class Timer(qtc.QObject):
-    timeout = qtc.pyqtSignal(AbstractMediaPlayer)
-    set_position = qtc.pyqtSignal(AbstractMediaPlayer, int)
+    timeout = qtc.pyqtSignal(qtc.QObject)
+    set_position = qtc.pyqtSignal(qtc.QObject, int)
     finished = qtc.pyqtSignal()
 
     def init(self):
@@ -121,7 +120,7 @@ class Timer(qtc.QObject):
             pos = self.subscribers[0][0].position
             self.query_position_update(pos)
 
-    @qtc.pyqtSlot(AbstractMediaPlayer)
+    @qtc.pyqtSlot(qtc.QObject)
     def subscribe(self, x):
         assert qtc.QThread.currentThread() is self.thread()
 
@@ -132,14 +131,14 @@ class Timer(qtc.QObject):
         self.subscribers.append([x, int(cnt)])
 
         # Wire signals
-        self.timeout.connect(x.on_timeout)
-        self.set_position.connect(x.set_position)
+        self.timeout.connect(x.on_timeout_)
+        self.set_position.connect(x.set_position_)
         x.ACK_timeout.connect(self.ACK_timeout)
         x.ACK_setpos.connect(self.ACK_setpos)
 
         self.synchronize()
 
-    @qtc.pyqtSlot(AbstractMediaPlayer)
+    @qtc.pyqtSlot(qtc.QObject)
     def unsubscribe(self, x):
         assert qtc.QThread.currentThread() is self.thread()
         for idx in range(len(self.subscribers)):
@@ -149,8 +148,8 @@ class Timer(qtc.QObject):
             raise RuntimeError
 
         # Unwire connections
-        self.timeout.disconnect(x.on_timeout)
-        self.set_position.disconnect(x.set_position)
+        self.timeout.disconnect(x.on_timeout_)
+        self.set_position.disconnect(x.set_position_)
         x.ACK_timeout.disconnect(self.ACK_timeout)
         x.ACK_setpos.disconnect(self.ACK_setpos)
 
@@ -212,11 +211,11 @@ class Timer(qtc.QObject):
         assert qtc.QThread.currentThread() is self.thread()
         self.next_position = x
 
-    @qtc.pyqtSlot(AbstractMediaPlayer)
+    @qtc.pyqtSlot(qtc.QObject)
     def ACK_timeout(self, x):
         self.confirm(x, self.open_timeouts)
 
-    @qtc.pyqtSlot(AbstractMediaPlayer)
+    @qtc.pyqtSlot(qtc.QObject)
     def ACK_setpos(self, x):
         self.confirm(x, self.open_position_updates)
 
