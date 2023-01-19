@@ -11,7 +11,6 @@ from src.media.video_reader import VideoReader
 class VideoPlayer(AbstractMediaPlayer):
     get_update = qtc.pyqtSignal(int, int, int, UpdateReason)
     media_loaded = qtc.pyqtSignal(object)
-    stop_worker = qtc.pyqtSignal()
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -89,15 +88,9 @@ class VideoPlayer(AbstractMediaPlayer):
         self.worker = VideoHelper()
         self.worker.moveToThread(self.worker_thread)
 
-        # connecting worker and thread
-        self.worker.finished.connect(self.worker_thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.worker_thread.finished.connect(self.worker_thread.deleteLater)
-
         # connecting to worker
         self.get_update.connect(self.worker.prepare_update)
         self.media_loaded.connect(self.worker.load_media)
-        self.stop_worker.connect(self.worker.stop)
         self.worker.no_update_needed.connect(self.no_update_needed)
         self.worker.image_ready.connect(self.image_ready)
 
@@ -105,15 +98,15 @@ class VideoPlayer(AbstractMediaPlayer):
 
     def shutdown(self):
         assert qtc.QThread.currentThread() is self.thread()
-        self.stop_worker.emit()
         self.worker_thread.quit()
+        self.worker_thread.deleteLater()
         self.worker_thread.wait()
+        self.worker.deleteLater()
 
 
 class VideoHelper(qtc.QObject):
     image_ready = qtc.pyqtSignal(qtg.QImage, np.ndarray, int, int, int, UpdateReason)
     no_update_needed = qtc.pyqtSignal(UpdateReason)
-    finished = qtc.pyqtSignal()
 
     @qtc.pyqtSlot(object)
     def load_media(self, media):
@@ -163,7 +156,3 @@ class VideoHelper(qtc.QObject):
 
         else:
             self.no_update_needed.emit(update_reason)
-
-    @qtc.pyqtSlot()
-    def stop(self):
-        self.finished.emit()
