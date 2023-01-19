@@ -6,7 +6,6 @@ import PyQt6.QtCore as qtc
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QPalette
 import PyQt6.QtWidgets as qtw
-import qdarkstyle
 
 from src.annotation.timeline import QTimeLine
 import src.network.controller as network
@@ -175,7 +174,7 @@ class MainApplication(qtw.QApplication):
 
         if settings.darkmode:
             # # Now use a palette to switch to dark colors:
-            dark_palette = QPalette()
+            dark_palette = QPalette(self.style().standardPalette())
             dark_palette.setColor(QPalette.ColorRole.Window, QColor(53, 53, 53))
             dark_palette.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.white)
             dark_palette.setColor(QPalette.ColorRole.Base, QColor(35, 35, 35))
@@ -218,34 +217,20 @@ class MainApplication(qtw.QApplication):
             )
             self.setPalette(dark_palette)
         else:
-            self.setPalette(self.style().standardPalette())  # reset to system default
+            self.setPalette(QPalette())
+            # self.setPalette(self.style().standardPalette())  # reset to system default
 
         font = self.font()
         font.setPointSize(settings.font_size)
         self.setFont(font)
 
-        return
-        # TODO fix
-        if settings.darkmode is None:
-            # TODO this will never be true -> for testing
-            if settings.darkmode:
-                self.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-            else:
-                from qdarkstyle.light.palette import LightPalette
+        # hack for updating color of histogram in retrieval-widget
+        from src.annotation.retrieval.controller import RetrievalAnnotation
 
-                self.setStyleSheet(
-                    qdarkstyle._load_stylesheet(qt_api="pyqt5", palette=LightPalette)
-                )
-
-        # TODO fix
-        if settings.darkmode is None:
-            # hack for updating color of histogram in retrieval-widget
-            from src.annotation.retrieval.controller import RetrievalAnnotation
-
-            if self.annotation_controller is not None and isinstance(
-                self.annotation_controller.controller, RetrievalAnnotation
-            ):
-                self.annotation_controller.controller.main_widget.histogram.plot_data()
+        if self.annotation_controller is not None and isinstance(
+            self.annotation_controller.controller, RetrievalAnnotation
+        ):
+            self.annotation_controller.controller.main_widget.histogram.plot_data()
 
     def closeEvent(self, event):
         self.save_annotation()

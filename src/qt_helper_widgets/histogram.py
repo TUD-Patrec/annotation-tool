@@ -1,3 +1,4 @@
+import PyQt6.QtWidgets as qtw
 import numpy as np
 import pyqtgraph as pg
 
@@ -37,7 +38,8 @@ class HistogramWidget(pg.PlotWidget):
         self.clear()
 
         # color the background of the histogram
-        self.setBackground(self.palette().window().color())
+        app = qtw.QApplication.instance()
+        self.setBackground(app.palette().window().color())
 
         if self.data is not None:  # if data is available
             y, x = np.histogram(self.data, bins=np.linspace(0, 1, 25), density=True)
