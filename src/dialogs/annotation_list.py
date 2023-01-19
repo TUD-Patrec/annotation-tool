@@ -219,7 +219,8 @@ class ExportAnnotationDialog(qtw.QDialog):
 
         # Export Buttond and Cancel Button
         self.button_box = qtw.QDialogButtonBox(
-            qtw.QDialogButtonBox.Ok | qtw.QDialogButtonBox.StandardButton.Cancel
+            qtw.QDialogButtonBox.StandardButton.Ok
+            | qtw.QDialogButtonBox.StandardButton.Cancel
         )
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
