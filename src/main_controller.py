@@ -176,49 +176,49 @@ class MainApplication(qtw.QApplication):
         if settings.darkmode:
             # # Now use a palette to switch to dark colors:
             dark_palette = QPalette()
-            dark_palette.setColor(QPalette.ColorGroup.Window, QColor(53, 53, 53))
-            dark_palette.setColor(QPalette.ColorGroup.WindowText, Qt.GlobalColor.white)
-            dark_palette.setColor(QPalette.ColorGroup.Base, QColor(35, 35, 35))
-            dark_palette.setColor(QPalette.ColorGroup.AlternateBase, QColor(53, 53, 53))
-            dark_palette.setColor(QPalette.ColorGroup.ToolTipBase, QColor(25, 25, 25))
-            dark_palette.setColor(QPalette.ColorGroup.ToolTipText, Qt.GlobalColor.white)
-            dark_palette.setColor(QPalette.ColorGroup.Text, Qt.GlobalColor.white)
-            dark_palette.setColor(QPalette.ColorGroup.Button, QColor(53, 53, 53))
-            dark_palette.setColor(QPalette.ColorGroup.ButtonText, Qt.GlobalColor.white)
-            dark_palette.setColor(QPalette.ColorGroup.BrightText, Qt.GlobalColor.red)
-            dark_palette.setColor(QPalette.ColorGroup.Link, QColor(42, 130, 218))
-            dark_palette.setColor(QPalette.ColorGroup.Highlight, QColor(42, 130, 218))
+            dark_palette.setColor(QPalette.ColorRole.Window, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.white)
+            dark_palette.setColor(QPalette.ColorRole.Base, QColor(35, 35, 35))
+            dark_palette.setColor(QPalette.ColorRole.AlternateBase, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(25, 25, 25))
+            dark_palette.setColor(QPalette.ColorRole.ToolTipText, Qt.GlobalColor.white)
+            dark_palette.setColor(QPalette.ColorRole.Text, Qt.GlobalColor.white)
+            dark_palette.setColor(QPalette.ColorRole.Button, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.ColorRole.ButtonText, Qt.GlobalColor.white)
+            dark_palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.red)
+            dark_palette.setColor(QPalette.ColorRole.Link, QColor(42, 130, 218))
+            dark_palette.setColor(QPalette.ColorRole.Highlight, QColor(42, 130, 218))
             dark_palette.setColor(
-                QPalette.ColorGroup.HighlightedText, QColor(35, 35, 35)
+                QPalette.ColorRole.HighlightedText, QColor(35, 35, 35)
             )
             dark_palette.setColor(
                 QPalette.ColorGroup.Active,
-                QPalette.ColorGroup.Button,
+                QPalette.ColorRole.Button,
                 QColor(53, 53, 53),
             )
             dark_palette.setColor(
                 QPalette.ColorGroup.Disabled,
-                QPalette.ColorGroup.ButtonText,
+                QPalette.ColorRole.ButtonText,
                 Qt.GlobalColor.darkGray,
             )
             dark_palette.setColor(
                 QPalette.ColorGroup.Disabled,
-                QPalette.ColorGroup.WindowText,
+                QPalette.ColorRole.WindowText,
                 Qt.GlobalColor.darkGray,
             )
             dark_palette.setColor(
                 QPalette.ColorGroup.Disabled,
-                QPalette.ColorGroup.Text,
+                QPalette.ColorRole.Text,
                 Qt.GlobalColor.darkGray,
             )
             dark_palette.setColor(
                 QPalette.ColorGroup.Disabled,
-                QPalette.ColorGroup.Light,
+                QPalette.ColorRole.Light,
                 QColor(53, 53, 53),
             )
             self.setPalette(dark_palette)
         else:
-            self.setPalette(self.style().standardPalette())
+            self.setPalette(self.style().standardPalette())  # reset to system default
 
         font = self.font()
         font.setPointSize(settings.font_size)

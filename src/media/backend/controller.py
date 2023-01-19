@@ -22,16 +22,13 @@ class MediaProxy(qtc.QObject):
 
     def __init__(self, media_widget: AbstractMediaPlayer):
         super().__init__()
-        self.id = id(media_widget)
-        self.fps = media_widget.fps
-        self.position = media_widget.position
-
-        media_proxy_map[id(media_widget)] = (self, media_widget)
-
         media_widget.ACK_timeout.connect(self.forward_ACK_timeout)
         media_widget.ACK_setpos.connect(self.forward_ACK_setpos)
         self.timeout.connect(media_widget.on_timeout)
         self.set_position.connect(media_widget.set_position)
+
+        media_proxy_map[id(media_widget)] = self
+        self.media_widget = media_widget
 
     @qtc.pyqtSlot(qtc.QObject)
     def on_timeout_(self, proxy):
@@ -45,17 +42,19 @@ class MediaProxy(qtc.QObject):
 
     @qtc.pyqtSlot()
     def forward_ACK_timeout(self):
-        self.position = self.media_widget.position
         self.ACK_timeout.emit(self)
 
     @qtc.pyqtSlot()
     def forward_ACK_setpos(self):
-        self.position = self.media_widget.position
         self.ACK_setpos.emit(self)
 
     @property
-    def media_widget(self):
-        return media_proxy_map[self.id][1]
+    def position(self):
+        return self.media_widget.position
+
+    @property
+    def fps(self):
+        return self.media_widget.fps
 
 
 class QMediaMainController(qtw.QWidget):
@@ -151,7 +150,7 @@ class QMediaMainController(qtw.QWidget):
         self.grid.removeWidget(widget)
         self.vbox.removeWidget(widget)
 
-        proxy = media_proxy_map.get(id(widget))[0]
+        proxy = media_proxy_map.get(id(widget))
         if proxy:
             self.unsubscribe.emit(proxy)
             del media_proxy_map[id(widget)]

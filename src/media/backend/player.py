@@ -86,7 +86,7 @@ class AbstractMediaPlayer(qtw.QWidget):
         old_offset = self.offset
         input_dialog = qtw.QInputDialog()
 
-        input_dialog.setInputMode(qtw.QInputDialog.IntInput)
+        input_dialog.setInputMode(qtw.QInputDialog.InputMode.IntInput)
         input_dialog.setIntRange(-(2**31), 2**31 - 1)
         input_dialog.intValueChanged.connect(self.change_offset)
         input_dialog.setIntValue(self.offset)
