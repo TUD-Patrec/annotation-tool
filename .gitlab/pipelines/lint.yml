@@ -1,0 +1,20 @@
+flake8 check:
+  stage: lint
+  needs: []
+  script:
+    - !reference [.install_only_dev, script]
+    - poetry run flake8 "${CI_PROJECT_DIR}" --count --statistics
+
+black check:
+  stage: lint
+  needs: []
+  script:
+    - !reference [.install_only_dev, script]
+    - poetry run black --check "${CI_PROJECT_DIR}"
+
+isort check:
+  stage: lint
+  needs: []
+  script:
+    - !reference [.install_only_dev, script]
+    - poetry run isort --check --settings-path pyproject.toml "${CI_PROJECT_DIR}"
