@@ -1,9 +1,17 @@
 from functools import lru_cache
+import logging
 import os
 
 import numpy as np
 
-from .media_base import MediaReader
+from .base import MediaReader, register_media_reader
+
+
+@lru_cache(maxsize=1)
+def get_settings():
+    from ..settings import settings
+
+    return settings
 
 
 def get_mocap(*args):
@@ -124,12 +132,13 @@ def __normalize_lara_mocap__(array: np.array) -> np.array:
 class MocapReader(MediaReader):
     """Class for reading mocap data."""
 
-    def __init__(self, path: os.PathLike) -> None:
+    def __init__(self, path: os.PathLike, fps: float = None) -> None:
         """
         Initializes a new MocapReader object.
 
         Args:
             path (os.PathLike): The path to the mocap file.
+            fps (float): The framerate of the mocap data.
 
         Raises:
             FileNotFoundError: If the file does not exist.
@@ -137,6 +146,9 @@ class MocapReader(MediaReader):
 
         super().__init__(path)
         self._n_frames = self.media.shape[0]
+        if self._fps and isinstance(self._fps, (int, float)):
+            self._fps = self._fps
+        self._fps = fps
 
     def __get_frame__(self, idx: int) -> np.ndarray:
         """
@@ -158,3 +170,34 @@ class MocapReader(MediaReader):
 
     def __read_media__(self):
         return np.copy(load_mocap(self.path))
+
+
+def __is_mocap__(path: os.PathLike) -> bool:
+    if not os.path.isfile(path):
+        return False
+    try:
+        load_mocap(path)
+        return True
+    except TypeError:
+        return False
+
+
+def __mocap_builder__(path: os.PathLike, fps: float = None, **_ignored) -> MocapReader:
+    """
+    Builds a MocapReader object from the given path.
+
+    Args:
+        path (os.PathLike): The path to the mocap file.
+        fps (float): The framerate of the mocap data.
+
+    Returns:
+        MocapReader: The MocapReader object.
+    """
+    return MocapReader(path, fps)
+
+
+register_media_reader(
+    media_type="mocap", selector_function=__is_mocap__, factory=__mocap_builder__
+)
+
+logging.debug("MocapReader registered.")

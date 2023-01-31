@@ -5,7 +5,7 @@ import PyQt6.QtGui as qtg
 import PyQt6.QtWidgets as qtw
 
 from src.data_model import Model, get_unique_name, make_model
-from src.media import MediaType
+from src.data_model.media_type import MediaType
 
 
 class NetworkWidget(qtw.QWidget):

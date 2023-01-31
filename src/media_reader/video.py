@@ -2,12 +2,13 @@ import logging
 import os
 
 import cv2
+import filetype
 import numpy as np
 
-from .media_base import MediaReader
+from .base import MediaReader, register_media_reader
 
 
-def get_cv(path: os.PathLike) -> cv2.VideoCapture:
+def __get_vc__(path: os.PathLike) -> cv2.VideoCapture:
     """
     Returns a cv2.VideoCapture object for the given path.
 
@@ -40,12 +41,29 @@ def get_cv(path: os.PathLike) -> cv2.VideoCapture:
     return _vc
 
 
+def __is_video__(path: os.PathLike) -> bool:
+    if not os.path.isfile(path):
+        return False
+    try:
+        first_check = filetype.is_video(path)
+    except TypeError:
+        return False
+
+    if first_check:
+        try:
+            __get_vc__(path)  # check if cv can read the file
+            return True  # cv can read the file
+        except Exception:
+            return False
+    else:
+        return False
+
+
 class VideoReader(MediaReader):
     """Class for reading video data."""
 
     def __init__(self, path: os.PathLike) -> None:
         super().__init__(path)
-
         self._n_frames = int(self.media.get(cv2.CAP_PROP_FRAME_COUNT))
         self._fps = self.media.get(cv2.CAP_PROP_FPS)
 
@@ -74,7 +92,7 @@ class VideoReader(MediaReader):
             return None
 
     def __read_media__(self):
-        return get_cv(self.path)
+        return __get_vc__(self.path)
 
     @property
     def current_position(self):
@@ -85,3 +103,17 @@ class VideoReader(MediaReader):
 
     def close(self):
         self.__del__()
+
+
+def __video_builder__(path: os.PathLike, **_ignored) -> VideoReader:
+    if __is_video__(path):
+        return VideoReader(path)
+    else:
+        raise IOError(f"{path} is not a video file.")
+
+
+register_media_reader(
+    media_type="video", selector_function=__is_video__, factory=__video_builder__
+)
+
+logging.debug("VideoReader registered.")

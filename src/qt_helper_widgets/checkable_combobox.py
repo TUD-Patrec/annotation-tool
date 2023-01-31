@@ -18,8 +18,8 @@ class CheckableComboBox(qtw.QComboBox):
         self.setEditable(True)
         self.lineEdit().setReadOnly(True)
         # Make the lineedit the same color as QPushButton
-        palette = qtw.qApp.palette()
-        palette.setBrush(QPalette.Base, palette.button())
+        palette = qtw.QApplication.palette()
+        palette.setBrush(QPalette.ColorRole.Base, palette.button())
         self.lineEdit().setPalette(palette)
 
         # Use custom delegate

@@ -4,7 +4,7 @@ import numpy as np
 import pyqtgraph.opengl as gl
 
 from src.media.backend.player import AbstractMediaPlayer, UpdateReason
-from src.media.mocap_reader import MocapReader
+from src.media_reader import media_reader as mr
 
 
 class MocapPlayer(AbstractMediaPlayer):
@@ -13,10 +13,9 @@ class MocapPlayer(AbstractMediaPlayer):
         self.media_backend = MocapBackend(self)  # setting parent to self
 
     def load(self, path):
-        media = MocapReader(path)
+        media = mr(path)
         self.media_backend.media = media
         self.layout().addWidget(self.media_backend)
-        self.fps = media.fps
         self.n_frames = len(media)
         self.update_media_position(UpdateReason.INIT)
         self.loaded.emit(self)
@@ -28,7 +27,15 @@ class MocapPlayer(AbstractMediaPlayer):
         self.confirm_update(update_reason)
 
     def shutdown(self):
-        pass
+        self.media_backend.media = None
+        self.media_backend = None
+        self.terminated = True
+        self.finished.emit(self)
+        print("MocapPlayer shutdown")
+
+    @property
+    def fps(self):
+        return self.media_backend.media.fps
 
 
 class MocapBackend(gl.GLViewWidget):

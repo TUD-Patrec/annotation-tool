@@ -8,6 +8,7 @@ from PyQt6.QtGui import QColor, QPalette
 import PyQt6.QtWidgets as qtw
 
 from src.annotation.timeline import QTimeLine
+from src.media_reader import media_reader, set_fallback_fps
 import src.network.controller as network
 from src.settings import settings
 import src.utility.breeze_resources  # noqa: F401
@@ -20,6 +21,9 @@ from .mediator import Mediator
 from .playback import QPlaybackWidget
 from .utility import filehandler
 from .utility.functions import FrameTimeMapper
+
+# init media_reader
+set_fallback_fps(settings.refresh_rate)
 
 
 class MainApplication(qtw.QApplication):
@@ -96,16 +100,17 @@ class MainApplication(qtw.QApplication):
     @qtc.pyqtSlot(GlobalState)
     def load_state(self, state: GlobalState):
         if state is not None:
-            duration = state.media.duration
-            n_frames = state.media.n_frames
+            media = media_reader(path=state.path)
+            duration = media.duration
+            n_frames = media.n_frames
 
             FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
 
             # load media
-            self.media_player.load(state.media.path)
+            self.media_player.load(media.path)
 
             # update network module
-            network.update_file(state.media.path)
+            network.update_file(media.path)
 
             # save for later reuse
             self.n_frames = n_frames
@@ -161,11 +166,14 @@ class MainApplication(qtw.QApplication):
         )
         logging.config.dictConfig(log_config_dict)
 
+        set_fallback_fps(settings.refresh_rate)
+
         if self.global_state is not None:
-            FrameTimeMapper.instance().update(
-                n_frames=self.global_state.media.n_frames,
-                millis=self.global_state.media.duration,
-            )
+            media = media_reader(path=self.global_state.path)
+            duration = media.duration
+            n_frames = media.n_frames
+
+            FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
 
         self.timeline.update()
 

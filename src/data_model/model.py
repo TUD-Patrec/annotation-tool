@@ -3,7 +3,7 @@ import os
 import time
 from typing import List, Optional
 
-from src.media import MediaType
+from src.data_model.media_type import MediaType
 from src.utility.file_cache import cached
 from src.utility.filehandler import footprint_of_file
 

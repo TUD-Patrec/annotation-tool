@@ -13,6 +13,7 @@ class UpdateReason(Enum):
     SETPOS = 2
     OFFSET = 3
     INIT = 4
+    IGNORE = 5
 
 
 class AbstractMediaPlayer(qtw.QWidget):
@@ -28,9 +29,12 @@ class AbstractMediaPlayer(qtw.QWidget):
     ACK_setpos = qtc.pyqtSignal(qtw.QWidget)  # Confirm set_position processed
     position_changed = qtc.pyqtSignal(int)  # Broadcast position after change
     cleaned_up = qtc.pyqtSignal(qtw.QWidget)
+    finished = qtc.pyqtSignal(qtw.QWidget)
 
     def __init__(self, is_main, *args, **kwargs):
         super(AbstractMediaPlayer, self).__init__(*args, **kwargs)
+
+        self._terminated = False
 
         # media controll attributes
         self._fps = None
@@ -143,6 +147,14 @@ class AbstractMediaPlayer(qtw.QWidget):
     def ack_position_update(self):
         self.ACK_setpos.emit(self)
 
+    @qtc.pyqtSlot()
+    def shutdown(self):
+        self.terminated = True
+        self.finished.emit(self)
+
+    def kill(self):
+        pass
+
     def N_FRAMES(self):
         if self._is_main_replay_widget:
             N = self.n_frames
@@ -165,6 +177,9 @@ class AbstractMediaPlayer(qtw.QWidget):
             self.ACK_setpos.emit(self)
 
     def confirm_update(self, update_reason):
+        if update_reason == UpdateReason.IGNORE:
+            return
+        # filter out None values
         self.send_ACK(update_reason)
         if update_reason == UpdateReason.TIMEOUT:
             self.emit_position()
@@ -241,3 +256,11 @@ class AbstractMediaPlayer(qtw.QWidget):
     @property
     def reference_N(self):
         return self._reference_N
+
+    @property
+    def terminated(self):
+        return self._terminated
+
+    @terminated.setter
+    def terminated(self, x):
+        self._terminated = x

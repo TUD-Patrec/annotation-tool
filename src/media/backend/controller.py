@@ -8,8 +8,7 @@ from src.media.backend.player import AbstractMediaPlayer
 from src.media.backend.timer import Timer
 from src.media.backend.type_specific_player.mocap import MocapPlayer
 from src.media.backend.type_specific_player.video import VideoPlayer
-from src.media.media_types import MediaType, media_type_of
-from src.settings import settings
+from src.media_reader import media_type_of
 
 media_proxy_map = {}
 
@@ -29,6 +28,8 @@ class MediaProxy(qtc.QObject):
 
         media_proxy_map[id(media_widget)] = self
         self.media_widget = media_widget
+
+        self.fps = media_widget.fps
 
     @qtc.pyqtSlot(qtc.QObject)
     def on_timeout_(self, proxy):
@@ -51,10 +52,6 @@ class MediaProxy(qtc.QObject):
     @property
     def position(self):
         return self.media_widget.position
-
-    @property
-    def fps(self):
-        return self.media_widget.fps
 
 
 class QMediaMainController(qtw.QWidget):
@@ -83,33 +80,29 @@ class QMediaMainController(qtw.QWidget):
         self.vbox.setContentsMargins(0, 0, 0, 0)
         self.grid.addLayout(self.vbox, 0, 1)
 
+        self._dead_widgets = []
+
     @qtc.pyqtSlot(str)
     def load(self, file):
         self.pause()
-        self.reset.emit()
         self.clear()
+        self.reset.emit()
         self.add_replay_widget(file)
 
     def clear(self):
-        if self.replay_widgets:
-            main_widget = self.replay_widgets[0]
-            main_widget.shutdown()
-            self.grid.removeWidget(main_widget)
-
-            for w in self.replay_widgets[1:]:
-                w.shutdown()
-                self.vbox.removeWidget(w)
-            self.replay_widgets = []
+        while self.replay_widgets:
+            self.remove_replay_source(self.replay_widgets[0])
 
     def add_replay_widget(self, path):
         if len(self.replay_widgets) < self.MAX_WIDGETS:
             is_main_widget = len(self.replay_widgets) == 0
 
             # select correct media_player
+
             media_type = media_type_of(path)
-            if media_type == MediaType.VIDEO:
+            if media_type == "video":
                 widget = VideoPlayer(is_main_widget, self)
-            elif media_type == MediaType.MOCAP:
+            elif media_type == "mocap":
                 widget = MocapPlayer(is_main_widget, self)
             else:
                 raise NotImplementedError("Media type not supported")
@@ -130,13 +123,10 @@ class QMediaMainController(qtw.QWidget):
     @qtc.pyqtSlot(AbstractMediaPlayer)
     def widget_loaded(self, widget: AbstractMediaPlayer):
         widget.new_input_wanted.connect(self.add_replay_widget)
+        widget.finished.connect(self.widget_terminated)
         self.replay_widgets.append(widget)
-
         proxy = MediaProxy(widget)
-
-        logging.info("WIDGET LOADED")
         self.subscribe.emit(proxy)
-        logging.info("WIDGET SUBSCRIBED")
 
     @qtc.pyqtSlot(AbstractMediaPlayer)
     def widget_failed(self, widget):
@@ -145,15 +135,28 @@ class QMediaMainController(qtw.QWidget):
         raise RuntimeError
 
     def remove_replay_source(self, widget):
-        widget.shutdown()
-        self.replay_widgets.remove(widget)
         self.grid.removeWidget(widget)
         self.vbox.removeWidget(widget)
-
         proxy = media_proxy_map.get(id(widget))
         if proxy:
             self.unsubscribe.emit(proxy)
             del media_proxy_map[id(widget)]
+        else:
+            raise RuntimeError(f"Could not find proxy for widget {widget}")
+        self.replay_widgets.remove(widget)
+        widget.shutdown()
+
+        if not widget.terminated:
+            self._dead_widgets.append(
+                widget
+            )  # keep reference to widget until it is terminated
+
+    def widget_terminated(self, widget):
+        print(f"widget {widget} terminated")
+        if widget in self._dead_widgets:
+            self._dead_widgets.remove(widget)
+        assert widget not in self.replay_widgets
+        assert widget not in self._dead_widgets
 
     @qtc.pyqtSlot()
     def play(self):
@@ -202,16 +205,22 @@ class QMediaMainController(qtw.QWidget):
         self.stop.emit()
         self.timer_thread.quit()
         self.timer_thread.wait()
+
+        logging.debug("Waiting for dead widgets to terminate")
+        # wait for all widgets to be deleted
+
+        for w in self._dead_widgets:
+            w.kill()
+
         self.cleaned_up.emit()
         logging.info("Shut down MediaController successfully")
 
     @qtc.pyqtSlot()
     def settings_changed(self):
         for widget in self.replay_widgets:
-            if isinstance(widget, MocapPlayer):
-                if widget.fps != settings.refresh_rate:
-                    # reloading mocap_widget with new refresh rate
-                    logging.info(f"RESETTING {widget = }")
-                    self.unsubscribe.emit(widget)
-                    widget.fps = settings.refresh_rate
-                    self.subscribe.emit(widget)
+            proxy = media_proxy_map.get(id(widget))
+            assert proxy is not None, f"Could not find proxy for widget {widget}"
+            if proxy.fps != widget.fps:
+                proxy.fps = widget.fps
+                self.unsubscribe.emit(proxy)
+                self.subscribe.emit(proxy)

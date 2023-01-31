@@ -1,11 +1,11 @@
 from dataclasses import dataclass, field
 import logging
+import os
 import time
 from typing import List
 
 import numpy as np
 
-from src.media.media_base import MediaReader
 from src.utility.decorators import accepts
 from src.utility.file_cache import cached
 
@@ -18,22 +18,24 @@ from .sample import Sample
 @dataclass
 class GlobalState:
     annotator_id: int
-    _dataset: Dataset  # immutable
+    _dataset: Dataset
     name: str
-    _media: MediaReader  # immutable
+    _path: os.PathLike
+    _footprint: str = field(init=False)
     _samples: list = field(init=False, default_factory=list)
-    _creation_time: time.struct_time = field(init=False, default_factory=time.localtime)
+    _timestamp: time.struct_time = field(init=False, default_factory=time.localtime)
 
     def __post_init__(self):
-        a = empty_annotation(self.dataset.scheme)
-        s = Sample(0, self.media.n_frames - 1, a)
-        self.samples.append(s)
+        # finish initialization
+        from src.media_reader import MediaReader, media_reader
+        from src.utility.filehandler import footprint_of_file
 
-        # Check if all attributes are set correctly
-        assert self.annotator_id is not None and isinstance(self.annotator_id, int)
-        assert self._dataset is not None and isinstance(self._dataset, Dataset)
-        assert self.name is not None and isinstance(self.name, str)
-        assert self._media is not None and isinstance(self._media, MediaReader)
+        media: MediaReader = media_reader(self.path)
+        self._footprint = footprint_of_file(self.path)
+
+        a = empty_annotation(self.dataset.scheme)
+        s = Sample(0, len(media) - 1, a)
+        self.samples.append(s)
 
     @property
     def samples(self) -> List[Sample]:
@@ -82,19 +84,26 @@ class GlobalState:
         return self._dataset
 
     @property
-    def media(self) -> MediaReader:
-        return self._media
+    def path(self) -> os.PathLike:
+        return self._path
+
+    @path.setter
+    def path(self, path: os.PathLike):
+        # TODO: FIx this
+        if not os.path.isfile(path):
+            raise FileNotFoundError(path)
+        self._path = path
 
     @property
     def creation_time(self) -> time.struct_time:
-        return self._creation_time
+        return self._timestamp
 
     @property
     def timestamp(self) -> str:
         return time.strftime("%Y-%m-%d_%H-%M-%S", self.creation_time)
 
     @property
-    def progress(self) -> float:
+    def progress(self) -> int:
         """
         Returns the annotation progress in percent.
         """
@@ -106,16 +115,19 @@ class GlobalState:
                 if not s.annotation.is_empty()
             ]
         )
-        return n_annotations / n_frames * 100
+        return int(n_annotations / n_frames * 100)
 
     @property
     def meta_data(self) -> dict:
         return {
             "annotator_id": self.annotator_id,
             "dataset": self.dataset.name,
-            "file": self.media.path,
-            "file_id": self.media.id,
+            "file": self.path,
             "name": self.name,
             "creation_time": self.timestamp,
             "progress": self.progress,
         }
+
+    @property
+    def footprint(self) -> str:
+        return self._footprint

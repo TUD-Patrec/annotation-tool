@@ -1,5 +1,3 @@
-from src.utility.colormapper import ColorMapper  # noqa F401
-
 from .annotation import Annotation  # noqa F401
 from .annotation_scheme import AnnotationScheme  # noqa F401
 from .dataset import Dataset  # noqa F401

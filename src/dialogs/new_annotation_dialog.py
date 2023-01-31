@@ -5,7 +5,7 @@ import PyQt6.QtWidgets as qtw
 
 from src.data_model import Dataset
 from src.data_model.globalstate import GlobalState
-from src.media.media_types import get_reader
+from src.media_reader import media_reader as mr
 from src.qt_helper_widgets.line_edit_adapted import QLineEditAdapted
 from src.settings import settings
 
@@ -79,7 +79,7 @@ class QNewAnnotationDialog(qtw.QDialog):
         self.check_enabled()
         if self.open_button.isEnabled():
             try:
-                media_reader = get_reader(self.line_edit.text())
+                media_reader = mr(self.line_edit.text())
                 if len(media_reader) < 1000:
                     msg = qtw.QMessageBox(self)
                     msg.setIcon(qtw.QMessageBox.Icon.Critical)
@@ -114,7 +114,7 @@ class QNewAnnotationDialog(qtw.QDialog):
                 annotator_id,
                 dataset,
                 self.annotation_name.text(),
-                media_reader,
+                media_reader.path,
             )
             self.close()
             self.load_annotation.emit(annotation)

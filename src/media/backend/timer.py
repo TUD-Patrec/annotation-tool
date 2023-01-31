@@ -145,6 +145,8 @@ class Timer(qtc.QObject):
             if self.subscribers[idx][0] is x:
                 break
         else:
+            print(f"ERROR: Subscriber {x} not found!")
+            print(self.subscribers)
             raise RuntimeError
 
         # Unwire connections

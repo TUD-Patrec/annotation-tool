@@ -6,8 +6,8 @@ from typing import List, Tuple
 import numpy as np
 import torch
 
-from src.media.media_types import MediaType, media_type_of
-from src.media.mocap_reader import load_mocap
+from src.data_model.media_type import MediaType, from_str
+from src.media_reader import media_reader, media_type_of
 from src.network.LARa import lara_specifics
 from src.network.network import Network
 
@@ -46,7 +46,7 @@ def run_network(lower, upper) -> np.ndarray:
 
 @lru_cache(maxsize=1)
 def __get_data__(file: os.PathLike) -> Tuple[np.ndarray, MediaType]:
-    media_type = media_type_of(file)
+    media_type = from_str(media_type_of(file))
 
     # load from disk
     data = __load_raw_data__(file, media_type)
@@ -128,10 +128,10 @@ def __run_network__(file: os.PathLike, start: int = 0, end: int = -1) -> np.ndar
 
 def __load_raw_data__(file: os.PathLike, media_type: MediaType = None) -> np.ndarray:
     if media_type is None:
-        media_type = media_type_of(file)
+        media_type = from_str(media_type_of(file))
 
     if media_type == MediaType.MOCAP:
-        data = load_mocap(file)
+        data = media_reader(file)  # TODO remove hard coded fps
     elif media_type == MediaType.VIDEO:
         raise NotImplementedError
     else:

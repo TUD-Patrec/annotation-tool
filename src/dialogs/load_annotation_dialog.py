@@ -17,8 +17,8 @@ class QLoadExistingAnnotationDialog(qtw.QDialog):
         form = qtw.QFormLayout()
         self.combobox = qtw.QComboBox()
 
-        for annotation in self.annotations:
-            self.combobox.addItem(annotation.name)
+        for global_state in self.global_states:
+            self.combobox.addItem(global_state.name)
 
         self.combobox.currentIndexChanged.connect(
             lambda x: self.process_combobox_value(x)
@@ -62,9 +62,9 @@ class QLoadExistingAnnotationDialog(qtw.QDialog):
 
     def process_combobox_value(self, idx):
         if idx >= 0:
-            annotation = self.annotations[idx]
+            global_state = self.global_states[idx]
 
-            dataset = annotation.dataset
+            dataset = global_state.dataset
 
             self.dataset_line_edit.setText(dataset.name)
 
@@ -75,10 +75,10 @@ class QLoadExistingAnnotationDialog(qtw.QDialog):
                     "The original Dataset was deleted via the Edit-Dataset Menu."
                 )
 
-            if os.path.isfile(annotation.media.path):
-                hash = filehandler.footprint_of_file(annotation.media.path)
-                if annotation.media.footprint == hash:
-                    self.line_edit.setText(annotation.media.path)
+            if os.path.isfile(global_state.path):
+                hash = filehandler.footprint_of_file(global_state.path)
+                if global_state.footprint == hash:
+                    self.line_edit.setText(global_state.path)
                 else:
                     self.line_edit.setText(
                         "The path of the input has changed, please select the new path."
@@ -101,14 +101,14 @@ class QLoadExistingAnnotationDialog(qtw.QDialog):
                 self.line_edit.setText("")
                 return
 
-            annotation: GlobalState = self.annotations[idx]
-            other_hash = annotation.media.footprint
+            global_state: GlobalState = self.global_states[idx]
+            other_hash = global_state.footprint
 
             if hash == other_hash:
                 self.line_edit.setText(file_path)
             else:
                 self.line_edit.setText(
-                    "The input_file is not compatible with the selected annotation, please select the correct file."  # noqa E501
+                    "The input_file is not compatible with the selected global_state, please select the correct file."  # noqa E501
                 )
         self.check_enabled()
 
@@ -127,15 +127,15 @@ class QLoadExistingAnnotationDialog(qtw.QDialog):
 
     def open_pressed(self):
         idx = self.combobox.currentIndex()
-        annotation = self.annotations[idx]
+        global_state = self.global_states[idx]
 
-        annotation.media.path = self.line_edit.text()
+        global_state.path = self.line_edit.text()
 
         self.close()
-        self.load_annotation.emit(annotation)
+        self.load_annotation.emit(global_state)
 
     @property
-    def annotations(self):
+    def global_states(self):
         return GlobalState.get_all()
 
     @property

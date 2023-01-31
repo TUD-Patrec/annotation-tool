@@ -28,10 +28,10 @@ class GlobalStateWidget(qtw.QWidget):
 
         # file
         self.file_label = qtw.QLabel("File")
-        file_name = os.path.basename(self.global_state.media.path)
+        file_name = os.path.basename(self.global_state.path)
         self.file_edit = qtw.QLineEdit(file_name)
         self.file_edit.setReadOnly(True)
-        self.file_edit.setToolTip(self.global_state.media.path)
+        self.file_edit.setToolTip(self.global_state.path)
         self.grid.addWidget(self.file_label, 1, 0)
         self.grid.addWidget(self.file_edit, 1, 1)
 
@@ -252,7 +252,7 @@ class ExportAnnotationDialog(qtw.QDialog):
 
         # add copy of annotated file
         if self.add_copy_checkbox.isChecked():
-            shutil.copy2(self.global_state.media.path, export_dir)
+            shutil.copy2(self.global_state.path, export_dir)
 
         # export dataset-scheme
         if self.export_dataset_scheme_checkbox.isChecked():
