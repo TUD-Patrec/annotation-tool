@@ -1,0 +1,11 @@
+bump version and tag:
+  stage: bump
+  needs: ["flake8 check", "black check", "isort check"]
+  script:
+    - !reference [.install_only_dev, script]
+    - git config user.name "Philipp Oberdiek"
+    - git config user.email "git@oberdiek.net"
+    - cz bump --yes
+    - git push --follow-tags -o ci.skip "https://cicd-bump-token:$CICD_BUMP_TOKEN_VARIABLE@gitlab.com/wilfer9008/annotation-tool.git" HEAD:master
+  rules:
+    - if: '$BUMP_VERSION =~ /^./'

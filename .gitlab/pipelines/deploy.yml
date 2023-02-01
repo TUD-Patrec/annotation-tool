@@ -1,0 +1,54 @@
+include:
+  - '.gitlab/pipelines/setup.yml'
+
+.default_rules:
+  master-version-tag:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+([^-].*)?/'
+  other_version_tag:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-.*/'
+      when: manual
+
+.publish_pypi:
+  stage: deploy
+  needs: ["flake8 check", "black check", "isort check"]
+  script:
+    - !reference [.install, script]
+    - !reference [.setup_pypi, script]
+    - poetry publish --build
+
+.publish_testpypi:
+  stage: deploy
+  needs: ["flake8 check", "black check", "isort check"]
+  script:
+    - !reference [.install, script]
+    - !reference [.setup_testpypi, script]
+    - poetry publish --build -r testpypi
+
+########################################################
+
+publish pypi:
+  extends: .publish_pypi
+  rules:
+    - !reference [.default_rules, master-version-tag]
+
+publish pypi after cicd bump:
+  extends: .publish_pypi
+  needs: [bump version and tag]
+  rules:
+    - if: '$BUMP_VERSION =~ /^./'
+
+publish testpypi:
+  extends: .publish_testpypi
+  rules:
+    - !reference [.default_rules, master-version-tag]
+
+publish testpypi manually:
+  extends: .publish_testpypi
+  rules:
+    - !reference [.default_rules, other_version_tag]
+
+publish testpypi after cicd bump:
+  extends: .publish_testpypi
+  needs: [bump version and tag]
+  rules:
+    - if: '$BUMP_VERSION =~ /^./'
