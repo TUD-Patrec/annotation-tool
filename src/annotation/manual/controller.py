@@ -102,7 +102,7 @@ class ManualAnnotation(AnnotationBaseClass):
                 start = min(sample.start_position, other_sample.start_position)
                 end = max(sample.end_position, other_sample.end_position)
 
-                merged_sample = Sample(start, end, sample.annotation)
+                merged_sample = Sample(start, end, other_sample.annotation)
 
                 self.add_to_undo_stack()
 
