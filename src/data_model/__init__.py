@@ -1,7 +1,7 @@
-from .annotation import Annotation  # noqa F401
-from .annotation_scheme import AnnotationScheme  # noqa F401
-from .dataset import Dataset  # noqa F401
-from .globalstate import GlobalState  # noqa F401
+from .annotation import Annotation, create_annotation  # noqa F401
+from .annotation_scheme import AnnotationScheme, create_annotation_scheme  # noqa F401
+from .dataset import Dataset, create_dataset  # noqa F401
+from .globalstate import GlobalState, create_global_state  # noqa F401
 from .model import (  # noqa F401
     Model,
     create_model,
@@ -9,4 +9,4 @@ from .model import (  # noqa F401
     get_models,
     get_unique_name,
 )
-from .sample import Sample  # noqa F401
+from .sample import Sample, create_sample  # noqa F401

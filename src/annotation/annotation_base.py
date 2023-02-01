@@ -13,6 +13,7 @@ from src.user_actions import AnnotationActions
 class AnnotationBaseClass(qtc.QObject, DialogManager):
     start_loop = qtc.pyqtSignal(int, int)
     stop_loop = qtc.pyqtSignal()
+    pause_replay = qtc.pyqtSignal()
     position_changed = qtc.pyqtSignal(int)
     samples_changed = qtc.pyqtSignal(list, Sample)
 

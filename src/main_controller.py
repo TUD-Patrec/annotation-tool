@@ -56,6 +56,10 @@ class MainApplication(qtw.QApplication):
 
         # from media_player
         self.media_player.cleanedUp.connect(self.gui.cleaned_up)
+        self.media_player.additional_media_changed.connect(
+            self.set_additional_media_paths
+        )
+        self.media_player.loaded.connect(self.media_player_loaded)
 
         # from QAnnotationWidget
         self.annotation_controller.samples_changed.connect(self.timeline.set_samples)
@@ -67,6 +71,7 @@ class MainApplication(qtw.QApplication):
         )
         self.annotation_controller.start_loop.connect(self.mediator.start_loop)
         self.annotation_controller.stop_loop.connect(self.mediator.stop_loop)
+        self.annotation_controller.pause_replay.connect(self.playback.pause)
         # TODO refactoring
         self.gui.set_widget(
             self.annotation_controller.controller.main_widget, LayoutPosition.RIGHT
@@ -99,6 +104,9 @@ class MainApplication(qtw.QApplication):
     @qtc.pyqtSlot(GlobalState)
     def load_state(self, state: GlobalState):
         if state is not None:
+            # store annotation
+            self.global_state = state
+
             media = media_reader(path=state.path)
             duration = media.duration
             n_frames = media.n_frames
@@ -106,6 +114,7 @@ class MainApplication(qtw.QApplication):
             FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
 
             # load media
+            self.media_player.additional_media_changed.disconnect()  # disconnect to filter out outdated signals
             self.media_player.load(media.path)
 
             # update network module
@@ -116,9 +125,6 @@ class MainApplication(qtw.QApplication):
 
             # reset playback
             self.playback.reset()
-
-            # store annotation
-            self.global_state = state
 
             # update mediator
             self.mediator.n_frames = n_frames
@@ -143,6 +149,23 @@ class MainApplication(qtw.QApplication):
 
         else:
             raise RuntimeError("State must not be None")
+
+    @qtc.pyqtSlot(list)
+    def set_additional_media_paths(self, paths: list):
+        assert self.global_state is not None
+        logging.debug(
+            f"self.global_state: {self.global_state.path = } {self.global_state.get_additional_media_paths() = }"
+        )
+        self.global_state.set_additional_media_paths(paths)
+
+    @qtc.pyqtSlot()
+    def media_player_loaded(self):
+        assert self.global_state is not None
+        self.media_player.additional_media_changed.connect(
+            self.set_additional_media_paths
+        )  # reconnect after loading
+        additional_media = self.global_state.get_additional_media_paths()
+        self.media_player.set_additional_media(additional_media)
 
     def save_annotation(self):
         if self.global_state is None:

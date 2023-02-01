@@ -4,7 +4,7 @@ import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
 
 from src.data_model import Dataset
-from src.data_model.globalstate import GlobalState
+from src.data_model.globalstate import GlobalState, create_global_state
 from src.media_reader import media_reader as mr
 from src.qt_helper_widgets.line_edit_adapted import QLineEditAdapted
 from src.settings import settings
@@ -110,7 +110,7 @@ class QNewAnnotationDialog(qtw.QDialog):
             dataset = self.datasets[idx]
 
             annotator_id = settings.annotator_id
-            annotation = GlobalState(
+            annotation = create_global_state(
                 annotator_id,
                 dataset,
                 self.annotation_name.text(),

@@ -5,7 +5,7 @@ import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
 import numpy as np
 
-from src.data_model import Dataset
+from src.data_model import Dataset, create_dataset
 from src.data_model.annotation_scheme import create_annotation_scheme
 from src.qt_helper_widgets.adaptive_scroll_area import QAdaptiveScrollArea
 from src.qt_helper_widgets.line_edit_adapted import QLineEditAdapted
@@ -175,7 +175,7 @@ class QEditDatasets(qtw.QDialog):
                     self._dependencies.setText(dependency_error_str)
                     return
 
-        Dataset(name, scheme, dependencies)
+        create_dataset(name, scheme, dependencies)
 
         self._reload()
 

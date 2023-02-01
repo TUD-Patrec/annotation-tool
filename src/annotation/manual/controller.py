@@ -59,6 +59,7 @@ class ManualAnnotation(AnnotationBaseClass):
             dialog = QAnnotationDialog(
                 self.selected_sample, self.scheme, self.dependencies
             )
+            self.pause_replay.emit()
             dialog.finished.connect(lambda _: self.check_for_selected_sample(True))
             self.open_dialog(dialog)
 

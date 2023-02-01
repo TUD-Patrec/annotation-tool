@@ -37,7 +37,9 @@ def empty_annotation(scheme: AnnotationScheme):
 
 
 class Annotation:
-    def __init__(self, scheme: AnnotationScheme, annotation: [np.ndarray, dict] = None):
+    def __init__(
+        self, scheme: AnnotationScheme, annotation: Union[np.ndarray, dict, None] = None
+    ):
         assert isinstance(scheme, AnnotationScheme)
 
         if annotation is None:
@@ -177,3 +179,27 @@ class Annotation:
     def __hash__(self):
         # logging.warning("Hash of annotation is deprecated")
         return hash((self.scheme, self.binary_str))
+
+
+def create_annotation(
+    scheme: AnnotationScheme, annotation: Union[np.ndarray, dict, None] = None
+) -> Annotation:
+    """
+    Create an annotation from a scheme and a vector or a dict.
+
+    Args:
+        scheme: The scheme of the annotation.
+        annotation: The annotation as a vector or a dict. If None, an empty annotation is created.
+
+    Returns:
+        The annotation.
+
+    Raises:
+        ValueError: If the parameters are not valid.
+    """
+    try:
+        return Annotation(scheme, annotation)
+    except AssertionError:
+        raise ValueError(
+            "Cannot create annotation from {} and {}".format(scheme, annotation)
+        )

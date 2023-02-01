@@ -27,6 +27,7 @@ class GlobalState:
     _footprint: str = field(init=False)
     _samples: list = field(init=False, default_factory=list)
     _timestamp: time.struct_time = field(init=False, default_factory=time.localtime)
+    _additional_media_paths: List[os.PathLike] = field(init=False, default_factory=list)
 
     def __post_init__(self):
         # finish initialization
@@ -54,7 +55,9 @@ class GlobalState:
             self.annotator_id >= 0
         ), "Annotator ID must be greater than or equal to 0."
         assert self.path is not None, "Path must not be None."
-        assert isinstance(self.path, os.PathLike), "Path must be of type os.PathLike."
+        assert isinstance(
+            self.path, (str, os.PathLike)
+        ), "Path must be of type os.PathLike."
         assert os.path.exists(self.path), "Path must exist."
         assert os.path.isfile(self.path), "Path must be a file."
         assert os.path.splitext(self.path)[1] == ".csv", "Path must be a .csv file."
@@ -157,6 +160,21 @@ class GlobalState:
     def footprint(self) -> str:
         return self._footprint
 
+    def set_additional_media_paths(self, paths: List[os.PathLike]):
+        additional_paths = []
+        for x in paths:
+            if not os.path.isfile(x):
+                raise FileNotFoundError(x)
+            additional_paths.append(x)
+        self._additional_media_paths = additional_paths
+        logging.debug(
+            f"Additional media paths were set. {self._additional_media_paths}"
+        )
+
+    def get_additional_media_paths(self) -> List[os.PathLike]:
+        return self._additional_media_paths
+
+    # TODO: update copy functions (additional media paths)
     def __copy__(self):
         return GlobalState(
             self.annotator_id,

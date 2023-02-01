@@ -35,12 +35,16 @@ class QMediaWidget(qtw.QWidget):
 
     position_changed = qtc.pyqtSignal(int)
     cleanedUp = qtc.pyqtSignal()
+    loaded = qtc.pyqtSignal()
+    additional_media_changed = qtc.pyqtSignal(list)
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.controller = QMediaMainController()
         self.controller.cleaned_up.connect(self.cleanedUp)
         self.controller.position_changed.connect(self.position_changed)
+        self.controller.additional_media_changed.connect(self.additional_media_changed)
+        self.controller.loaded.connect(self.loaded)
         self._layout = qtw.QHBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.addWidget(self.controller)
@@ -48,6 +52,11 @@ class QMediaWidget(qtw.QWidget):
     @qtc.pyqtSlot(str)
     def load(self, file):
         self.controller.load(file)
+
+    @qtc.pyqtSlot(list)
+    def set_additional_media(self, files):
+        for f in files:
+            self.controller.add_replay_widget(f)
 
     @qtc.pyqtSlot(int)
     def set_position(self, p):

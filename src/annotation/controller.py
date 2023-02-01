@@ -16,6 +16,7 @@ from src.user_actions import AnnotationActions
 class AnnotationController(qtc.QObject):
     start_loop = qtc.pyqtSignal(int, int)
     stop_loop = qtc.pyqtSignal()
+    pause_replay = qtc.pyqtSignal()
     right_widget_changed = qtc.pyqtSignal(qtw.QWidget)
     tool_widget_changed = qtc.pyqtSignal(qtw.QWidget)
     samples_changed = qtc.pyqtSignal(list, Sample)
@@ -52,6 +53,7 @@ class AnnotationController(qtc.QObject):
             self.controller.stop_loop.connect(self.stop_loop)
             self.controller.samples_changed.connect(self.samples_changed)
             self.controller.position_changed.connect(self.position_changed)
+            self.controller.pause_replay.connect(self.pause_replay)
             self.tool_widget_changed.emit(self.controller.tool_widget)
             self.right_widget_changed.emit(self.controller.main_widget)
 

@@ -49,7 +49,12 @@ class Sample:
     _annotation: Annotation = field(init=True, hash=False, compare=False)
 
     def __post_init__(self):
+        assert isinstance(self._start_pos, int)
+        assert isinstance(self._end_pos, int)
         assert isinstance(self._annotation, Annotation)
+        assert self._start_pos <= self._end_pos
+        assert self._start_pos >= 0
+
         self._sort_index = self._start_pos
 
     def __len__(self):
@@ -105,3 +110,24 @@ class Sample:
 
     def __deepcopy__(self, memo):
         return Sample(self._start_pos, self._end_pos, deepcopy(self._annotation))
+
+
+def create_sample(start_pos: int, end_pos: int, annotation: Annotation) -> Sample:
+    """
+    Creates a new sample.
+
+    Args:
+        start_pos: The start position of the sample.
+        end_pos: The end position of the sample.
+        annotation: The annotation of the sample.
+
+    Returns:
+        The created sample.
+
+    Raises:
+        ValueError: If the parameters are invalid.
+    """
+    try:
+        return Sample(start_pos, end_pos, annotation)
+    except AssertionError:
+        raise ValueError("Invalid sample.")

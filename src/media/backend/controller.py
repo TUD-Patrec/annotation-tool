@@ -63,8 +63,9 @@ class QMediaMainController(qtw.QWidget):
     subscribe = qtc.pyqtSignal(qtc.QObject)
     unsubscribe = qtc.pyqtSignal(qtc.QObject)
     reset = qtc.pyqtSignal()
-
+    additional_media_changed = qtc.pyqtSignal(list)
     cleaned_up = qtc.pyqtSignal()
+    loaded = qtc.pyqtSignal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -81,17 +82,19 @@ class QMediaMainController(qtw.QWidget):
         self.grid.addLayout(self.vbox, 0, 1)
 
         self._dead_widgets = []
+        # self._loading_widgets = [] # TODO implement loading widgets
+        self._widget_2_path = {}
 
     @qtc.pyqtSlot(str)
     def load(self, file):
         self.pause()
-        self.clear()
+        self.clear(notify=False)
         self.reset.emit()
         self.add_replay_widget(file)
 
-    def clear(self):
+    def clear(self, notify=True):
         while self.replay_widgets:
-            self.remove_replay_source(self.replay_widgets[0])
+            self.remove_replay_source(self.replay_widgets[0], notify)
 
     def add_replay_widget(self, path):
         if len(self.replay_widgets) < self.MAX_WIDGETS:
@@ -116,8 +119,12 @@ class QMediaMainController(qtw.QWidget):
                 widget.remove_wanted.connect(self.remove_replay_source)
                 self.vbox.addWidget(widget)
 
+            if not widget.is_main_replay_widget:
+                self._widget_2_path[id(widget)] = path
+
             widget.loaded.connect(self.widget_loaded)
             widget.failed.connect(self.widget_failed)
+            # self._loading_widgets.append(widget)  # TODO implement loading widgets
             widget.load(path)
 
     @qtc.pyqtSlot(AbstractMediaPlayer)
@@ -126,6 +133,11 @@ class QMediaMainController(qtw.QWidget):
         widget.finished.connect(self.widget_terminated)
         self.replay_widgets.append(widget)
         proxy = MediaProxy(widget)
+
+        if not widget.is_main_replay_widget:
+            self.additional_media_changed.emit(self._widget_2_path.values())
+        else:
+            self.loaded.emit()
         self.subscribe.emit(proxy)
 
     @qtc.pyqtSlot(AbstractMediaPlayer)
@@ -134,7 +146,7 @@ class QMediaMainController(qtw.QWidget):
         logging.error(f"COULD NOT LOAD {widget = }")
         raise RuntimeError
 
-    def remove_replay_source(self, widget):
+    def remove_replay_source(self, widget, notify=True):
         self.grid.removeWidget(widget)
         self.vbox.removeWidget(widget)
         proxy = media_proxy_map.get(id(widget))
@@ -150,6 +162,12 @@ class QMediaMainController(qtw.QWidget):
             self._dead_widgets.append(
                 widget
             )  # keep reference to widget until it is terminated
+
+        if not widget.is_main_replay_widget:
+            del self._widget_2_path[id(widget)]
+            if notify:
+                self.additional_media_changed.emit(self._widget_2_path.values())
+            logging.debug(f"self._widget_2_path {self._widget_2_path}")
 
     def widget_terminated(self, widget):
         if widget in self._dead_widgets:
@@ -200,7 +218,7 @@ class QMediaMainController(qtw.QWidget):
         self.timer_thread.start()
 
     def shutdown(self):
-        self.clear()
+        self.clear(notify=False)
         self.stop.emit()
         self.timer_thread.quit()
         self.timer_thread.wait()
