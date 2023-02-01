@@ -3,6 +3,7 @@ image: python:3.9
 stages:
   - lint
   - bump
+  - release
   - deploy
 
 before_script:
