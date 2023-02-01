@@ -4,8 +4,8 @@ import sys
 import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
 
+from src.file_cache._file_cache import get_all, get_dir, get_size_in_bytes
 from src.qt_helper_widgets.lines import QHLine
-from src.utility.file_cache import get_all, get_dir, get_size_in_bytes
 
 
 class LocalFilesDialog(qtw.QDialog):

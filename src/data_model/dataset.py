@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from src.utility.file_cache import cached
+from src.file_cache import cached
 
 from .annotation_scheme import AnnotationScheme
 

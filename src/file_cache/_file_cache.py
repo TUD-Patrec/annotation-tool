@@ -1,4 +1,6 @@
+import abc
 import functools
+import logging
 import os
 from typing import List, Optional, Type, Union
 
@@ -48,10 +50,12 @@ def write(obj: object) -> None:
     Raises:
         TypeError: If the object cannot be cached (i.e. it does not use the @cached decorator).
     """
-    if not hasattr(obj, "cache_id"):
-        raise TypeError(f"Object of type {type(obj)} is not cachable.")
-    if obj.cache_id is None:
-        obj.cache_id = get_next_id()
+    try:
+        cache_id = obj.cache_id
+    except AttributeError:
+        raise TypeError(f"Cannot cache object of type {type(obj)}")
+    if cache_id is None:
+        obj.cache_id = get_next_id()  # only needed for the decorator
     _file_cache[obj.cache_id] = obj
     _file_cache.sync()
 
@@ -105,7 +109,7 @@ def wrap_setattr(func):
     @functools.wraps(func)
     def wrapper(self, key, value):
         func(self, key, value)
-        if key != "_id":
+        if key != "_id":  # TODO check if this is necessary, _id is not used anymore
             write(self)
 
     return wrapper
@@ -171,3 +175,58 @@ def cached(cls):
     cls.del_all = functools.partial(del_all_of_class, cls.__name__)
 
     return cls
+
+
+class Cachable(abc.ABC):
+    """
+    Abstract base class for cachable objects.
+    """
+
+    __cache_id__: str
+
+    def __init__(self):
+        self.__cache_id__ = get_next_id()  # init cache_id
+
+    def delete(self) -> None:
+        """
+        Deletes the object from the cache.
+        """
+        delete(self)
+
+    def sync(self) -> None:
+        """
+        Writes the object to the cache.
+        """
+        write(self)
+
+    def synchronize(self) -> None:
+        """
+        Writes the object to the cache. (alias for sync)
+        """
+        write(self)
+
+    @classmethod
+    def get_all(cls) -> List[object]:
+        """
+        Returns a list of all objects of type cls in the cache.
+        The elements are sorted by their cache_id.
+        """
+        return get_all_of_class(cls)
+
+    @classmethod
+    def del_all(cls) -> None:
+        """
+        Deletes all objects of type cls from the cache.
+        """
+        del_all_of_class(cls)
+
+    @property
+    def cache_id(self) -> str:
+        return self.__cache_id__
+
+    def __setattr__(self, key, value):
+        super().__setattr__(key, value)
+        if self.cache_id:
+            write(self)
+        else:
+            logging.warning("cache_id is not set yet.")

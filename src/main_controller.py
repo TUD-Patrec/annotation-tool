@@ -11,7 +11,6 @@ from src.annotation.timeline import QTimeLine
 from src.media_reader import media_reader, set_fallback_fps
 import src.network.controller as network
 from src.settings import settings
-import src.utility.breeze_resources  # noqa: F401
 
 from .annotation.controller import AnnotationController
 from .data_model.globalstate import GlobalState

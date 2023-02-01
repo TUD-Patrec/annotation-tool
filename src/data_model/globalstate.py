@@ -6,8 +6,8 @@ from typing import List
 
 import numpy as np
 
+from src.file_cache import cached
 from src.utility.decorators import accepts
-from src.utility.file_cache import cached
 
 from .annotation import empty_annotation
 from .dataset import Dataset

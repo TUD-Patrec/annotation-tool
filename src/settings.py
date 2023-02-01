@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field, fields
 
-from src.utility.file_cache import cached
+from src.file_cache._file_cache import cached
 
 
 @cached
