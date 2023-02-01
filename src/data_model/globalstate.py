@@ -1,3 +1,4 @@
+import copy
 from dataclasses import dataclass, field
 import logging
 import math
@@ -32,12 +33,32 @@ class GlobalState:
         from src.media_reader import MediaReader, media_reader
         from src.utility.filehandler import footprint_of_file
 
+        self.__init_valid__()
+
         media: MediaReader = media_reader(self.path)
         self._footprint = footprint_of_file(self.path)
 
         a = empty_annotation(self.dataset.scheme)
         s = Sample(0, len(media) - 1, a)
         self.samples.append(s)
+
+    def __init_valid__(self):
+        assert self.dataset is not None, "Dataset must not be None."
+        assert isinstance(self.dataset, Dataset), "Dataset must be of type Dataset."
+        assert self.name is not None, "Name must not be None."
+        assert isinstance(self.name, str), "Name must be of type str."
+        assert len(self.name) > 0, "Name must not be empty."
+        assert self.annotator_id is not None, "Annotator ID must not be None."
+        assert isinstance(self.annotator_id, int), "Annotator ID must be of type int."
+        assert (
+            self.annotator_id >= 0
+        ), "Annotator ID must be greater than or equal to 0."
+        assert self.path is not None, "Path must not be None."
+        assert isinstance(self.path, os.PathLike), "Path must be of type os.PathLike."
+        assert os.path.exists(self.path), "Path must exist."
+        assert os.path.isfile(self.path), "Path must be a file."
+        assert os.path.splitext(self.path)[1] == ".csv", "Path must be a .csv file."
+        assert os.path.getsize(self.path) > 0, "Path must not be empty."
 
     @property
     def samples(self) -> List[Sample]:
@@ -135,3 +156,42 @@ class GlobalState:
     @property
     def footprint(self) -> str:
         return self._footprint
+
+    def __copy__(self):
+        return GlobalState(
+            self.annotator_id,
+            self.dataset,
+            self.name,
+            self.path,
+        )
+
+    def __deepcopy__(self, memodict={}):
+        return GlobalState(
+            self.annotator_id,
+            copy.deepcopy(self.dataset),
+            self.name,
+            self.path,
+        )
+
+
+def create_global_state(
+    annotator_id: int, dataset: Dataset, name: str, path: os.PathLike
+) -> GlobalState:
+    """
+    Creates a new GlobalState object.
+
+    Args:
+        annotator_id (int): The id of the annotator.
+        dataset (Dataset): The dataset.
+        name (str): The name of the annotation.
+        path (os.PathLike): The path to the media file.
+
+    Returns:
+        GlobalState: The new GlobalState object.
+    Raises:
+        ValueError If parameters are invalid.
+    """
+    try:
+        return GlobalState(annotator_id, dataset, name, path)
+    except AssertionError as e:
+        raise ValueError(e)

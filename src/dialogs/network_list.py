@@ -4,7 +4,7 @@ import PyQt6.QtCore as qtc
 import PyQt6.QtGui as qtg
 import PyQt6.QtWidgets as qtw
 
-from src.data_model import Model, get_unique_name, make_model
+from src.data_model import Model, create_model, get_unique_name
 from src.data_model.media_type import MediaType
 
 
@@ -277,5 +277,5 @@ class NetworksDialog(qtw.QDialog):
             path = create_dialog.get_path()
             sampling_rate = create_dialog.get_sampling_rate()
             media_type = create_dialog.get_media_type()
-            make_model(path, sampling_rate, media_type, name)
+            create_model(path, sampling_rate, media_type, name)
             self.update()

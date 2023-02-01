@@ -4,9 +4,9 @@ from .dataset import Dataset  # noqa F401
 from .globalstate import GlobalState  # noqa F401
 from .model import (  # noqa F401
     Model,
+    create_model,
     get_model_by_mediatype,
     get_models,
     get_unique_name,
-    make_model,
 )
 from .sample import Sample  # noqa F401

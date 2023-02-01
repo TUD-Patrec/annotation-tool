@@ -70,8 +70,26 @@ class Model:
         self.correct_classifications = 0
         self.incorrect_classifications = 0
 
+    def __copy__(self):
+        return Model(
+            self.network_path,
+            self.sampling_rate,
+            self.media_type,
+            self.name,
+            self.activated,
+            self.footprint,
+            self.basename,
+            self.size_bytes,
+            self.creation_time,
+            self.correct_classifications,
+            self.incorrect_classifications,
+        )
 
-def make_model(
+    def __deepcopy__(self, memo):
+        return self.__copy__()
+
+
+def create_model(
     network_path: os.PathLike,
     sampling_rate: int,
     media_type: MediaType,

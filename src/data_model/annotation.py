@@ -154,10 +154,8 @@ class Annotation:
         assert self == new_anno and new_anno is not self
         return new_anno
 
-    def __deepcopy__(self, memodict={}):
-        new_anno = Annotation(
-            deepcopy(self.scheme, memodict), deepcopy(self.annotation_vector, memodict)
-        )
+    def __deepcopy__(self, memo):
+        new_anno = Annotation(deepcopy(self.scheme), deepcopy(self.annotation_vector))
         assert self == new_anno
         assert new_anno is not self
         return new_anno

@@ -1,3 +1,4 @@
+from copy import deepcopy
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -25,3 +26,9 @@ class Dataset:
     @property
     def dependencies(self) -> np.ndarray:
         return self._dependencies
+
+    def __copy__(self):
+        return Dataset(self.name, self.scheme, self.dependencies)
+
+    def __deepcopy__(self, memo):
+        return Dataset(self.name, deepcopy(self.scheme), deepcopy(self.dependencies))

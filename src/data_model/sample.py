@@ -1,3 +1,4 @@
+from copy import deepcopy
 from dataclasses import dataclass, field
 import random
 from typing import Tuple
@@ -98,3 +99,9 @@ class Sample:
     @property
     def color(self):
         return __annotation_to_color__(self._annotation)
+
+    def __copy__(self):
+        return Sample(self._start_pos, self._end_pos, self._annotation)
+
+    def __deepcopy__(self, memo):
+        return Sample(self._start_pos, self._end_pos, deepcopy(self._annotation))
