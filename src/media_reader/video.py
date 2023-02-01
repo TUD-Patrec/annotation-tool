@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Optional
 
 import cv2
 import filetype
@@ -62,10 +63,8 @@ def __is_video__(path: os.PathLike) -> bool:
 class VideoReader(MediaReader):
     """Class for reading video data."""
 
-    def __init__(self, path: os.PathLike) -> None:
-        super().__init__(path)
-        self._n_frames = int(self.media.get(cv2.CAP_PROP_FRAME_COUNT))
-        self._fps = self.media.get(cv2.CAP_PROP_FPS)
+    def __init__(self, path, **kwargs) -> None:
+        super().__init__(path, **kwargs)
 
     def __enter__(self):
         return self
@@ -94,6 +93,12 @@ class VideoReader(MediaReader):
     def __read_media__(self):
         return __get_vc__(self.path)
 
+    def __detect_fps__(self) -> Optional[float]:
+        return self.media.get(cv2.CAP_PROP_FPS)
+
+    def __detect_n_frames__(self) -> int:
+        return int(self.media.get(cv2.CAP_PROP_FRAME_COUNT))
+
     @property
     def current_position(self):
         return int(self.media.get(cv2.CAP_PROP_POS_FRAMES))
@@ -105,9 +110,9 @@ class VideoReader(MediaReader):
         self.__del__()
 
 
-def __video_builder__(path: os.PathLike, **_ignored) -> VideoReader:
+def __video_builder__(path=None, **kwargs) -> VideoReader:
     if __is_video__(path):
-        return VideoReader(path)
+        return VideoReader(path, **kwargs)
     else:
         raise IOError(f"{path} is not a video file.")
 

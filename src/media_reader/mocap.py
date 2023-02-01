@@ -1,6 +1,7 @@
 from functools import lru_cache
 import logging
 import os
+from typing import Optional
 
 import numpy as np
 
@@ -132,7 +133,7 @@ def __normalize_lara_mocap__(array: np.array) -> np.array:
 class MocapReader(MediaReader):
     """Class for reading mocap data."""
 
-    def __init__(self, path: os.PathLike, fps: float = None) -> None:
+    def __init__(self, path, **kwargs) -> None:
         """
         Initializes a new MocapReader object.
 
@@ -144,11 +145,7 @@ class MocapReader(MediaReader):
             FileNotFoundError: If the file does not exist.
         """
 
-        super().__init__(path)
-        self._n_frames = self.media.shape[0]
-        if self._fps and isinstance(self._fps, (int, float)):
-            self._fps = self._fps
-        self._fps = fps
+        super().__init__(path, **kwargs)
 
     def __get_frame__(self, idx: int) -> np.ndarray:
         """
@@ -171,6 +168,12 @@ class MocapReader(MediaReader):
     def __read_media__(self):
         return np.copy(load_mocap(self.path))
 
+    def __detect_fps__(self) -> Optional[float]:
+        return None
+
+    def __detect_n_frames__(self) -> int:
+        return len(self.media)
+
 
 def __is_mocap__(path: os.PathLike) -> bool:
     if not os.path.isfile(path):
@@ -182,7 +185,7 @@ def __is_mocap__(path: os.PathLike) -> bool:
         return False
 
 
-def __mocap_builder__(path: os.PathLike, fps: float = None, **_ignored) -> MocapReader:
+def __mocap_builder__(path: os.PathLike, **kwargs) -> MocapReader:
     """
     Builds a MocapReader object from the given path.
 
@@ -193,7 +196,7 @@ def __mocap_builder__(path: os.PathLike, fps: float = None, **_ignored) -> Mocap
     Returns:
         MocapReader: The MocapReader object.
     """
-    return MocapReader(path, fps)
+    return MocapReader(path, **kwargs)
 
 
 register_media_reader(

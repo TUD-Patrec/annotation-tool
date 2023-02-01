@@ -1,11 +1,12 @@
 import abc
+import logging
 import os
 from typing import Optional, Union
 
 import cv2 as cv
 import numpy as np
 
-__FALLBACK_FPS__ = 30
+__FALLBACK_FPS__ = 30  # fallback framerate if no framerate can be determined
 
 
 def set_fallback_fps(fps: float) -> None:
@@ -38,26 +39,45 @@ class MediaReader(abc.ABC):
     Baseclass for media readers (e.g. video, mocap, etc.)
     """
 
-    def __init__(self, path: os.PathLike) -> None:
+    def __init__(self, path: os.PathLike, **kwargs) -> None:
         """
         Initializes a new __MediaReader object.
 
         Args:
             path: The path to the media file.
+            kwargs: {fps: The framerate of the media data., n_frames: The number of frames in the media data.}
 
         Raises:
             FileNotFoundError: If the file does not exist.
         """
 
+        # check parameters
         if not os.path.isfile(path):
             raise FileNotFoundError(path)
-        self.__path: os.PathLike = path
-        self._fps = None
-        self._n_frames = 0
+
+        self._path: os.PathLike = path
+
+        if "fps" in kwargs:
+            fps = kwargs["fps"]
+            assert (
+                isinstance(fps, (int, float)) and fps > 0 or fps is None
+            ), f"Framerate must be a positive number or None, not {fps}."
+            self._fps = fps
+        else:
+            self._fps = self.__detect_fps__()
+
+        if "n_frames" in kwargs:
+            n_frames = kwargs["n_frames"]
+            assert (
+                isinstance(n_frames, int) and n_frames > 0
+            ), f"Number of frames must be an positive integer, not {n_frames}."
+            self._n_frames = n_frames
+        else:
+            self._n_frames = self.__detect_n_frames__()
 
     @property
     def path(self) -> os.PathLike:
-        return self.__path
+        return self._path
 
     @property
     def duration(self) -> int:
@@ -87,6 +107,16 @@ class MediaReader(abc.ABC):
     @property
     def media(self):
         return __memoizer__(self)
+
+    def raw_fps(self) -> Optional[float]:
+        """
+        Returns the framerate of the media data.
+        If the framerate cannot be determined, returns None.
+
+        Returns:
+            The framerate of the media data.
+        """
+        return self._fps
 
     def __len__(self):
         return self.n_frames
@@ -149,6 +179,26 @@ class MediaReader(abc.ABC):
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def __detect_fps__(self) -> Optional[float]:
+        """
+        Detects the framerate of the media file.
+
+        Returns:
+            The framerate of the media file if it can be detected, None otherwise.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def __detect_n_frames__(self) -> int:
+        """
+        Detects the number of frames in the media file.
+
+        Returns:
+            The number of frames in the media file.
+        """
+        raise NotImplementedError
+
 
 class __Memoizer:
     def __init__(self):
@@ -183,6 +233,7 @@ class __Memoizer:
         key = id(mr)
         if key in self._cache:
             del self._cache[key]
+            logging.debug(f"Removed {mr} from cache. Cache size: {len(self._cache)}")
 
 
 class __MediaSelector:
@@ -268,6 +319,7 @@ class __MediaFactory:
 __memoizer__ = __Memoizer()
 __media_selector__ = __MediaSelector()
 __media_factory__ = __MediaFactory()
+__kwarg_dict__ = {}
 
 
 def register_media_reader(
@@ -288,7 +340,7 @@ def register_media_reader(
     __media_factory__.register(media_type, factory)
 
 
-def media_reader(path: os.PathLike, **kwargs) -> MediaReader:
+def media_reader(path: os.PathLike, **ignored) -> MediaReader:
     """
     Returns a MediaReader for the given path.
 
@@ -302,8 +354,18 @@ def media_reader(path: os.PathLike, **kwargs) -> MediaReader:
     Raises:
         ValueError: If the media type could not be determined.
     """
+
+    kwargs = __kwarg_dict__.get(path, {})
+
     media_type = __media_selector__.select(path)
-    return __media_factory__.create(media_type, path=path, **kwargs)
+    mr = __media_factory__.create(media_type, path=path, **kwargs)
+
+    __kwarg_dict__[path] = {
+        "fps": mr.raw_fps(),
+        "n_frames": mr.n_frames,
+    }  # fps-property hides None-values, raw_fps() does not
+
+    return mr
 
 
 def media_type_of(path: os.PathLike) -> str:
