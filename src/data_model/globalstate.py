@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 import logging
+import math
 import os
 import time
 from typing import List
@@ -8,6 +9,7 @@ import numpy as np
 
 from src.file_cache import cached
 from src.utility.decorators import accepts
+from src.utility.filehandler import footprint_of_file
 
 from .annotation import empty_annotation
 from .dataset import Dataset
@@ -89,9 +91,10 @@ class GlobalState:
 
     @path.setter
     def path(self, path: os.PathLike):
-        # TODO: FIx this
         if not os.path.isfile(path):
             raise FileNotFoundError(path)
+        if footprint_of_file(path) != self._footprint:
+            raise ValueError("File has changed.")
         self._path = path
 
     @property
@@ -106,8 +109,9 @@ class GlobalState:
     def progress(self) -> int:
         """
         Returns the annotation progress in percent.
+        (Rounded up to the next integer)
         """
-        n_frames = self.media.n_frames
+        n_frames = self.samples[-1].end_position + 1
         n_annotations = sum(
             [
                 s.end_position - s.start_position + 1
@@ -115,7 +119,7 @@ class GlobalState:
                 if not s.annotation.is_empty()
             ]
         )
-        return int(n_annotations / n_frames * 100)
+        return math.ceil(n_annotations / n_frames * 100)
 
     @property
     def meta_data(self) -> dict:

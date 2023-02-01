@@ -1,39 +1,43 @@
 from dataclasses import dataclass, field
 import random
+from typing import Tuple
 
-import PyQt6.QtGui as qtg
 from distinctipy import distinctipy
 
 from src.data_model.annotation import Annotation
-from src.utility.decorators import accepts, returns
+from src.utility.decorators import accepts_m, returns
+
+random.seed(42)
+__color_map__ = distinctipy.get_colors(50, n_attempts=250)
+__default_color__ = 105, 105, 105
 
 
-class ColorMapper:
-    def __init__(self) -> None:
-        random.seed(42)
-        self._color_map = distinctipy.get_colors(50, n_attempts=250)
+def __annotation_to_color__(annotation: Annotation) -> Tuple[int, int, int, int]:
+    """
+    Converts an annotation to a color.
 
-    def annotation_to_color(self, annotation: Annotation) -> qtg.QColor:
-        assert annotation is not None
-        assert isinstance(annotation, Annotation)
+     Args:
+        annotation: The annotation to convert.
 
-        x = 0
-        for idx, attribute in enumerate(annotation):
-            if attribute.row >= 1:
-                break
-            x += attribute.value * (2**idx)
+    Returns:
+        The color of the annotation as a (r, g, b) tuple.
+    """
+    if annotation is None:
+        raise ValueError("Annotation must not be None.")
+    if annotation.is_empty():
+        return __default_color__
+    x = 0
+    for idx, attribute in enumerate(annotation):
+        if attribute.row >= 1:
+            break
+        x += attribute.value * (2**idx)
 
-        x %= len(self._color_map)
+    x %= len(__color_map__)
 
-        r, g, b = self._color_map[x]
-        r, g, b = int(r * 255), int(g * 255), int(b * 255)
-        color = qtg.QColor(r, g, b)
-        color.setAlpha(127)
+    r, g, b = __color_map__[x]
+    r, g, b = int(r * 255), int(g * 255), int(b * 255)
 
-        return color
-
-
-color_mapper = ColorMapper()
+    return r, g, b
 
 
 @dataclass(order=True, unsafe_hash=True)
@@ -42,15 +46,10 @@ class Sample:
     _start_pos: int = field(init=True, hash=True, compare=True)
     _end_pos: int = field(init=True, hash=True, compare=True)
     _annotation: Annotation = field(init=True, hash=False, compare=False)
-    _default_color: qtg.QColor = field(init=False, hash=False, compare=False)
-    _color: qtg.QColor = field(init=False, default=None, hash=False, compare=False)
 
     def __post_init__(self):
         assert isinstance(self._annotation, Annotation)
-        self._default_color = qtg.QColor("#696969")
-        self._default_color.setAlpha(127)
         self._sort_index = self._start_pos
-        self._color = color_mapper.annotation_to_color(self._annotation)
 
     def __len__(self):
         return (self._end_pos - self._start_pos) + 1
@@ -61,7 +60,7 @@ class Sample:
         return self._start_pos
 
     @start_position.setter
-    @accepts(object, int)
+    @accepts_m(int)
     def start_position(self, value):
         if value < 0:
             raise ValueError
@@ -74,7 +73,7 @@ class Sample:
         return self._end_pos
 
     @end_position.setter
-    @accepts(object, int)
+    @accepts_m(int)
     def end_position(self, value):
         if value < 0:
             raise ValueError
@@ -87,19 +86,15 @@ class Sample:
         return self._annotation
 
     @annotation.setter
-    @accepts(object, Annotation)
+    @accepts_m(Annotation)
     def annotation(self, value):
         if value is None:
             raise ValueError("None not allowed")
-
+        # check compatibility
+        if self.annotation.scheme != value.scheme:
+            raise ValueError("Incompatible schemes")
         self._annotation = value
-        # empty annotation
-        self._color = color_mapper.annotation_to_color(value)
 
     @property
-    @returns(qtg.QColor)
     def color(self):
-        if self.annotation.is_empty():
-            return self._default_color
-        else:
-            return self._color
+        return __annotation_to_color__(self._annotation)

@@ -86,7 +86,7 @@ class VideoPlayer(AbstractMediaPlayer):
         self.worker_thread.start()
 
     def thread_finished(self):
-        print("VideoPlayer: Thread finished.")
+        logging.debug("VideoPlayer: Thread finished.")
         self.terminated = True
         self.worker = None
         self.worker_thread = None

@@ -389,13 +389,9 @@ class QTimeLine(qtw.QWidget):
             sample_end = self.scaler.frame_to_pixel(sample.end_position - self.lower)
             sample_length = sample_end - sample_start + 1
 
-            if sample != self.current_sample:
-                color = sample.color
-            else:
-                r = sample.color.red()
-                g = sample.color.green()
-                b = sample.color.blue()
-                color = qtg.QColor(r, g, b, 255)
+            r, g, b = sample.color
+            alpha = 255 if sample == self.current_sample else 127
+            color = qtg.QColor(r, g, b, alpha)
 
             # Clear clip path
             height = MARGIN_HORIZONTAL_LINES + MARGIN_SAMPLE

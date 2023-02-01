@@ -152,7 +152,6 @@ class QMediaMainController(qtw.QWidget):
             )  # keep reference to widget until it is terminated
 
     def widget_terminated(self, widget):
-        print(f"widget {widget} terminated")
         if widget in self._dead_widgets:
             self._dead_widgets.remove(widget)
         assert widget not in self.replay_widgets

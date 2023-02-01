@@ -8,7 +8,10 @@ from fcache.cache import FileCache
 
 _file_cache = FileCache("annotation-tool", flag="c")
 _cache_directory = _file_cache.cache_dir
-print(f"Cache directory: {_cache_directory}")
+if logging.getLogger().isEnabledFor(logging.DEBUG):
+    logging.debug(f"Cache directory: {_cache_directory}")
+else:
+    print(f"Cache directory: {_cache_directory}")
 
 
 def get_dir() -> str:

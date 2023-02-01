@@ -17,7 +17,7 @@ def set_fallback_fps(fps: float) -> None:
         fps: The fallback framerate.
     """
     if isinstance(fps, (int, float)):
-        print(f"Setting fallback framerate to {fps}.")
+        logging.debug(f"Setting fallback framerate to {fps}.")
         global __FALLBACK_FPS__
         __FALLBACK_FPS__ = fps
     else:
