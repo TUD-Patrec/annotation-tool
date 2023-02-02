@@ -6,9 +6,6 @@ stages:
   - release
   - deploy
 
-before_script:
-  - python --version  # For debugging
-
 include:
   - '.gitlab/pipelines/bump-version.yml'
   - '.gitlab/pipelines/setup.yml'
