@@ -15,6 +15,7 @@ class GlobalStateWidget(qtw.QWidget):
         super().__init__(*args, **kwargs)
         self.global_state = global_state
         self.init_ui()
+        self._delete = False
 
     def init_ui(self):
         self.grid = qtw.QGridLayout(self)
@@ -99,13 +100,7 @@ class GlobalStateWidget(qtw.QWidget):
             qtw.QMessageBox.StandardButton.Yes | qtw.QMessageBox.StandardButton.No
         )
         msg.setDefaultButton(qtw.QMessageBox.StandardButton.No)
-        msg.buttonClicked.connect(self.delete_confirmation)
-        msg.exec()
-        msg.deleteLater()
-
-    def delete_confirmation(self, button):
-        # check if yes in button text
-        if "yes" in button.text().lower():
+        if msg.exec() == qtw.QMessageBox.StandardButton.Yes:
             self.global_state.delete()
             self.deleted.emit()
 

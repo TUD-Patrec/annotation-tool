@@ -31,17 +31,11 @@ class GlobalState:
 
     def __post_init__(self):
         # finish initialization
-        from src.media_reader import MediaReader, media_reader
         from src.utility.filehandler import footprint_of_file
 
         self.__init_valid__()
-
-        media: MediaReader = media_reader(self.path)
         self._footprint = footprint_of_file(self.path)
-
-        a = empty_annotation(self.dataset.scheme)
-        s = Sample(0, len(media) - 1, a)
-        self.samples.append(s)
+        self.__init_samples__()
 
     def __init_valid__(self):
         assert self.dataset is not None, "Dataset must not be None."
@@ -58,13 +52,21 @@ class GlobalState:
         assert isinstance(
             self.path, (str, os.PathLike)
         ), "Path must be of type os.PathLike."
-        assert os.path.exists(self.path), "Path must exist."
         assert os.path.isfile(self.path), "Path must be a file."
-        assert os.path.splitext(self.path)[1] == ".csv", "Path must be a .csv file."
         assert os.path.getsize(self.path) > 0, "Path must not be empty."
+
+    def __init_samples__(self):
+        from src.media_reader import MediaReader, media_reader
+
+        media: MediaReader = media_reader(self.path)
+
+        a = empty_annotation(self.dataset.scheme)
+        s = Sample(0, len(media) - 1, a)
+        self._samples.append(s)
 
     @property
     def samples(self) -> List[Sample]:
+        # assert len(self._samples) > 0, "Samples must not be empty."
         return self._samples
 
     @samples.setter
@@ -117,7 +119,7 @@ class GlobalState:
     def path(self, path: os.PathLike):
         if not os.path.isfile(path):
             raise FileNotFoundError(path)
-        if footprint_of_file(path) != self._footprint:
+        if footprint_of_file(path) != self.footprint:
             raise ValueError("File has changed.")
         self._path = path
 
