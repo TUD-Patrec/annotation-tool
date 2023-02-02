@@ -18,7 +18,7 @@ authors = [
 ]
 maintainers = []
 packages = [
-    { include = "src" },
+    { include = "annotation_tool" },
     { include = "main.py" },
 ]
 
