@@ -5,9 +5,6 @@ import sys
 from sys import platform
 import warnings
 
-import PyQt6.QtCore as qtc
-import PyQt6.QtWidgets as qtw
-
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
@@ -32,14 +29,6 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-def enable_high_dpi_scaling():
-    # adjust scaling to high dpi monitors
-    if hasattr(qtc.Qt, "AA_EnableHighDpiScaling"):
-        qtw.QApplication.setAttribute(qtc.Qt.AA_EnableHighDpiScaling, True)
-    if hasattr(qtc.Qt, "AA_UseHighDpiPixmaps"):
-        qtw.QApplication.setAttribute(qtc.Qt.AA_UseHighDpiPixmaps, True)
-
-
 def apply_pixel_scaling():
     # Adjust scaling for windows
     if platform == "win32":
@@ -61,16 +50,18 @@ def apply_pixel_scaling():
 
 
 def start():
-    from src.settings import settings
-
-    if settings.high_dpi_scaling:
-        enable_high_dpi_scaling()
-
-    from src.utility import filehandler
+    from annotation_tool.utility import filehandler
 
     filehandler.init_logger()
 
-    from src.main_controller import main
+    from annotation_tool.settings import settings
+
+    if settings.high_dpi_scaling:
+        apply_pixel_scaling()
+        lvl = logging.DEBUG if settings.debugging_mode else logging.INFO
+        filehandler.set_logging_level(lvl)
+
+    from annotation_tool.main_controller import main
 
     main()
 

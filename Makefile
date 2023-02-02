@@ -27,20 +27,20 @@ test: test-black test-flake8 test-isort
 
 test-black:
 	@echo "Checking format with black..."
-	poetry run black --check src main.py
+	poetry run black --check annotation_tool main.py
 
 test-flake8:
 	@echo "Checking format with flake8..."
-	poetry run flake8 src main.py --count --statistics
+	poetry run flake8 annotation_tool main.py --count --statistics
 
 test-isort:
 	@echo "Checking format with isort..."
-	poetry run isort --check --settings-path pyproject.toml src main.py
+	poetry run isort --check --settings-path pyproject.toml annotation_tool main.py
 
 format:
 	@echo "Formatting with black and isort..."
-	poetry run black src main.py
-	poetry run isort --settings-path pyproject.toml src main.py
+	poetry run black annotation_tool main.py
+	poetry run isort --settings-path pyproject.toml annotation_tool main.py
 
 clean:
 	rm -rf build dist __pycache__ *.spec

@@ -70,7 +70,7 @@ version = "0.6.0"
 tag_format = "v$version"
 major_version_zero = true
 version_files = [
-    "src/__init__.py:^__version__",
+    "annotation_tool/__init__.py:^__version__",
     "pyproject.toml:^version"
 ]
 update_changelog_on_bump = true
