@@ -107,19 +107,20 @@ class VideoPlayer(AbstractMediaPlayer):
         --> This will block the main thread until the worker thread is finished.
         Use shutdown instead if you only want to remove the widget from the screen.
         """
-        try:
-            self.worker.kill()
-            assert self.worker.is_finished()
-        except RuntimeError:
-            logging.debug("VideoPlayer: VideoHelper already dead.")
-
-        try:
-            self.worker_thread.quit()
-            self.worker_thread.wait()
-        except RuntimeError:
-            logging.debug("VideoPlayer: Worker-Thread already terminated.")
-        self.worker = None
-        self.worker_thread = None
+        if self.worker_thread is not None:
+            try:
+                self.worker.kill()
+                assert self.worker.is_finished()
+            except RuntimeError:
+                logging.debug("VideoPlayer: VideoHelper already dead.")
+            self.worker = None
+        if self.worker_thread is not None:
+            try:
+                self.worker_thread.quit()
+                self.worker_thread.wait()
+            except RuntimeError:
+                logging.debug("VideoPlayer: Worker-Thread already terminated.")
+            self.worker_thread = None
 
     @property
     def pix(self):

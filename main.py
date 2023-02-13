@@ -58,8 +58,9 @@ def start():
 
     if settings.high_dpi_scaling:
         apply_pixel_scaling()
-        lvl = logging.DEBUG if settings.debugging_mode else logging.INFO
-        filehandler.set_logging_level(lvl)
+
+    lvl = logging.DEBUG if settings.debugging_mode else logging.INFO
+    filehandler.set_logging_level(lvl)
 
     from annotation_tool.main_controller import main
 

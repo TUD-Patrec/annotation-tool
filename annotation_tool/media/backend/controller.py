@@ -1,4 +1,5 @@
 import logging
+from typing import List, Tuple
 
 import PyQt6.QtCore as qtc
 import PyQt6.QtGui as qtg
@@ -82,11 +83,14 @@ class QMediaMainController(qtw.QWidget):
         self.grid.addLayout(self.vbox, 0, 1)
 
         self._dead_widgets = []
-        # self._loading_widgets = [] # TODO implement loading widgets
         self._widget_2_path = {}
+
+        self._loading_idx = 0  # keep track of how many times load() was called
+        self._loading_widgets: List[Tuple[AbstractMediaPlayer, int]] = []
 
     @qtc.pyqtSlot(str)
     def load(self, file):
+        self._loading_idx += 1
         self.pause()
         self.clear(notify=False)
         self.reset.emit()
@@ -124,11 +128,29 @@ class QMediaMainController(qtw.QWidget):
 
             widget.loaded.connect(self.widget_loaded)
             widget.failed.connect(self.widget_failed)
-            # self._loading_widgets.append(widget)  # TODO implement loading widgets
+            self._loading_widgets.append(
+                (widget, self._loading_idx)
+            )  # keep track of which widget was loaded when
             widget.load(path)
 
     @qtc.pyqtSlot(AbstractMediaPlayer)
     def widget_loaded(self, widget: AbstractMediaPlayer):
+        # remove widget from loading list
+        for i, (w, idx) in enumerate(self._loading_widgets):
+            if w is widget:
+                _, idx_ = self._loading_widgets.pop(i)
+                break
+        else:
+            raise RuntimeError("Widget was not in loading list")
+
+        # check if widget belongs to current loading process
+        if idx_ != self._loading_idx:
+            self.remove_replay_source(widget, ignore_errors=True)
+            logging.debug(
+                f"Widget {widget} was loaded in a previous loading process. Ignoring it."
+            )
+            return
+
         widget.new_input_wanted.connect(self.add_replay_widget)
         widget.finished.connect(self.widget_terminated)
         self.replay_widgets.append(widget)
@@ -142,11 +164,19 @@ class QMediaMainController(qtw.QWidget):
 
     @qtc.pyqtSlot(AbstractMediaPlayer)
     def widget_failed(self, widget):
-        self.remove_replay_source(widget)
+        # remove widget from loading list
+        for i, (w, idx) in enumerate(self._loading_widgets):
+            if w is widget:
+                _, idx_ = self._loading_widgets.pop(i)
+                break
+        else:
+            raise RuntimeError("Widget was not in loading list")
+
+        self.remove_replay_source(widget, ignore_errors=True)
         logging.error(f"COULD NOT LOAD {widget = }")
         raise RuntimeError
 
-    def remove_replay_source(self, widget, notify=True):
+    def remove_replay_source(self, widget, notify=True, ignore_errors=False):
         self.grid.removeWidget(widget)
         self.vbox.removeWidget(widget)
         proxy = media_proxy_map.get(id(widget))
@@ -154,8 +184,13 @@ class QMediaMainController(qtw.QWidget):
             self.unsubscribe.emit(proxy)
             del media_proxy_map[id(widget)]
         else:
-            raise RuntimeError(f"Could not find proxy for widget {widget}")
-        self.replay_widgets.remove(widget)
+            if not ignore_errors:
+                raise RuntimeError(f"Could not find proxy for widget {widget}")
+        if widget in self.replay_widgets:
+            self.replay_widgets.remove(widget)
+        else:
+            if not ignore_errors:
+                raise RuntimeError(f"Could not find widget {widget} in replay_widgets")
         widget.shutdown()
 
         if not widget.terminated:
