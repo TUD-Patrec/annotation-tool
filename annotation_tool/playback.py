@@ -182,12 +182,12 @@ class SliderWidget(qtw.QWidget):
 
         self.slider = OwnSlider()
         self.slider.setOrientation(qtc.Qt.Orientation.Horizontal)
-        self.slider.setRange(10, 200)
+        self.slider.setRange(2, 40)
         self.slider.setTickPosition(qtw.QSlider.TickPosition.TicksBelow)
-        self.slider.setSingleStep(10)
-        self.slider.setTickInterval(25)
+        self.slider.setSingleStep(1)
+        self.slider.setTickInterval(5)
         self.slider.valueChanged.connect(self.slider_changed)
-        self.slider.setValue(100)
+        self.slider.setValue(20)
 
         self.layout = qtw.QVBoxLayout(self)
         self.layout.addWidget(self.slider)
@@ -195,12 +195,13 @@ class SliderWidget(qtw.QWidget):
 
     @qtc.pyqtSlot(int)
     def slider_changed(self, value):
+        value = value * 5  # 5% steps
         self.label.setText(f"{value}%")
         self.valueChanged.emit(value)
 
     @qtc.pyqtSlot()
     def reset_slider(self):
-        self.slider.setValue(100)
+        self.slider.setValue(20)
 
     @qtc.pyqtSlot()
     def plus_step(self):
@@ -209,3 +210,9 @@ class SliderWidget(qtw.QWidget):
     @qtc.pyqtSlot()
     def minus_step(self):
         self.slider.minus_step()
+
+    def wheelEvent(self, event):
+        if event.angleDelta().y() > 0:
+            self.plus_step()
+        else:
+            self.minus_step()

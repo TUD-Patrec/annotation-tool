@@ -26,3 +26,9 @@ class OwnSlider(qtw.QSlider):
             self.setValue(self.value() - rest)
         else:
             self.setValue(self.value() - self.singleStep())
+
+    def wheelEvent(self, event):
+        if event.angleDelta().y() > 0:
+            self.plus_step()
+        else:
+            self.minus_step()
