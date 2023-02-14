@@ -13,8 +13,6 @@ class QMediaWidget(qtw.QWidget):
         position_changed
             Transports the current position of the main replaysource
             (always the leftmost on the screen)
-        cleanedUp
-            Signals that all sub widgets and threads have been shutdown successfully.
 
     Slots:
         load
@@ -34,14 +32,12 @@ class QMediaWidget(qtw.QWidget):
     """
 
     position_changed = qtc.pyqtSignal(int)
-    cleanedUp = qtc.pyqtSignal()
     loaded = qtc.pyqtSignal()
     additional_media_changed = qtc.pyqtSignal(list)
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.controller = QMediaMainController()
-        self.controller.cleaned_up.connect(self.cleanedUp)
         self.controller.position_changed.connect(self.position_changed)
         self.controller.additional_media_changed.connect(self.additional_media_changed)
         self.controller.loaded.connect(self.loaded)

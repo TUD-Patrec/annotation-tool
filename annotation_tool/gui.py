@@ -87,7 +87,7 @@ class GUI(qtw.QMainWindow, DialogManager):
         self.show()
 
     def write_to_statusbar(self, txt):
-        self.statusBar().showMessage(str(txt))
+        self.statusBar().showMessage(str(txt), 5000)
 
     def make_menu_bar(self):
         self.file_menu()
@@ -243,10 +243,6 @@ class GUI(qtw.QMainWindow, DialogManager):
 
         old_widget.setParent(None)
         old_widget.deleteLater()
-
-    @qtc.pyqtSlot()
-    def cleaned_up(self):
-        self.close()
 
     @qtc.pyqtSlot(qtg.QCloseEvent)
     def closeEvent(self, a0: qtg.QCloseEvent) -> None:

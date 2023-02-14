@@ -65,7 +65,6 @@ class QMediaMainController(qtw.QWidget):
     unsubscribe = qtc.pyqtSignal(qtc.QObject)
     reset = qtc.pyqtSignal()
     additional_media_changed = qtc.pyqtSignal(list)
-    cleaned_up = qtc.pyqtSignal()
     loaded = qtc.pyqtSignal()
 
     def __init__(self, *args, **kwargs):
@@ -264,7 +263,6 @@ class QMediaMainController(qtw.QWidget):
         for w in self._dead_widgets:
             w.kill()
 
-        self.cleaned_up.emit()
         logging.info("Shut down MediaController successfully")
 
     @qtc.pyqtSlot()

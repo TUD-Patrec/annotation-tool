@@ -1,6 +1,7 @@
 import logging
 import logging.config
 import sys
+import time
 
 import PyQt6.QtCore as qtc
 from PyQt6.QtCore import Qt
@@ -37,6 +38,13 @@ class MainApplication(qtw.QApplication):
         self.n_frames = 0
         self.mediator = Mediator()
 
+        # timer for automatic saving
+        self.save_timer = qtc.QTimer()
+        self.save_timer.timeout.connect(self.autosave)
+        self.save_interval = 5  # 1 minute
+        self.last_save = time.time()
+        self.save_timer.start(1 * 1000)  # check every 10 seconds
+
         # Widgets
         self.gui = GUI()
         self.annotation_controller = AnnotationController()
@@ -55,7 +63,6 @@ class MainApplication(qtw.QApplication):
         self.playback.replay_speed_changed.connect(self.media_player.set_replay_speed)
 
         # from media_player
-        self.media_player.cleanedUp.connect(self.gui.cleaned_up)
         self.media_player.additional_media_changed.connect(
             self.set_additional_media_paths
         )
@@ -88,7 +95,7 @@ class MainApplication(qtw.QApplication):
         self.gui.load_annotation.connect(self.load_state)
         self.gui.settings_changed.connect(self.settings_changed)
         self.gui.settings_changed.connect(self.media_player.settings_changed)
-        self.gui.exit_pressed.connect(self.media_player.shutdown)
+        self.gui.exit_pressed.connect(self.shutdown)
         self.gui.annotation_mode_changed.connect(self.annotation_controller.change_mode)
 
         # Init mediator
@@ -180,6 +187,17 @@ class MainApplication(qtw.QApplication):
                 assert self.n_frames == 0
             self.global_state.samples = samples  # this also writes the update to disk
 
+            # write to statusbar
+            annotation_name = self.global_state.name
+            self.gui.write_to_statusbar(f"Saved annotation {annotation_name}")
+
+        self.last_save = time.time()
+
+    @qtc.pyqtSlot()
+    def autosave(self):
+        if time.time() - self.last_save > self.save_interval:
+            self.save_annotation()
+
     @qtc.pyqtSlot()
     def settings_changed(self):
         filehandler.set_logging_level("DEBUG" if settings.debugging_mode else "WARNING")
@@ -259,9 +277,22 @@ class MainApplication(qtw.QApplication):
             self.annotation_controller.controller.main_widget.histogram.plot_data()
 
     def closeEvent(self, event):
+        logging.info("Closing application via closeEvent")
+        self.shutdown()
+        event.accept()
+
+    @qtc.pyqtSlot()
+    def shutdown(self):
+        """
+        This method is called when the application is closed.
+        It saves the current annotation and closes the main window.
+        """
+        logging.info("Closing application")
+        self.save_timer.stop()
         self.save_annotation()
         self.media_player.shutdown()
-        event.accept()
+        self.gui.close()  # close main window
+        logging.info("Successfully stopped application!")
 
 
 def except_hook(cls, exception, traceback):
