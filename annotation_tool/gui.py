@@ -1,6 +1,5 @@
 import enum
 from functools import partial
-import logging
 
 import PyQt6.QtCore as qtc
 import PyQt6.QtGui as qtg
@@ -49,7 +48,6 @@ class GUI(qtw.QMainWindow, DialogManager):
         self.current_mode = AnnotationMode.MANUAL
 
         self.resize(settings.preferred_width, settings.preferred_height)
-        logging.info(self.size())
         self.setWindowTitle("Annotation Tool v{}".format(__version__))
         # self.setWindowIcon()
 
@@ -87,7 +85,7 @@ class GUI(qtw.QMainWindow, DialogManager):
         self.show()
 
     def write_to_statusbar(self, txt):
-        self.statusBar().showMessage(str(txt), 5000)
+        self.statusBar().showMessage(str(txt), 2500)
 
     def make_menu_bar(self):
         self.file_menu()

@@ -54,11 +54,6 @@ def start():
 
     filehandler.init_logger()
 
-    from annotation_tool.settings import settings
-
-    lvl = settings.logging_level
-    filehandler.set_logging_level(lvl)
-
     from annotation_tool.main_controller import main
 
     main()

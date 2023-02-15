@@ -13,10 +13,11 @@ from annotation_tool.media_reader import media_reader, set_fallback_fps
 import annotation_tool.network.controller as network
 from annotation_tool.settings import settings
 
+from . import __version__
 from .annotation.controller import AnnotationController
 from .data_model.globalstate import GlobalState
 from .gui import GUI, LayoutPosition
-from .media.media import QMediaWidget
+from .media.media import QMediaWidget  # This raises all the debug-messages on startup
 from .mediator import Mediator
 from .playback import QPlaybackWidget
 from .utility import filehandler
@@ -300,6 +301,9 @@ def except_hook(cls, exception, traceback):
 
 
 def main():
+    lvl = settings.logging_level
+    filehandler.set_logging_level(lvl)
+
     sys.excepthook = except_hook
     app = MainApplication(sys.argv)
 
@@ -312,4 +316,11 @@ def main():
     app.setStyle("Fusion")
 
     app.update_theme()
+
+    logging.info(f"PyQt-Version: {qtc.PYQT_VERSION_STR}")
+    logging.info(f"Python-Version: {sys.version}")
+    logging.info(f"Platform: {sys.platform}")
+    logging.info(f"Version: {__version__}")
+    logging.info("Starting application...")
+
     sys.exit(app.exec())

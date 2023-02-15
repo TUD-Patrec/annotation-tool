@@ -184,12 +184,12 @@ class QMediaMainController(qtw.QWidget):
             del media_proxy_map[id(widget)]
         else:
             if not ignore_errors:
-                raise RuntimeError(f"Could not find proxy for widget {widget}")
+                logging.error(f"Could not find proxy for widget {widget}")
         if widget in self.replay_widgets:
             self.replay_widgets.remove(widget)
         else:
             if not ignore_errors:
-                raise RuntimeError(f"Could not find widget {widget} in replay_widgets")
+                logging.error(f"Could not find widget {widget} in replay_widgets")
         widget.shutdown()
 
         if not widget.terminated:
@@ -208,6 +208,7 @@ class QMediaMainController(qtw.QWidget):
             self._dead_widgets.remove(widget)
         assert widget not in self.replay_widgets
         assert widget not in self._dead_widgets
+        assert widget not in media_proxy_map.values()
 
     @qtc.pyqtSlot()
     def play(self):
