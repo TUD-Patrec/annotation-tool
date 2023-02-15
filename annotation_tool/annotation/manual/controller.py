@@ -67,10 +67,12 @@ class ManualAnnotation(AnnotationBaseClass):
         if self.enabled:
             sample = self.selected_sample
 
-            # Split can only happen if you are at least at second frame of that sample
-            if sample.start_position < self.position:
-                start_1, end_1 = sample.start_position, self.position
-                start_2, end_2 = self.position + 1, sample.end_position
+            start_1, end_1 = sample.start_position, self.position
+            start_2, end_2 = self.position + 1, sample.end_position
+
+            borders_valid = start_1 <= end_1 < start_2 <= end_2
+
+            if borders_valid:
 
                 s1 = Sample(start_1, end_1, sample.annotation)
                 s2 = Sample(start_2, end_2, deepcopy(sample.annotation))
