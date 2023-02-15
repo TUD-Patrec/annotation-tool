@@ -410,15 +410,16 @@ def set_logging_level(level: Union[int, str]) -> None:
         level (Union[int, str]): Logging level. Possible values are
         "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL".
     """
+    print(f"Setting logging level to {level}")
     if isinstance(level, str):
         level = level.upper()
     else:
         level = logging.getLevelName(level)
     try:
         log_config_dict = logging_config()
-        log_config_dict["handlers"]["screen_handler"]["level"] = (
-            "DEBUG" if level == "DEBUG" else "WARNING"
-        )
+        log_config_dict["handlers"]["screen_handler"]["level"] = level
         logging.config.dictConfig(log_config_dict)
     except ValueError:
-        raise ValueError(f"Logging level {level} is not a valid input!")
+        # default to WARNING
+        set_logging_level("WARNING")
+        logging.error(f"Logging level {level} is not a valid input!")

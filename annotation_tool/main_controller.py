@@ -200,7 +200,7 @@ class MainApplication(qtw.QApplication):
 
     @qtc.pyqtSlot()
     def settings_changed(self):
-        filehandler.set_logging_level("DEBUG" if settings.debugging_mode else "WARNING")
+        filehandler.set_logging_level(settings.logging_level)
 
         set_fallback_fps(settings.refresh_rate)
 

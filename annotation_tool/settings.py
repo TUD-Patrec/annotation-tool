@@ -1,23 +1,24 @@
 from dataclasses import dataclass, field, fields
+import json
+import logging
+import os
 
-from annotation_tool.file_cache._file_cache import cached
+from annotation_tool import file_cache
 
 
-@cached
 @dataclass
 class Settings:
     annotator_id: int = field(init=False, default=0)
-    debugging_mode: bool = field(init=False, default=False)
+    big_skip: int = field(init=False, default=100)
     darkmode: bool = field(init=False, default=False)
     font_size: int = field(init=False, default=10)
-    high_dpi_scaling: bool = field(init=False, default=False)
+    logging_level: int = field(init=False, default=logging.WARNING)
     preferred_width: int = field(init=False, default=1200)
     preferred_height: int = field(init=False, default=700)
     refresh_rate: int = field(init=False, default=200)
     retrieval_segment_overlap: float = field(init=False, default=0)
     retrieval_segment_size: int = field(init=False, default=200)
     small_skip: int = field(init=False, default=1)
-    big_skip: int = field(init=False, default=100)
 
     def reset(self):
         for fld in fields(self):
@@ -35,10 +36,20 @@ class Settings:
         for fld in fields(self):
             setattr(self, fld.name, dct.get(fld.name, fld.default))
 
+    def _write_to_file(self, path):
+        with open(path, "w") as f:
+            json.dump(self.as_dict(), f, indent=4)
 
-settings = Settings.get_all()
-assert len(settings) <= 1, "There should only be one settings object"
-if len(settings) == 0:
-    settings = Settings()
-else:
-    settings = settings[0]
+    def __setattr__(self, key, value):
+        super().__setattr__(key, value)
+        self._write_to_file(__settings_path__)
+
+
+__settings_path__ = os.path.join(file_cache.application_path(), "settings.json")
+print(f"Settings path: {__settings_path__}")
+config = (
+    json.load(open(__settings_path__, "r")) if os.path.exists(__settings_path__) else {}
+)
+settings = Settings()
+if config:
+    settings.from_dict(config)

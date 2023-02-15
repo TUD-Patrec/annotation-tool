@@ -4,21 +4,38 @@ import logging
 import os
 from typing import List, Optional, Type, Union
 
+import appdirs
 from fcache.cache import FileCache
 
-_file_cache = FileCache("annotation-tool", flag="c")
-_cache_directory = _file_cache.cache_dir
+__application_name__ = "annotation-tool"
+__application_path__ = appdirs.user_data_dir(__application_name__, __application_name__)
+__application_cache_path__ = appdirs.user_cache_dir(
+    __application_name__, __application_name__
+)
+
+__file_cache__ = FileCache(
+    __application_name__, flag="c", app_cache_dir=__application_cache_path__
+)
+__cache_directory__ = __file_cache__.cache_dir
+
 if logging.getLogger().isEnabledFor(logging.DEBUG):
-    logging.debug(f"Cache directory: {_cache_directory}")
+    logging.debug(f"Cache directory: {__cache_directory__}")
 else:
-    print(f"Cache directory: {_cache_directory}")
+    print(f"Cache directory: {__cache_directory__}")
 
 
 def get_dir() -> str:
     """
     Returns the path to the cache directory.
     """
-    return _cache_directory
+    return __cache_directory__
+
+
+def application_path() -> str:
+    """
+    Returns the path to the root directory of the cache.
+    """
+    return __application_path__
 
 
 def get_size_in_bytes() -> int:
@@ -26,13 +43,13 @@ def get_size_in_bytes() -> int:
     Returns the size of the cache in bytes.
     """
     return sum(
-        os.path.getsize(os.path.join(_cache_directory, f))
-        for f in os.listdir(_cache_directory)
+        os.path.getsize(os.path.join(__cache_directory__, f))
+        for f in os.listdir(__cache_directory__)
     )
 
 
 def get_next_id() -> str:
-    _next_id = max([int(x) for x in _file_cache.keys()], default=0) + 1
+    _next_id = max([int(x) for x in __file_cache__.keys()], default=0) + 1
 
     # closure
     def get_id():
@@ -59,8 +76,8 @@ def write(obj: object) -> None:
         raise TypeError(f"Cannot cache object of type {type(obj)}")
     if cache_id is None:
         obj.cache_id = get_next_id()  # only needed for the decorator
-    _file_cache[obj.cache_id] = obj
-    _file_cache.sync()
+    __file_cache__[obj.cache_id] = obj
+    __file_cache__.sync()
 
 
 def delete(obj: object) -> None:
@@ -73,8 +90,8 @@ def delete(obj: object) -> None:
     if not hasattr(obj, "cache_id"):
         raise TypeError(f"Cannot delete object of type {type(obj)}")
     try:
-        del _file_cache[obj.cache_id]
-        _file_cache.sync()
+        del __file_cache__[obj.cache_id]
+        __file_cache__.sync()
     except KeyError:
         pass
 
@@ -89,7 +106,9 @@ def get_by_type(x: Union[Type, str]) -> List[object]:
     """
 
     cls_name = x if isinstance(x, str) else x.__name__
-    return [obj for obj in _file_cache.values() if obj.__class__.__name__ == cls_name]
+    return [
+        obj for obj in __file_cache__.values() if obj.__class__.__name__ == cls_name
+    ]
 
 
 def get_by_id(x: int) -> Optional[object]:
@@ -103,7 +122,7 @@ def get_by_id(x: int) -> Optional[object]:
         The object with the given id or None if no object with the given id exists.
     """
     try:
-        return _file_cache[x]
+        return __file_cache__[x]
     except KeyError:
         return None
 
@@ -123,9 +142,9 @@ def get_all_of_class(cls) -> List[object]:
     Returns a list of all objects of type cls in the cache.
     The elements are sorted by their cache_id.
     """
-    all = get_by_type(cls)
-    all.sort(key=lambda x: x.cache_id)
-    return all
+    all_ = get_by_type(cls)
+    all_.sort(key=lambda x: x.cache_id)
+    return all_
 
 
 def del_all_of_class(cls) -> None:
@@ -140,17 +159,17 @@ def get_all() -> List[object]:
     """
     Returns a list of all objects in the cache.
     """
-    _all = list(_file_cache.values())
-    _all.sort(key=lambda x: int(x.cache_id))
-    return _all
+    all_ = list(__file_cache__.values())
+    all_.sort(key=lambda x: int(x.cache_id))
+    return all_
 
 
 def clear() -> None:
     """
     Clears the cache.
     """
-    _file_cache.clear()
-    _file_cache.sync()
+    __file_cache__.clear()
+    __file_cache__.sync()
 
 
 def cached(cls):

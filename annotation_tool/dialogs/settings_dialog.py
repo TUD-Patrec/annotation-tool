@@ -1,3 +1,5 @@
+import logging
+
 import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
 
@@ -65,13 +67,13 @@ class SettingsDialog(qtw.QDialog):
         self.layout.addLayout(self.retrieval_mode_layout)
 
         # enable developer mode
-        self.developer_mode_layout = qtw.QHBoxLayout()
-        self.developer_mode_label = qtw.QLabel("Developer Mode:")
-        self.developer_mode_checkbox = qtw.QCheckBox()
-        self.developer_mode_checkbox.setChecked(self.settings.debugging_mode)
-        self.developer_mode_layout.addWidget(self.developer_mode_label)
-        self.developer_mode_layout.addWidget(self.developer_mode_checkbox)
-        self.layout.addLayout(self.developer_mode_layout)
+        self.developer_settings_layout = qtw.QHBoxLayout()
+        self.developer_settings_label = qtw.QLabel("Developer Settings:")
+        self.developer_settings_button = qtw.QPushButton("Change")
+        self.developer_settings_button.clicked.connect(self.change_developer_settings)
+        self.developer_settings_layout.addWidget(self.developer_settings_label)
+        self.developer_settings_layout.addWidget(self.developer_settings_button)
+        self.layout.addLayout(self.developer_settings_layout)
 
         # Accept, Reset and Cancel buttons
         self.button_layout = qtw.QHBoxLayout()
@@ -95,6 +97,12 @@ class SettingsDialog(qtw.QDialog):
         dlg.exec()
         dlg.deleteLater()
 
+    def change_developer_settings(self):
+        dlg = DeveloperSettingsDialog(self)
+        dlg.settings_changed.connect(self.settings_changed.emit)
+        dlg.exec()
+        dlg.deleteLater()
+
     def change_media(self):
         dlg = MediaSettingsDialog(self)
         dlg.settings_changed.connect(self.settings_changed.emit)
@@ -113,9 +121,6 @@ class SettingsDialog(qtw.QDialog):
 
     def reset_settings(self):
         self.annotator_id_edit.setText(str(self.settings.get_default("annotator_id")))
-        self.developer_mode_checkbox.setChecked(
-            self.settings.get_default("debugging_mode")
-        )
 
     def accept(self):
         # only allow numbers in annotator ID field
@@ -123,8 +128,6 @@ class SettingsDialog(qtw.QDialog):
             self.settings.annotator_id = int(self.annotator_id_edit.text())
         else:
             self.annotator_id_edit.setText(str(self.settings.annotator_id))
-        self.settings.debugging_mode = self.developer_mode_checkbox.isChecked()
-        self.settings_changed.emit()
         super().accept()
 
 
@@ -196,17 +199,6 @@ class AppearanceSettingsDialog(qtw.QDialog):
         self.high_dpi_scaling_label.setToolTip(
             "Changing this will only take effect after a restart."
         )
-        self.high_dpi_scaling_checkbox = qtw.QCheckBox()
-        self.high_dpi_scaling_checkbox.setToolTip(
-            "Changing this will only take effect after a restart."
-        )
-        self.high_dpi_scaling_checkbox.setChecked(settings.high_dpi_scaling)
-        self.high_dpi_scaling_checkbox.stateChanged.connect(
-            self.change_high_dpi_scaling
-        )
-        self.high_dpi_scaling_layout.addWidget(self.high_dpi_scaling_label)
-        self.high_dpi_scaling_layout.addWidget(self.high_dpi_scaling_checkbox)
-        self.layout.addLayout(self.high_dpi_scaling_layout)
 
         # Accept, Reset buttons
         self.button_layout = qtw.QHBoxLayout()
@@ -227,9 +219,6 @@ class AppearanceSettingsDialog(qtw.QDialog):
         self.font_size_spinbox.setValue(settings.get_default("font_size"))
         self.preferred_width_spinbox.setValue(settings.get_default("preferred_width"))
         self.preferred_height_spinbox.setValue(settings.get_default("preferred_height"))
-        self.high_dpi_scaling_checkbox.setChecked(
-            settings.get_default("high_dpi_scaling")
-        )
 
     def change_theme(self):
         is_darkmode = bool(self.theme_combobox.currentIndex())
@@ -248,9 +237,6 @@ class AppearanceSettingsDialog(qtw.QDialog):
     def change_font_size(self, value):
         settings.font_size = value
         qtw.QApplication.instance().update_theme()
-
-    def change_high_dpi_scaling(self, value):
-        settings.high_dpi_scaling = bool(value)
 
 
 class MediaSettingsDialog(qtw.QDialog):
@@ -425,3 +411,68 @@ class RetrievalSettingsDialog(qtw.QDialog):
         self.segment_overlap_spinbox.setValue(
             settings.get_default("retrieval_segment_overlap")
         )
+
+
+class DeveloperSettingsDialog(qtw.QDialog):
+    settings_changed = qtc.pyqtSignal()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._idx_to_log_lvl = {
+            0: logging.DEBUG,
+            1: logging.INFO,
+            2: logging.WARNING,
+            3: logging.ERROR,
+            4: logging.CRITICAL,
+        }
+        self._log_lvl_to_idx = {v: k for k, v in self._idx_to_log_lvl.items()}
+
+        self.init_ui()
+
+    def init_ui(self):
+        # set window title
+        self.setWindowTitle("Developer Settings")
+        self.setFixedSize(400, 300)
+
+        # layout
+        self.layout = qtw.QVBoxLayout()
+
+        # Debug mode
+        self.logging_layout = qtw.QHBoxLayout()
+        self.logging_label = qtw.QLabel("Logging level:")
+        self.logging_level_combobox = qtw.QComboBox()
+        self.logging_level_combobox.addItems(
+            ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+        )
+        current_idx = self._log_lvl_to_idx.get(settings.logging_level, 2)
+        self.logging_level_combobox.setCurrentIndex(current_idx)
+        self.logging_level_combobox.currentIndexChanged.connect(
+            self.change_logging_level
+        )
+        self.logging_layout.addWidget(self.logging_label)
+        self.logging_layout.addWidget(self.logging_level_combobox)
+        self.layout.addLayout(self.logging_layout)
+
+        # Accept, Reset buttons
+        self.button_layout = qtw.QHBoxLayout()
+        self.accept_button = qtw.QPushButton("Accept")
+        self.accept_button.clicked.connect(self.accept)
+        self.reset_button = qtw.QPushButton("Reset")
+        self.reset_button.clicked.connect(self.reset_settings)
+        self.button_layout.addWidget(self.accept_button)
+        self.button_layout.addWidget(self.reset_button)
+        self.layout.addLayout(self.button_layout)
+
+        self.setLayout(self.layout)
+
+    def change_logging_level(self, idx: int) -> None:
+        settings.logging_level = self._idx_to_log_lvl[idx]
+        self.settings_changed.emit()
+
+    def reset_settings(self):
+        default_logging_level = settings.get_default("logging_level")
+        self.logging_level_combobox.setCurrentIndex(
+            self._log_lvl_to_idx[default_logging_level]
+        )
+        self.settings_changed.emit()
