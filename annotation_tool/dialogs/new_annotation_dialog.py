@@ -126,9 +126,6 @@ class QNewAnnotationDialog(qtw.QDialog):
         self.input_path_edit.setText(filename)
 
     def check_enabled(self):
-        print(
-            f"check enabled: {self.input_path} {self.annotation_name} {self.dataset.name}"
-        )
         enabled = (
             self.input_path is not None
             and self.annotation_name is not None
@@ -192,5 +189,4 @@ class QNewAnnotationDialog(qtw.QDialog):
 
     @property
     def _annotation_names(self):
-        print("get all annotation names")
         return [a.name for a in GlobalState.get_all()]

@@ -71,7 +71,7 @@ class Timer(qtc.QObject):
                 else:
                     if len(self.subscribers) > 1:
                         if not self.subscribers_in_sync():
-                            logging.error("Not all subscribers in sync!")
+                            logging.warning("Not all subscribers in sync!")
                 time.sleep(self.ACTIVE_IDLE_TIME)
                 self._inner_reset()
                 continue
@@ -85,6 +85,8 @@ class Timer(qtc.QObject):
             self.compute_time()
             self.update_queue()
             self.update_alpha()
+
+            # logging.debug(f"{self.alpha = }, {self.replay_speed = }, {self.time = }")
 
             if (
                 len(self.open_timeouts) < self.MAX_OPEN_TIMEOUTS

@@ -270,7 +270,8 @@ class QMediaMainController(qtw.QWidget):
     def settings_changed(self):
         for widget in self.replay_widgets:
             proxy = media_proxy_map.get(id(widget))
-            assert proxy is not None, f"Could not find proxy for widget {widget}"
+            if proxy is None:
+                raise RuntimeError(f"Could not find proxy for widget {widget}")
             if proxy.fps != widget.fps:
                 proxy.fps = widget.fps
                 self.unsubscribe.emit(proxy)
