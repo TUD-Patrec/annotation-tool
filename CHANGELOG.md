@@ -4,6 +4,47 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). See also [RELEASE.md](RELEASE.md) for additional explanation.
 
+## v0.7.0 (2023-02-16)
+
+### 🚀 Feature
+
+- **settings**: Update settings, now stored as a json-file on disk
+- **playback.py**: Updated slider to always move in 5%-steps
+- **media**: Unstable implementation of multi-video reloading
+- **data_model**: Implemented deepcopy for all dataclasses
+- **manual_annotation**: Changed merge behaviour
+- **main.py**: Upgrade to PyQt6
+
+### 🐛 Fix
+
+- **manual-annotation-controller**: Cut function fixed
+- **new_annotation_dialog**: Changed order of elements, name now gets parsed from input-path
+- **media_controller**: Fixed loading of outdated media
+- **pyproject.toml**: Fixed packages
+- **globalstate.py**: Deleting globalstate works again
+- **annotation_list.py**: Fixed namespace error
+- **histogram**: Fixed background color of histogram
+- **dialogs**: Fixed some bugs related to PyQt6
+- **video.py**: Fixed threading
+- **video.py**: Removed unnecessary code that might corrupt already terminated threads
+
+### 🧹 Refactor
+
+- Minor refactoring
+- **main_controller.py**: Update init of logger
+- **main_controller**: Improved closing of the application, removed async operation
+- **model**: Data-classes a bit more lightweight, less dependend
+- **file_cache**: Moved to own subpackage
+- **media**: Rework media-player&reader + data-model
+
+### 🏎️ Performance
+
+- **media_reader**: Improved flexibility
+
+### 🔨 Build
+
+- **annotation_tool**: Rename /src -> /annotation_tool
+
 ## v0.6.0 (2022-12-19)
 
 ### Feature
