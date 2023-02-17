@@ -160,7 +160,7 @@ class QPlaybackWidget(qtw.QWidget):
     @qtc.pyqtSlot(enum.Enum)
     def on_user_action(self, action: ReplayActions):
         d = {
-            ReplayActions.TOGGLE_PLAY_PAUSE: self.play_stop_button.trigger,
+            ReplayActions.PLAY_OR_PAUSE: self.play_stop_button.trigger,
             ReplayActions.SKIP_FRAMES: self.skip_forward,
             ReplayActions.SKIP_FRAMES_FAR: self.skip_forward_fast,
             ReplayActions.SKIP_FRAMES_BACK: self.skip_backward,

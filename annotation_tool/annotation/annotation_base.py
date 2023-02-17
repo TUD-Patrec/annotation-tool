@@ -128,7 +128,7 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
         d = {
             AnnotationActions.ANNOTATE: self.annotate,
             AnnotationActions.CUT: self.cut,
-            AnnotationActions.CUT_ANNOTATE: self.cut_and_annotate,
+            AnnotationActions.CUT_AND_ANNOTATE: self.cut_and_annotate,
             AnnotationActions.MERGE_LEFT: lambda: self.merge(True),
             AnnotationActions.MERGE_RIGHT: lambda: self.merge(False),
             AnnotationActions.ACCEPT: self.accept,

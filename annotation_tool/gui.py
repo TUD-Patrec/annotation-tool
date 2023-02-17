@@ -112,15 +112,24 @@ class GUI(qtw.QMainWindow, DialogManager):
 
             fun = partial(self.emit_action, action)
 
+            action_name = action.name.lower()
+            action_name = action_name.replace("_", " ")
+            action_name = action_name.replace("or", "/")
+            action_name = action_name.replace("and", "&&")
+            # capitalize every word
+            action_name = " ".join(
+                [word.capitalize() for word in action_name.split(" ")]
+            )
+
             if shortcut is not None:
                 menu.addAction(
-                    action.name.capitalize(),
+                    action_name,
                     shortcut,
                     fun,
                 )
             else:
                 menu.addAction(
-                    action.name.capitalize(),
+                    action_name,
                     fun,
                 )
 
