@@ -18,6 +18,8 @@ __file_cache__ = FileCache(
 )
 __cache_directory__ = __file_cache__.cache_dir
 
+os.makedirs(__application_path__, exist_ok=True)
+
 if logging.getLogger().isEnabledFor(logging.DEBUG):
     logging.debug(f"Cache directory: {__cache_directory__}")
 else:
