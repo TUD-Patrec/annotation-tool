@@ -17,7 +17,7 @@ on:
 
 jobs:
   lint:
-    uses: TUD-Patrec/annotation-tool/.github/workflows/lint.yml
+    uses: TUD-Patrec/annotation-tool/.github/workflows/lint.yml@master
     with:
       ref: "${{ github.ref }}"
 
