@@ -9,15 +9,27 @@ on:
         required: true
         type: string
 
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+
 jobs:
+  lint:
+    uses: TUD-Patrec/annotation-tool/.github/workflows/lint.yml@master
+    with:
+      ref: "${{ github.ref }}"
+
   build-and-publish:
+    needs: lint
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v3
         with:
-          ref: "${{ github.event.inputs.ref }}"
+          ref: "${{ inputs.ref }}"
 
       - name: Set up python
         id: setup-python
@@ -44,27 +56,14 @@ jobs:
             ${{ steps.poetry-cache.outputs.dir }}
             .venv
             poetry.lock
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'poetry.lock') }}
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'poetry.lock') }}-publish
 
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root --without=dev
 
       - name: Install project
-        run: poetry install --no-interaction
-
-      - name: Lint with flake8
-        run: |
-          # stop the action if there are syntax errors or undefined variables
-          poetry run flake8 annotation_tool main.py --select=E9,F63,F7,F82
-          # treat all errors as warnings
-          poetry run flake8 annotation_tool main.py --count --statistics
-
-      - name: Check format with black
-        run: poetry run black --check annotation_tool main.py
-
-      - name: Check format with isort
-        run: poetry run isort --check --settings-path pyproject.toml annotation_tool main.py
+        run: poetry install --no-interaction --only-root
 
       - name: Add PyPI API token
         run: poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
