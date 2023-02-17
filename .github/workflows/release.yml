@@ -69,10 +69,6 @@ jobs:
       - name: "Save changelog changes to file"
         run: echo '${{ steps.build_changelog.outputs.changelog }}' | sed -e :a -e '/^\n*$/{$d;N;};/\n$/ba' > tmp-changelog.md
 
-      # Insert changes into CHANGELOG.md
-      - name: "Add changes to CHANGELOG.md"
-        run: sed -i -E "0,/^## [0-9]+.*$/s/^## [0-9]+.*$/## ${{ steps.bump_version.outputs.version }} (${{ steps.today.outputs.date }})\n\n$(<tmp-changelog.md sed -e 's/[\&/]/\\&/g' -e 's/$/\\n/' | tr -d '\n')\n&/" CHANGELOG.md
-
       # Detect increment
       - name: Detect increment
         if: inputs.increment == ''
@@ -94,6 +90,10 @@ jobs:
         run: |
           cz bump --files --yes --increment ${{ steps.set_increment.outputs.increment }}
           echo "version=$(cz version --project)" >> $GITHUB_OUTPUT
+
+      # Insert changes into CHANGELOG.md
+      - name: "Add changes to CHANGELOG.md"
+        run: sed -i -E "0,/^## [0-9]+.*$/s/^## [0-9]+.*$/## ${{ steps.bump_version.outputs.version }} (${{ steps.today.outputs.date }})\n\n$(<tmp-changelog.md sed -e 's/[\&/]/\\&/g' -e 's/$/\\n/' | tr -d '\n')\n&/" CHANGELOG.md
 
       # Create new branch for release
       - name: Create release branch
