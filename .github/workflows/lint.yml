@@ -29,32 +29,40 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Update pip
-        run: python3 -m pip install --upgrade pip
+      - name: Install and configure Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
 
-      - name: Get pip cache dir
-        id: pip-cache
+      - name: Get poetry cache dir
+        id: poetry-cache
         run: |
-          echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+          echo "dir=$(poetry config cache-dir)" >> $GITHUB_OUTPUT
 
-      - name: pip cache
+      - name: Load cached venv
+        id: cached-poetry-dependencies
         uses: actions/cache@v3
         with:
-          path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-${{ steps.setup-python.outputs.python-version }}-linting
+          path: |
+            ${{ steps.poetry-cache.outputs.dir }}
+            .venv
+            poetry.lock
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'poetry.lock') }}-lint
 
-      - name: Install flake8, black and isort
-        run: python3 -m pip install flake8 black isort
+      - name: Install development dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root --only=dev
 
       - name: Lint with flake8
         run: |
           # stop the action if there are syntax errors or undefined variables
-          python3 -m flake8 annotation_tool main.py --select=E9,F63,F7,F82
+          poetry run flake8 annotation_tool main.py --select=E9,F63,F7,F82
           # treat all errors as warnings
-          python3 -m flake8 annotation_tool main.py --count --statistics
+          poetry run flake8 annotation_tool main.py --count --statistics
 
       - name: Check format with black
-        run: python3 -m black --check annotation_tool main.py
+        run: poetry run black --check annotation_tool main.py
 
       - name: Check format with isort
-        run: python3 -m isort --check --settings-path pyproject.toml annotation_tool main.py
+        run: poetry run isort --check --settings-path pyproject.toml annotation_tool main.py
