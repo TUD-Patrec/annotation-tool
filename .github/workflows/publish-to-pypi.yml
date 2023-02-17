@@ -13,13 +13,11 @@ jobs:
   build-and-publish:
     runs-on: ubuntu-latest
 
-    # Do not run multiple runs of this workflow in parallel on the same ref
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-
     steps:
       - name: Check out repository
         uses: actions/checkout@v3
+        with:
+          ref: "${{ github.event.inputs.ref }}"
 
       - name: Set up python
         id: setup-python
