@@ -1,0 +1,131 @@
+name: "Create New Release"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+on:
+  workflow_dispatch:
+    branches:
+      - master
+    inputs:
+      increment:
+        description: 'Semver increment. Leave empty for automatic detection'
+        required: false
+        type: choice
+        options:
+        - PATCH
+        - MINOR
+        - MAJOR
+
+jobs:
+  lint:
+    uses: TUD-Patrec/annotation-tool/.github/workflows/lint.yml@master
+    with:
+      ref: "${{ github.ref }}"
+  
+  create-release:
+    needs: lint
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.bump_version.outputs.version }}
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install commitizen
+        run: python3 -m pip install commitizen==2.39.1
+
+      - name: Setup Git
+        run: |
+          git config user.name 'Philipp Oberdiek'
+          git config user.email 'git@oberdiek.net'
+
+      # Get current date
+      - name: Get current date
+        id: today
+        run: echo "date=$(TZ=${{ env.Timezone }} date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      # Get current version
+      - name: Get old version
+        id: old_version
+        run: echo "version=$(cz version --project)" >> $GITHUB_OUTPUT
+
+      - name: "Build Changelog"
+        id: build_changelog
+        uses: mikepenz/release-changelog-builder-action@v3
+        with:
+          configuration: ".github/changelog-config.json"
+          owner: "TUD-Patrec"
+          repo: "annotation-tool"
+          toTag: ${{ github.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Save changelog to file and remove trailing newlines
+      - name: "Save changelog changes to file"
+        run: echo '${{ steps.build_changelog.outputs.changelog }}' | sed -e :a -e '/^\n*$/{$d;N;};/\n$/ba' > tmp-changelog.md
+
+      # Insert changes into CHANGELOG.md
+      - name: "Add changes to CHANGELOG.md"
+        run: sed -i -E "0,/^## [0-9]+.*$/s/^## [0-9]+.*$/## ${{ steps.bump_version.outputs.version }} (${{ steps.today.outputs.date }})\n\n$(<tmp-changelog.md sed -e 's/[\&/]/\\&/g' -e 's/$/\\n/' | tr -d '\n')\n&/" CHANGELOG.md
+
+      # Detect increment
+      - name: Detect increment
+        if: inputs.increment == ''
+        id: detect_increment
+        run: echo "increment=$(./.github/detect-increment.sh)" >> $GITHUB_OUTPUT
+
+      - name: Register correct increment
+        id: set_increment
+        run: |
+          if [  -z "${{ inputs.increment }}" ]; then
+            echo "increment=${{ steps.detect_increment.outputs.increment }}" >> $GITHUB_OUTPUT
+          else
+            echo "increment=${{ inputs.increment }}" >> $GITHUB_OUTPUT
+          fi
+
+      # Bump version and save version information to output
+      - name: Bump version
+        id: bump_version
+        run: |
+          cz bump --files --yes --increment ${{ steps.set_increment.outputs.increment }}
+          echo "version=$(cz version --project)" >> $GITHUB_OUTPUT
+
+      # Create new branch for release
+      - name: Create release branch
+        id: release_branch
+        run: |
+          git checkout -b "release/v${{ steps.bump_version.outputs.version }}"
+          git push origin "release/v${{ steps.bump_version.outputs.version }}"
+          echo "name=release/v${{ steps.bump_version.outputs.version }}" >> $GITHUB_OUTPUT
+
+      # Commit changes and push with new tag
+      - name: "Commit version bump and changelog update and push"
+        run: |
+          git add -u
+          git commit -m "release v${{ steps.bump_version.outputs.version }}"
+          git tag -a -m "v${{ steps.bump_version.outputs.version }}" v${{ steps.bump_version.outputs.version }}
+          git push origin "${{ steps.release_branch.outputs.name }}" --follow-tags
+
+      - name: "Create release"
+        run: GH_TOKEN=${{ github.token }} gh release create v${{ steps.bump_version.outputs.version }} --notes-file tmp-changelog.md --title v${{ steps.bump_version.outputs.version }}
+
+      - name: "Create Pull Request into master"
+        run: GH_TOKEN=${{ github.token }} gh pr create --base "master" --head "${{ steps.release_branch.outputs.name }}" --title "${{ steps.release_branch.outputs.name }} → master" --body-file "tmp-changelog.md"
+
+  PublishPyPI:
+    needs: create-release
+    uses: TUD-Patrec/annotation-tool/.github/workflows/publish-to-pypi.yml@master
+    with:
+      ref: "v${{ needs.create-release.outputs.new_version }}"
+    secrets: inherit
+
+  PublishTestPyPI:
+    needs: create-release
+    uses: TUD-Patrec/annotation-tool/.github/workflows/publish-to-testpypi.yml@master
+    with:
+      ref: "v${{ needs.create-release.outputs.new_version }}"
+    secrets: inherit
