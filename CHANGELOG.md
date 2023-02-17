@@ -4,13 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). See also [RELEASE.md](RELEASE.md) for additional explanation.
 
-## v0.7.1 (2023-02-17)
+## 0.7.1 (2023-02-17)
 
 ### 🐛 Fix
 
 - Create `__application_path__` if not existing (#1)
 
-## v0.7.0 (2023-02-16)
+## 0.7.0 (2023-02-16)
 
 ### 🚀 Feature
 
@@ -51,29 +51,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - **annotation_tool**: Rename /src -> /annotation_tool
 
-## v0.6.0 (2022-12-19)
+## 0.6.0 (2022-12-19)
 
-### Feature
+### 🚀 Feature
 
 - **histogram.py**: Switch from matplotlib to pyqtgraph
 - **local_files.py**: Added dialog for displaying local files
 - **manual_annotation**: Added reset/delete action
 - **annotation/controller.py**: Added copy&paste and jump-(next/prev) features
 
-### Fix
+### 🐛 Fix
 
 - **histogram.py**: Fix histogram
 - **annotation/manual/controller.py**: Fixed missing some timeline updates
 - **main.py**: Fixed imports & high-dpi scaling
 
-### Refactor
+### 🧹 Refactor
 
 - **hist_copy.py**: Removed unnecessary module
 - **player.py**: Removed unecessary assertions
 
-## v0.5.0 (2022-12-12)
+## 0.5.0 (2022-12-12)
 
-### Feature
+### 🚀 Feature
 
 - **user_actions-&-timeline**: Added user_actions to simplify signal handling & Added scrolling to timeline
 - **timeline.py**: Updated zooming of timeline
@@ -86,26 +86,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **file_cache.py**: Added file based cache to replace __local_storage__
 - **video_reader.py**: Added pythonic video reading
 
-### Fix
+### 🐛 Fix
 
 - **mocap.py**: Fixed scaling
 - **annotation_dialog-&-timeline**: Fixed handling of empty annotations
 - **networks**: Fixed network loading
 - Fixed some small bugs
 
-### Refactor
+### 🧹 Refactor
 
 - Resize annotation-displaying widget
 
-## v0.4.0 (2022-11-11)
+## 0.4.0 (2022-11-11)
 
-### Feature
+### 🚀 Feature
 
 - **priority_queue.py**: Added priority_queue for faster retrieval loading
 - **src/annotation/retrieval/controller**: Added loading-thread and progress-dialog to the retrieval controller, network is now running in its own thread such that the GUI is not frozen in the meantime
 - make __version__ string available to the package
 
-### Fix
+### 🐛 Fix
 
 - **mocap_reader.py**: Adjusted Mocap-reading to the default LARa format
 - **retrieval/query.py**: Small fix to __compute_open_elements__
@@ -114,7 +114,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed a error that happened when loading retrieval-mode after the previous GUI-updates
 - **timeline.py**: Fixed scaling issue where the pointer-position (green line on timeline) got out of sync after rescaling the app's window
 
-### Refactor
+### 🧹 Refactor
 
 - **network/controller.py**: Changed caching to use lru_cache and added cuda_available checking
 - **rerieval-mode**: Moved mocap-reader to another package, some more docs
@@ -127,7 +127,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed button names to better represent their behavior/actions, also added some tooltips
 - Move __version__ from __version__.py to __init__.py
 
-### Performance
+### 🏎️ Performance
 
 - **retrieval/**: Improved retrieval speed & histogram-computation
 - **retrieval/controller.py**: Improved retrieval-queue by using nested priority-queues
@@ -135,7 +135,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## 0.3.1 (2022-10-20)
 
-### Fixed
+### 🐛 Fix
 
 - Pipeline config
 
