@@ -1,26 +1,10 @@
-.PHONY: pre-commit install all test format clean build-linux build-windows
+.PHONY: install all test format clean build-linux build-windows
 
-setup: install pre-commit
+setup: install
 
 install:
 	@echo "Installing dependencies..."
 	poetry install
-
-pre-commit: install
-	@echo "Setting up pre-commit..."
-	poetry run pre-commit install -t commit-msg -t pre-commit
-
-bump:
-	@echo "Bumping version..."
-	poetry run cz bump
-
-bump-alpha:
-	@echo "Bumping alpha pre-release version"
-	poetry run cz bump --prerelease alpha
-
-bump-beta:
-	@echo "Bumping beta pre-release version"
-	poetry run cz bump --prerelease beta
 
 test: test-black test-flake8 test-isort
 	@echo "All tests passed successfully!"
