@@ -1,0 +1,38 @@
+{
+    "categories": [
+        {
+            "title": "### ❗️ Breaking Changes",
+            "labels": ["breaking-change"]
+        },
+        {
+            "title": "### 🚀 Features",
+            "labels": ["feature"]
+        },
+        {
+            "title": "### 🐛 Fixes",
+            "labels": ["fix"]
+        },
+        {
+            "title": "### 📔 Documentation",
+            "labels": ["documentation"]
+        },
+        {
+            "title": "### 🧹 Refactoring",
+            "labels": ["refactor"]
+        },
+        {
+            "title": "### 🏎️ Performance",
+            "labels": ["performance"]
+        },
+        {
+            "title": "### ⚙️ CI/CD",
+            "labels": ["ci-cd"]
+        },
+        {
+            "title": "### Other",
+            "labels": ["other"]
+        }
+    ],
+    "template": "${{CHANGELOG}}\n\n",
+    "pr_template": "- ${{TITLE}} (#${{NUMBER}})"
+}

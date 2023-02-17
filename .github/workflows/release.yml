@@ -14,9 +14,10 @@ on:
         required: false
         type: choice
         options:
-        - PATCH
-        - MINOR
-        - MAJOR
+        - ''
+        - 'PATCH'
+        - 'MINOR'
+        - 'MAJOR'
 
 jobs:
   lint:
