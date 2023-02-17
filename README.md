@@ -1,6 +1,6 @@
 <div align="center">
 
-![PyPI](https://img.shields.io/pypi/v/annotation-tool)
+![PyPI - Version](https://img.shields.io/pypi/v/annotation-tool)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/annotation-tool)
 ![PyPI - License](https://img.shields.io/pypi/l/annotation-tool?color=brightgreen)
 ![PyPI - Wheel](https://img.shields.io/pypi/wheel/annotation-tool)
@@ -13,9 +13,15 @@ All stable versions can be installed from [PyPI] by using [pip] or your favorite
 
     pip install annotation-tool
 
-You can get pre-published versions from the [TestPyPI] repository by running
+You can get pre-published versions from [TestPyPI] or this repository
+
+**Test PyPI:**
 
     pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ annotation-tool
+
+**From Source:**
+
+    pip install git+https://github.com/TUD-Patrec/annotation-tool@master
 
 After installation the annotation tool can be run as simple as
 
