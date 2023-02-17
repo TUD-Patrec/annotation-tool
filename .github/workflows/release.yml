@@ -76,7 +76,7 @@ jobs:
       - name: Detect increment
         if: inputs.increment == ''
         id: detect_increment
-        run: echo "increment=$(./.github/detect-increment.sh)" >> $GITHUB_OUTPUT
+        run: echo "increment=$(.github/detect-increment.sh tmp-changelog.md)" >> $GITHUB_OUTPUT
 
       - name: Register correct increment
         id: set_increment
