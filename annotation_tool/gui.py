@@ -19,10 +19,10 @@ from . import __version__
 from .data_model.globalstate import GlobalState
 from .dialogs.dialog_manager import DialogManager
 from .dialogs.edit_datasets import QEditDatasets
-from .dialogs.load_annotation_dialog import QLoadExistingAnnotationDialog
+from .dialogs.load_annotation_dialog import LoadAnnotationDialog
 from .dialogs.local_files import LocalFilesDialog
 from .dialogs.network_list import NetworksDialog
-from .dialogs.new_annotation_dialog import QNewAnnotationDialog
+from .dialogs.new_annotation_dialog import NewAnnotationDialog
 from .dialogs.settings_dialog import SettingsDialog
 
 
@@ -217,13 +217,13 @@ class GUI(qtw.QMainWindow, DialogManager):
         self.open_dialog(dialog)
 
     def create_new_annotation(self):
-        dialog = QNewAnnotationDialog()
+        dialog = NewAnnotationDialog()
         dialog.load_annotation.connect(self.load_annotation)
         self.open_dialog(dialog)
         self.save_pressed.emit()
 
     def load_existing_annotation(self):
-        dialog = QLoadExistingAnnotationDialog()
+        dialog = LoadAnnotationDialog()
         dialog.load_annotation.connect(self.load_annotation)
         self.open_dialog(dialog)
         self.save_pressed.emit()

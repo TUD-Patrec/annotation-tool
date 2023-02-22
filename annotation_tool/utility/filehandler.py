@@ -410,7 +410,6 @@ def set_logging_level(level: Union[int, str]) -> None:
         level (Union[int, str]): Logging level. Possible values are
         "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL".
     """
-    print(f"Setting logging level to {level}")
     if isinstance(level, str):
         level = level.upper()
     else:
