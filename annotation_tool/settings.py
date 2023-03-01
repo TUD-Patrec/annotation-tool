@@ -37,8 +37,9 @@ class Settings:
 
 
 settings = Settings.get_all()
-assert len(settings) <= 1, "There should only be one settings object"
 if len(settings) == 0:
     settings = Settings()
 else:
+    if len(settings) > 1:
+        logging.warning("Found multiple cached settings-objects. Using the first one.")
     settings = settings[0]
