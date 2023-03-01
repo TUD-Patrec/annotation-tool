@@ -1,6 +1,9 @@
 import enum
 
 import PyQt6.QtCore as qtc
+import PyQt6.QtGui as qtg
+
+from ..utility.resources import *  # noqa: F401, F403
 
 
 class DialogOpenStrategy(enum.Enum):
@@ -28,6 +31,8 @@ class DialogManager:
     def open_dialog(self, dialog):
         if self.__open_dialog__ is None:
             self.__open_dialog__ = dialog
+            self.__open_dialog__.setWindowIcon(qtg.QIcon(qtg.QPixmap(":/5578694.png")))
+
             dialog.finished.connect(self.__free_dialog__)
 
             # let dialog be minimized

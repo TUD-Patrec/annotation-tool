@@ -1,205 +1,253 @@
-from collections import namedtuple
-from copy import deepcopy
-from typing import Union
+import copy
+from dataclasses import dataclass, field
+import json
+import logging
+import math
+import os
+import time
+from typing import List
 
 import numpy as np
 
-from annotation_tool.utility.decorators import returns
+from annotation_tool.file_cache import cached
+from annotation_tool.utility.decorators import accepts
+from annotation_tool.utility.filehandler import footprint_of_file
 
-from .annotation_scheme import AnnotationScheme
-
-
-def is_compatible(raw_annotation: Union[np.ndarray, dict], scheme: AnnotationScheme):
-    if len(scheme) <= 0:
-        return False
-    if isinstance(raw_annotation, dict):
-        for elem in scheme:
-            val = raw_annotation.get(elem.row)(elem.column)
-            if val is None:
-                return False
-            if not isinstance(val, int):
-                return False
-            if val not in [0, 1]:
-                return False
-        return True
-    if isinstance(raw_annotation, np.ndarray):
-        if len(scheme) != raw_annotation.shape[0]:
-            return False
-        if len(raw_annotation.shape) > 1:
-            return False
-        return np.all((raw_annotation == 0) | (raw_annotation == 1))
-
-    return False
+from .dataset import Dataset
+from .sample import Sample
+from .single_annotation import empty_annotation
 
 
-def empty_annotation(scheme: AnnotationScheme):
-    return Annotation(scheme)
-
-
+@cached
+@dataclass
 class Annotation:
-    def __init__(
-        self, scheme: AnnotationScheme, annotation: Union[np.ndarray, dict, None] = None
-    ):
-        assert isinstance(scheme, AnnotationScheme)
+    annotator_id: int
+    _dataset: Dataset
+    name: str
+    _media_path: os.PathLike
+    _footprint: str = field(init=False)
+    _samples: list = field(init=False, default_factory=list)
+    _timestamp: time.struct_time = field(init=False, default_factory=time.localtime)
+    _additional_media_paths: List[os.PathLike] = field(init=False, default_factory=list)
 
-        if annotation is None:
-            annotation = np.zeros(len(scheme), dtype=np.int8)
+    def __post_init__(self):
+        # finish initialization
+        from annotation_tool.utility.filehandler import footprint_of_file
+
+        self.__init_valid__()
+        self._footprint = footprint_of_file(self.path)
+        self.__init_samples__()
+
+    def __init_valid__(self):
+        assert self.dataset is not None, "Dataset must not be None."
+        assert isinstance(self.dataset, Dataset), "Dataset must be of type Dataset."
+        assert self.name is not None, "Name must not be None."
+        assert isinstance(self.name, str), "Name must be of type str."
+        assert len(self.name) > 0, "Name must not be empty."
+        assert self.annotator_id is not None, "Annotator ID must not be None."
+        assert isinstance(self.annotator_id, int), "Annotator ID must be of type int."
+        assert (
+            self.annotator_id >= 0
+        ), "Annotator ID must be greater than or equal to 0."
+        assert self.path is not None, "Path must not be None."
+        assert isinstance(
+            self.path, (str, os.PathLike)
+        ), "Path must be of type os.PathLike."
+        assert os.path.isfile(self.path), "Path must be a file."
+        assert os.path.getsize(self.path) > 0, "Path must not be empty."
+
+    def __init_samples__(self):
+        from annotation_tool.media_reader import MediaReader, media_reader
+
+        media: MediaReader = media_reader(self.path)
+
+        a = empty_annotation(self.dataset.scheme)
+        s = Sample(0, len(media) - 1, a)
+        self._samples.append(s)
+
+    @property
+    def samples(self) -> List[Sample]:
+        # assert len(self._samples) > 0, "Samples must not be empty."
+        return self._samples
+
+    @samples.setter
+    @accepts(object, list)
+    def samples(self, list_of_samples: List[Sample]):
+        if len(list_of_samples) == 0:
+            raise ValueError("List must have at least 1 element.")
         else:
-            assert isinstance(annotation, (np.ndarray, dict))
-            assert is_compatible(
-                annotation, scheme
-            ), "Annotation is not compatible: \n {} \n {}".format(annotation, scheme)
+            last = -1
+            for sample in list_of_samples:
+                if sample is None:
+                    raise ValueError("Elements must not be None.")
+                if not isinstance(sample, Sample):
+                    raise ValueError("Elements must be from type Sample.")
+                if sample.start_position != last + 1:
+                    logging.error("Last = {} | sample = {}".format(last, sample))
+                    raise ValueError("Gaps between Samples are not allowed!")
+                last = sample.end_position
 
-        self._scheme = scheme
-        self._annotation_dict = self._make_dict(annotation)
-        self._annotation_vector = self._make_vector(annotation)
-        self._binary_str = self._make_binary_str(annotation)
+            self._samples = list_of_samples
+            logging.info("Updating samples was succesfull!")
 
-    def _make_dict(self, a):
-        if isinstance(a, np.ndarray):
-            d = {}
-            row = -1
-            for idx, scheme_element in enumerate(self.scheme):
-                group_name = scheme_element.group_name
-                if row != scheme_element.row:
-                    row = scheme_element.row
-                    d[group_name] = {}
+    def to_numpy(self) -> np.ndarray:
+        """
+        Converts the samples to a numpy array.
 
-                group_element = scheme_element.element_name
+        Returns:
+            np.ndarray: The samples as a numpy array.
+        """
+        x = []
+        for sample in self.samples:
+            lower = sample.start_position
+            upper = sample.end_position
+            annotation_vector = sample.annotation.annotation_vector
 
-                val = int(a[idx])
-                assert 0 <= val <= 1
-                d[group_name][group_element] = val
-            return d
-        if isinstance(a, dict):
-            return a
-        else:
-            raise RuntimeError
-
-    def _make_vector(self, a):
-        if isinstance(a, np.ndarray):
-            a = a.astype(dtype=np.int8)
-            return a
-        if isinstance(a, dict):
-            ls = []
-            for scheme_element in self.scheme:
-                group_name, elem = (
-                    scheme_element.group_name,
-                    scheme_element.element_name,
-                )
-                val = a[group_name][elem]
-                assert 0 <= val <= 1
-                ls.append(val)
-            return np.ndarray(ls, dtype=np.int8)
-        else:
-            raise RuntimeError
-
-    def _make_binary_str(self, a):
-        res = [str(x) for x in self._make_vector(a)]
-        res = "".join(res)
-        return res
-
-    def get_empty_copy(self):
-        return Annotation(self.scheme)
+            for _ in range(lower, upper + 1):
+                x.append(annotation_vector)
+        x = np.array(x, int)
+        return x
 
     @property
-    @returns(dict)
-    def annotation_dict(self):
-        return self._annotation_dict
+    def dataset(self) -> Dataset:
+        return self._dataset
 
     @property
-    @returns(np.ndarray)
-    def annotation_vector(self):
-        return self._annotation_vector
+    def path(self) -> os.PathLike:
+        return self._media_path
+
+    @path.setter
+    def path(self, path: os.PathLike):
+        if not os.path.isfile(path):
+            raise FileNotFoundError(path)
+        if footprint_of_file(path) != self.footprint:
+            raise ValueError("File has changed.")
+        self._media_path = path
 
     @property
-    @returns(str)
-    def binary_str(self):
-        return self._binary_str
+    def creation_time(self) -> time.struct_time:
+        return self._timestamp
 
     @property
-    @returns((dict, np.ndarray))
-    def annotation(self) -> (dict, np.ndarray):
-        return self.annotation_dict, self.annotation_vector
-
-    @annotation.setter
-    def annotation(self, annotation: Union[np.ndarray, dict]):
-        is_compatible(annotation, self.scheme)
-        self._annotation_dict = self._make_dict(annotation)
-        self._annotation_vector = self._make_vector(annotation)
-        self._binary_str = self._make_binary_str(annotation)
+    def timestamp(self) -> str:
+        return time.strftime("%Y-%m-%d_%H-%M-%S", self.creation_time)
 
     @property
-    def scheme(self):
-        return self._scheme
+    def progress(self) -> int:
+        """
+        Returns the annotation progress in percent.
+        (Rounded up to the next integer)
+        """
+        n_frames = self.samples[-1].end_position + 1
+        n_annotations = sum(
+            [
+                s.end_position - s.start_position + 1
+                for s in self.samples
+                if not s.annotation.is_empty()
+            ]
+        )
+        return math.ceil(n_annotations / n_frames * 100)
 
-    @scheme.setter
-    def scheme(self, x):
-        raise AttributeError("Cannot change the scheme!")
+    @property
+    def meta_data(self) -> dict:
+        return {
+            "annotator_id": self.annotator_id,
+            "dataset": self.dataset.name,
+            "file": self.path,
+            "name": self.name,
+            "creation_time": self.timestamp,
+            "progress": self.progress,
+        }
 
-    def is_empty(self):
-        return np.sum(self.annotation_vector) == 0
+    @property
+    def footprint(self) -> str:
+        return self._footprint
 
-    def __len__(self):
-        return self.annotation_vector.shape[0]
-
-    def __eq__(self, other):
-        if isinstance(other, Annotation):
-            scheme_equal = self.scheme == other.scheme
-            vec_equal = np.array_equal(self.annotation_vector, other.annotation_vector)
-            return scheme_equal and vec_equal
-        else:
-            return False
-
-    def __copy__(self):
-        new_anno = Annotation(self.scheme, self.annotation_vector)
-        assert self == new_anno and new_anno is not self
-        return new_anno
-
-    def __deepcopy__(self, memo):
-        new_anno = Annotation(deepcopy(self.scheme), deepcopy(self.annotation_vector))
-        assert self == new_anno
-        assert new_anno is not self
-        return new_anno
-
-    def __iter__(self):
-        annotation_element = namedtuple(
-            "annotation_attribute",
-            ["group_name", "element_name", "value", "row", "column"],
+    def set_additional_media_paths(self, paths: List[os.PathLike]):
+        additional_paths = []
+        for x in paths:
+            if not os.path.isfile(x):
+                raise FileNotFoundError(x)
+            additional_paths.append(x)
+        self._additional_media_paths = additional_paths
+        logging.debug(
+            f"Additional media paths were set. {self._additional_media_paths}"
         )
 
-        for scheme_element in self.scheme:
-            group_name = scheme_element.group_name
-            element_name = scheme_element.element_name
-            row, col = scheme_element.row, scheme_element.column
-            value = self.annotation_dict[group_name][element_name]
+    def get_additional_media_paths(self) -> List[os.PathLike]:
+        return self._additional_media_paths
 
-            yield annotation_element(group_name, element_name, value, row, col)
+    # TODO: update copy functions (additional media paths)
+    def __copy__(self):
+        return Annotation(
+            self.annotator_id,
+            self.dataset,
+            self.name,
+            self.path,
+        )
 
-    def __hash__(self):
-        # logging.warning("Hash of annotation is deprecated")
-        return hash((self.scheme, self.binary_str))
+    def __deepcopy__(self, memodict={}):
+        return Annotation(
+            self.annotator_id,
+            copy.deepcopy(self.dataset),
+            self.name,
+            self.path,
+        )
+
+    def to_dict(self) -> dict:
+        _annotations = []
+        for sample in self.samples:
+            _tmp = {
+                "start": sample.start_position,
+                "end": sample.end_position,
+                "annotation": sample.annotation.annotation_dict,
+            }
+            _annotations.append(_tmp)
+
+        _dataset = self.dataset.to_dict()
+
+        _additional_media_paths = self._additional_media_paths
+
+        _d = {
+            "annotator_id": self.annotator_id,
+            "dataset": _dataset,
+            "annotations": _annotations,
+            "name": self.name,
+            "path": self.path,
+            "footprint": self.footprint,
+            "timestamp": self.timestamp,
+            "additional_media_paths": _additional_media_paths,
+        }
+        return _d
+
+    def to_json(self) -> str:
+
+        # test
+        desktop = os.path.join(os.path.join(os.environ["USERPROFILE"]), "Desktop")
+        with open(os.path.join(desktop, "test.json"), "w") as f:
+            json.dump(self.to_dict(), f, indent=4, sort_keys=True, ensure_ascii=False)
+
+        return json.dumps(self.to_dict(), indent=4, sort_keys=True, ensure_ascii=False)
 
 
-def create_annotation(
-    scheme: AnnotationScheme, annotation: Union[np.ndarray, dict, None] = None
+def create_global_state(
+    annotator_id: int, dataset: Dataset, name: str, path: os.PathLike
 ) -> Annotation:
     """
-    Create an annotation from a scheme and a vector or a dict.
+    Creates a new GlobalState object.
 
     Args:
-        scheme: The scheme of the annotation.
-        annotation: The annotation as a vector or a dict. If None, an empty annotation is created.
+        annotator_id (int): The id of the annotator.
+        dataset (Dataset): The dataset.
+        name (str): The name of the annotation.
+        path (os.PathLike): The path to the media file.
 
     Returns:
-        The annotation.
-
+        Annotation: The new GlobalState object.
     Raises:
-        ValueError: If the parameters are not valid.
+        ValueError If parameters are invalid.
     """
     try:
-        return Annotation(scheme, annotation)
-    except AssertionError:
-        raise ValueError(
-            "Cannot create annotation from {} and {}".format(scheme, annotation)
-        )
+        return Annotation(annotator_id, dataset, name, path)
+    except AssertionError as e:
+        raise ValueError(e)

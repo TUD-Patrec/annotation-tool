@@ -4,8 +4,8 @@ from dataclasses import dataclass, field
 from annotation_tool.file_cache import cached
 from annotation_tool.utility.decorators import accepts_m
 
+from .annotation import Annotation
 from .dataset import Dataset
-from .globalstate import GlobalState
 
 
 @cached
@@ -30,14 +30,14 @@ class Project:
     def dataset(self) -> Dataset:
         return self._dataset
 
-    @accepts_m(GlobalState)
-    def add_global_state(self, global_state: GlobalState):
+    @accepts_m(Annotation)
+    def add_global_state(self, global_state: Annotation):
         if global_state.dataset != self.dataset:
             raise ValueError("GlobalState is not from the same dataset as the project.")
         self._global_states.append(global_state)
 
-    @accepts_m(GlobalState)
-    def remove_global_state(self, global_state: GlobalState):
+    @accepts_m(Annotation)
+    def remove_global_state(self, global_state: Annotation):
         if global_state in self._global_states:
             self._global_states.remove(global_state)
 

@@ -4,14 +4,14 @@ import shutil
 import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
 
-from annotation_tool.data_model.globalstate import GlobalState
+from annotation_tool.data_model.annotation import Annotation
 from annotation_tool.utility import filehandler
 
 
 class GlobalStateWidget(qtw.QWidget):
     deleted = qtc.pyqtSignal()
 
-    def __init__(self, global_state: GlobalState, *args, **kwargs):
+    def __init__(self, global_state: Annotation, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.global_state = global_state
         self.init_ui()
@@ -130,7 +130,7 @@ class GlobalStateList(qtw.QWidget):
             self.scroll_layout.itemAt(i).widget().setParent(None)
 
         # add global states
-        global_states = GlobalState.get_all()
+        global_states = Annotation.get_all()
         # global_states.sort(key=lambda x: x.creation_time, reverse=True)
         for global_state in global_states:
             widget = GlobalStateWidget(global_state)
@@ -168,7 +168,7 @@ class GlobalStatesDialog(qtw.QDialog):
 
 
 class ExportAnnotationDialog(qtw.QDialog):
-    def __init__(self, global_state: GlobalState, *args, **kwargs):
+    def __init__(self, global_state: Annotation, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.global_state = global_state
         self.init_ui()

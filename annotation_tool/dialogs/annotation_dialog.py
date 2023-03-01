@@ -3,7 +3,7 @@ import PyQt6.QtWidgets as qtw
 import numpy as np
 
 from annotation_tool.data_model import AnnotationScheme, Sample
-from annotation_tool.data_model.annotation import Annotation
+from annotation_tool.data_model.single_annotation import SingleAnnotation
 
 preferred_size = None
 
@@ -209,7 +209,7 @@ class QAnnotationDialog(qtw.QDialog):
             self.accept_button.setEnabled(x)
 
     def __reset_annotation__(self):
-        self.sample.annotation = Annotation(self.scheme)
+        self.sample.annotation = SingleAnnotation(self.scheme)
         self.close()
 
     def __save_annotation__(self):

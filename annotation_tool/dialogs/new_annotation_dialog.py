@@ -3,14 +3,14 @@ import os
 import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
 
-from annotation_tool.data_model import Dataset, GlobalState, create_global_state
+from annotation_tool.data_model import Annotation, Dataset, create_global_state
 from annotation_tool.media_reader import media_reader as mr
 from annotation_tool.qt_helper_widgets.line_edit_adapted import QLineEditAdapted
 from annotation_tool.settings import settings
 
 
 class NewAnnotationDialog(qtw.QDialog):
-    load_annotation = qtc.pyqtSignal(GlobalState)
+    load_annotation = qtc.pyqtSignal(Annotation)
 
     def __init__(self, *args, **kwargs):
         super(NewAnnotationDialog, self).__init__(*args, **kwargs)
@@ -189,4 +189,4 @@ class NewAnnotationDialog(qtw.QDialog):
 
     @property
     def _annotation_names(self):
-        return [a.name for a in GlobalState.get_all()]
+        return [a.name for a in Annotation.get_all()]

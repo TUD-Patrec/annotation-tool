@@ -7,23 +7,27 @@ from typing import List, Optional, Type, Union
 import appdirs
 from fcache.cache import FileCache
 
-__application_name__ = "annotation-tool"
-__application_path__ = appdirs.user_data_dir(__application_name__, __application_name__)
-__application_cache_path__ = appdirs.user_cache_dir(
-    __application_name__, __application_name__
+try:
+    from annotation_tool import __application_name__, __version__
+except ImportError:
+    # default values
+    __version__ = "0.0.0"
+    __application_name__ = "annotation-tool"
+
+
+__v_string__ = ".".join(__version__.split(".")[:2])
+__application_path__ = appdirs.user_data_dir(
+    __application_name__, __application_name__, __v_string__
 )
 
 __file_cache__ = FileCache(
-    __application_name__, flag="c", app_cache_dir=__application_cache_path__
+    __application_name__, flag="c", app_cache_dir=__application_path__
 )
 __cache_directory__ = __file_cache__.cache_dir
 
 os.makedirs(__application_path__, exist_ok=True)
 
-if logging.getLogger().isEnabledFor(logging.DEBUG):
-    logging.debug(f"Cache directory: {__cache_directory__}")
-else:
-    print(f"Cache directory: {__cache_directory__}")
+logging.info(f"Cache directory: {__cache_directory__}")
 
 
 def get_dir() -> str:

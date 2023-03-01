@@ -15,7 +15,7 @@ from annotation_tool.settings import settings
 
 from . import __version__
 from .annotation.controller import AnnotationController
-from .data_model.globalstate import GlobalState
+from .data_model.annotation import Annotation
 from .gui import GUI, LayoutPosition
 from .media.media import QMediaWidget  # This raises all the debug-messages on startup
 from .mediator import Mediator
@@ -109,8 +109,8 @@ class MainApplication(qtw.QApplication):
         self.mediator.add_emitter(self.media_player)
         self.mediator.add_emitter(self.playback)
 
-    @qtc.pyqtSlot(GlobalState)
-    def load_state(self, state: GlobalState):
+    @qtc.pyqtSlot(Annotation)
+    def load_state(self, state: Annotation):
         if state is not None:
             # store annotation
             self.global_state = state

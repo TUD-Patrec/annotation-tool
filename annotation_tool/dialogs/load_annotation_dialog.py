@@ -4,18 +4,18 @@ import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
 
 from ..data_model import Dataset
-from ..data_model.globalstate import GlobalState
+from ..data_model.annotation import Annotation
 from ..qt_helper_widgets.line_edit_adapted import QLineEditAdapted
 from ..utility import filehandler
 
 
 class LoadAnnotationDialog(qtw.QDialog):
-    load_annotation = qtc.pyqtSignal(GlobalState)
+    load_annotation = qtc.pyqtSignal(Annotation)
 
     def __init__(self, *args, **kwargs):
         super(LoadAnnotationDialog, self).__init__(*args, **kwargs)
 
-        self.global_states = GlobalState.get_all()
+        self.global_states = Annotation.get_all()
         self.global_states.sort(key=lambda x: x.timestamp, reverse=True)
 
         self.name_changed_msg = (
@@ -117,7 +117,7 @@ class LoadAnnotationDialog(qtw.QDialog):
                 self.line_edit.setText("")
                 return
 
-            global_state: GlobalState = self.global_states[idx]
+            global_state: Annotation = self.global_states[idx]
             other_hash = global_state.footprint
 
             if hash == other_hash:

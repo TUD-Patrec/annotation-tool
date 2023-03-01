@@ -16,7 +16,7 @@ from annotation_tool.user_actions import (
 )
 
 from . import __version__
-from .data_model.globalstate import GlobalState
+from .data_model.annotation import Annotation
 from .dialogs.dialog_manager import DialogManager
 from .dialogs.edit_datasets import QEditDatasets
 from .dialogs.load_annotation_dialog import LoadAnnotationDialog
@@ -24,6 +24,7 @@ from .dialogs.local_files import LocalFilesDialog
 from .dialogs.network_list import NetworksDialog
 from .dialogs.new_annotation_dialog import NewAnnotationDialog
 from .dialogs.settings_dialog import SettingsDialog
+from .utility.resources import *  # noqa: F401, F403
 
 
 class LayoutPosition(enum.Enum):
@@ -35,7 +36,7 @@ class LayoutPosition(enum.Enum):
 
 
 class GUI(qtw.QMainWindow, DialogManager):
-    load_annotation = qtc.pyqtSignal(GlobalState)
+    load_annotation = qtc.pyqtSignal(Annotation)
     save_pressed = qtc.pyqtSignal()
     exit_pressed = qtc.pyqtSignal()
     settings_changed = qtc.pyqtSignal()
@@ -49,7 +50,7 @@ class GUI(qtw.QMainWindow, DialogManager):
 
         self.resize(settings.preferred_width, settings.preferred_height)
         self.setWindowTitle("Annotation Tool v{}".format(__version__))
-        # self.setWindowIcon()
+        self.setWindowIcon(qtg.QIcon(qtg.QPixmap(":/icon.png")))
 
         self.main_widget = qtw.QWidget()
         self.setCentralWidget(self.main_widget)
