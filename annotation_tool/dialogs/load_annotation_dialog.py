@@ -80,7 +80,7 @@ class LoadAnnotationDialog(qtw.QDialog):
         self.setMinimumWidth(500)
 
     def process_combobox_value(self, idx):
-        if idx >= 0:
+        if idx >= 0 and idx < len(self.global_states):
             global_state = self.global_states[idx]
 
             dataset = global_state.dataset

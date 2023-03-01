@@ -15,7 +15,7 @@ from annotation_tool.user_actions import (
     get_shortcut,
 )
 
-from . import __version__
+from . import __application_name__, __version__
 from .data_model.annotation import Annotation
 from .dialogs.dialog_manager import DialogManager
 from .dialogs.edit_datasets import QEditDatasets
@@ -49,7 +49,7 @@ class GUI(qtw.QMainWindow, DialogManager):
         self.current_mode = AnnotationMode.MANUAL
 
         self.resize(settings.preferred_width, settings.preferred_height)
-        self.setWindowTitle("Annotation Tool v{}".format(__version__))
+        self.setWindowTitle("{} v{}".format(__application_name__, __version__))
         self.setWindowIcon(qtg.QIcon(qtg.QPixmap(":/icon.png")))
 
         self.main_widget = qtw.QWidget()
