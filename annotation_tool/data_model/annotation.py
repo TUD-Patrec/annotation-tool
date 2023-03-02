@@ -88,7 +88,6 @@ class Annotation:
                 last = sample.end_position
 
             self._samples = list_of_samples
-            logging.info("Updating samples was succesfull!")
 
     def to_numpy(self) -> np.ndarray:
         """
@@ -170,9 +169,6 @@ class Annotation:
                 raise FileNotFoundError(x)
             additional_paths.append(x)
         self._additional_media_paths = additional_paths
-        logging.debug(
-            f"Additional media paths were set. {self._additional_media_paths}"
-        )
 
     def get_additional_media_paths(self) -> List[os.PathLike]:
         return self._additional_media_paths
@@ -221,12 +217,6 @@ class Annotation:
         return _d
 
     def to_json(self) -> str:
-
-        # test
-        desktop = os.path.join(os.path.join(os.environ["USERPROFILE"]), "Desktop")
-        with open(os.path.join(desktop, "test.json"), "w") as f:
-            json.dump(self.to_dict(), f, indent=4, sort_keys=True, ensure_ascii=False)
-
         return json.dumps(self.to_dict(), indent=4, sort_keys=True, ensure_ascii=False)
 
 

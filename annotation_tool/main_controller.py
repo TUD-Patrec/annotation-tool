@@ -35,7 +35,7 @@ class MainApplication(qtw.QApplication):
         super().__init__(*args, **kwargs)
 
         # Controll-Attributes
-        self.global_state = None
+        self.current_annotation = None
         self.n_frames = 0
         self.mediator = Mediator()
 
@@ -110,12 +110,12 @@ class MainApplication(qtw.QApplication):
         self.mediator.add_emitter(self.playback)
 
     @qtc.pyqtSlot(Annotation)
-    def load_state(self, state: Annotation):
-        if state is not None:
+    def load_state(self, annotation: Annotation):
+        if annotation is not None:
             # store annotation
-            self.global_state = state
+            self.current_annotation = annotation
 
-            media = media_reader(path=state.path)
+            media = media_reader(path=annotation.path)
             duration = media.duration
             n_frames = media.n_frames
 
@@ -145,9 +145,9 @@ class MainApplication(qtw.QApplication):
 
             # update annotation controller
             self.annotation_controller.load(
-                state.samples,
-                state.dataset.scheme,
-                state.dataset.dependencies,
+                annotation.samples,
+                annotation.dataset.scheme,
+                annotation.dataset.dependencies,
                 n_frames,
             )
 
@@ -160,36 +160,35 @@ class MainApplication(qtw.QApplication):
 
     @qtc.pyqtSlot(list)
     def set_additional_media_paths(self, paths: list):
-        assert self.global_state is not None
+        assert self.current_annotation is not None
         logging.debug(
-            f"self.global_state: {self.global_state.path = } {self.global_state.get_additional_media_paths() = }"
+            f"self.global_state: {self.current_annotation.path = } {self.current_annotation.get_additional_media_paths() = }"
         )
-        self.global_state.set_additional_media_paths(paths)
+        self.current_annotation.set_additional_media_paths(paths)
 
     @qtc.pyqtSlot()
     def media_player_loaded(self):
-        assert self.global_state is not None
+        assert self.current_annotation is not None
         self.media_player.additional_media_changed.connect(
             self.set_additional_media_paths
         )  # reconnect after loading
-        additional_media = self.global_state.get_additional_media_paths()
+        additional_media = self.current_annotation.get_additional_media_paths()
         self.media_player.set_additional_media(additional_media)
 
     def save_annotation(self):
-        if self.global_state is None:
-            logging.info("Nothing to save - annotation-object is None")
-        else:
-            logging.info("Saving current state")
+        if self.current_annotation is not None:
             samples = self.annotation_controller.controller.samples
 
             if len(samples) > 0:
                 assert samples[-1].end_position + 1 == self.n_frames
             else:
                 assert self.n_frames == 0
-            self.global_state.samples = samples  # this also writes the update to disk
+            self.current_annotation.samples = (
+                samples  # this also writes the update to disk
+            )
 
             # write to statusbar
-            annotation_name = self.global_state.name
+            annotation_name = self.current_annotation.name
             self.gui.write_to_statusbar(f"Saved annotation {annotation_name}")
 
         self.last_save = time.time()
@@ -205,8 +204,8 @@ class MainApplication(qtw.QApplication):
 
         set_fallback_fps(settings.refresh_rate)
 
-        if self.global_state is not None:
-            media = media_reader(path=self.global_state.path)
+        if self.current_annotation is not None:
+            media = media_reader(path=self.current_annotation.path)
             duration = media.duration
             n_frames = media.n_frames
 
