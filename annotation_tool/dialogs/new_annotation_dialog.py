@@ -9,11 +9,11 @@ from annotation_tool.qt_helper_widgets.line_edit_adapted import QLineEditAdapted
 from annotation_tool.settings import settings
 
 
-class QNewAnnotationDialog(qtw.QDialog):
+class NewAnnotationDialog(qtw.QDialog):
     load_annotation = qtc.pyqtSignal(GlobalState)
 
     def __init__(self, *args, **kwargs):
-        super(QNewAnnotationDialog, self).__init__(*args, **kwargs)
+        super(NewAnnotationDialog, self).__init__(*args, **kwargs)
 
         self.input_path = None
         self.annotation_name = None
@@ -44,22 +44,22 @@ class QNewAnnotationDialog(qtw.QDialog):
         for data_description in self._datasets:
             self.combobox.addItem(data_description.name)
         self.combobox.currentIndexChanged.connect(self.dataset_changed)
-        form.addRow("Datasets:", self.combobox)
+        form.addRow("Dataset:", self.combobox)
 
         self.input_path_edit = QLineEditAdapted()
         self.input_path_edit.setPlaceholderText("No File selected.")
         self.input_path_edit.setReadOnly(True)
         self.input_path_edit.textChanged.connect(self.path_changed)
         self.input_path_edit.mousePressed.connect(self.select_input_source)
-        form.addRow("Input File:", self.input_path_edit)
+        form.addRow("File:", self.input_path_edit)
 
         self.annotation_name_edit = qtw.QLineEdit()
         self.annotation_name_edit.setPlaceholderText("")
         self.annotation_name_edit.textChanged.connect(self.name_changed)
-        form.addRow("Annotation name:", self.annotation_name_edit)
+        form.addRow("Name:", self.annotation_name_edit)
 
         self.open_button = qtw.QPushButton()
-        self.open_button.setText("Open")
+        self.open_button.setText("Create")
         self.open_button.setEnabled(False)
         self.open_button.clicked.connect(lambda _: self.open_pressed())
 

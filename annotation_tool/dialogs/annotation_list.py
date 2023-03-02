@@ -44,7 +44,7 @@ class GlobalStateWidget(qtw.QWidget):
         self.grid.addWidget(self.annotator_id_edit, 2, 1)
 
         # timestamp
-        self.timestamp_label = qtw.QLabel("Timestamp")
+        self.timestamp_label = qtw.QLabel("Created")
         self.timestamp_edit = qtw.QLineEdit(self.global_state.timestamp)
         self.timestamp_edit.setReadOnly(True)
         self.grid.addWidget(self.timestamp_label, 3, 0)
@@ -183,21 +183,21 @@ class ExportAnnotationDialog(qtw.QDialog):
         self.export_options_layout = qtw.QGridLayout(self.export_options)
 
         # Option 1) Add copy of annotated file
-        self.add_copy_label = qtw.QLabel("Add copy of annotated file:")
+        self.add_copy_label = qtw.QLabel("Copy of annotated file:")
         self.add_copy_checkbox = qtw.QCheckBox()
         self.add_copy_checkbox.setChecked(False)
         self.export_options_layout.addWidget(self.add_copy_label, 0, 0)
         self.export_options_layout.addWidget(self.add_copy_checkbox, 0, 1)
 
         # Option 2) Export dataset-scheme
-        self.export_dataset_scheme_label = qtw.QLabel("Export dataset-scheme:")
+        self.export_dataset_scheme_label = qtw.QLabel("Dataset scheme:")
         self.export_dataset_scheme_checkbox = qtw.QCheckBox()
         self.export_dataset_scheme_checkbox.setChecked(False)
         self.export_options_layout.addWidget(self.export_dataset_scheme_label, 1, 0)
         self.export_options_layout.addWidget(self.export_dataset_scheme_checkbox, 1, 1)
 
         # Option 3) Export meta informations
-        self.export_meta_informations_label = qtw.QLabel("Export meta informations:")
+        self.export_meta_informations_label = qtw.QLabel("Meta informations:")
         self.export_meta_informations_checkbox = qtw.QCheckBox()
         self.export_meta_informations_checkbox.setChecked(False)
         self.export_options_layout.addWidget(self.export_meta_informations_label, 2, 0)
@@ -206,7 +206,7 @@ class ExportAnnotationDialog(qtw.QDialog):
         )
 
         # Option 4) Compress everything into a zip file
-        self.compress_label = qtw.QLabel("Compress everything into a zip file:")
+        self.compress_label = qtw.QLabel("Compress to zip:")
         self.compress_checkbox = qtw.QCheckBox()
         self.compress_checkbox.setChecked(True)
         self.export_options_layout.addWidget(self.compress_label, 3, 0)

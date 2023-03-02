@@ -261,12 +261,13 @@ class MediaSettingsDialog(qtw.QDialog):
         self.fallback_fps_slider = qtw.QSlider(qtc.Qt.Orientation.Horizontal)
         self.fallback_fps_slider.setRange(1, 250)
         # display the current value of the slider
-        self.fallback_display = qtw.QLabel(str(settings.refresh_rate))
+        self.fallback_fps_edit = qtw.QLabel(str(settings.refresh_rate))
         self.fallback_fps_slider.valueChanged.connect(self.change_fallback_fps)
+
         self.fallback_fps_layout.addWidget(self.fallback_fps_label)
         self.fallback_fps_slider.setValue(settings.refresh_rate)
         self.fallback_fps_layout.addWidget(self.fallback_fps_slider)
-        self.fallback_fps_layout.addWidget(self.fallback_display)
+        self.fallback_fps_layout.addWidget(self.fallback_fps_edit)
         self.layout.addLayout(self.fallback_fps_layout)
 
         # Accept, Reset buttons
@@ -281,9 +282,9 @@ class MediaSettingsDialog(qtw.QDialog):
 
         self.setLayout(self.layout)
 
-    def change_fallback_fps(self, value: int) -> None:
+    def change_fallback_fps(self, value) -> None:
+        self.fallback_fps_edit.setText(str(value))
         settings.refresh_rate = value
-        self.fallback_display.setText(str(value))
         self.settings_changed.emit()
 
     def reset_settings(self):

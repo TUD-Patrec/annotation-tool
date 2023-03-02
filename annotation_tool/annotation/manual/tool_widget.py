@@ -28,7 +28,7 @@ class ManualAnnotationTools(qtw.QWidget):
         self.cut_btn.setStatusTip("Split the highlighted sample into two pieces.")
         self.cut_btn.clicked.connect(self.cut.emit)
 
-        self.cut_and_annotate_btn = qtw.QPushButton("C+A", self)
+        self.cut_and_annotate_btn = qtw.QPushButton("Cut && Ann.", self)
         self.cut_and_annotate_btn.setStatusTip(
             "Cut and immediately annotate the current sample."
         )

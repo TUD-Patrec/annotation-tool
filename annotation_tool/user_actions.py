@@ -14,7 +14,7 @@ class AnnotationActions(Enum):
     ANNOTATE = 5
     RESET = 6
     CUT = 7
-    CUT_ANNOTATE = 8
+    CUT_AND_ANNOTATE = 8
     MERGE_LEFT = 9
     MERGE_RIGHT = 10
     ACCEPT = 11
@@ -27,7 +27,7 @@ class AnnotationActions(Enum):
 
 
 class ReplayActions(Enum):
-    TOGGLE_PLAY_PAUSE = 0
+    PLAY_OR_PAUSE = 0
     TOGGLE_FORWARD_BACKWARD = 1
     INCREASE_SPEED = 2
     DECREASE_SPEED = 3
@@ -45,7 +45,7 @@ ActionToShortcut = {
     AnnotationActions.REDO: QKeySequence.StandardKey.Redo,
     AnnotationActions.ANNOTATE: QKeySequence("A"),
     AnnotationActions.CUT: QKeySequence("C"),
-    AnnotationActions.CUT_ANNOTATE: QKeySequence("X"),
+    AnnotationActions.CUT_AND_ANNOTATE: QKeySequence("X"),
     AnnotationActions.MERGE_LEFT: QKeySequence("L"),
     AnnotationActions.MERGE_RIGHT: QKeySequence("R"),
     AnnotationActions.ACCEPT: QKeySequence("A"),
@@ -55,7 +55,7 @@ ActionToShortcut = {
     AnnotationActions.JUMP_PREVIOUS: QKeySequence("Ctrl+Left"),
     AnnotationActions.JUMP_NEXT: QKeySequence("Ctrl+Right"),
     AnnotationActions.RESET: QKeySequence("Ctrl+R"),
-    ReplayActions.TOGGLE_PLAY_PAUSE: QKeySequence("Space"),
+    ReplayActions.PLAY_OR_PAUSE: QKeySequence("Space"),
     ReplayActions.TOGGLE_FORWARD_BACKWARD: QKeySequence("B"),
     ReplayActions.SKIP_FRAMES: QKeySequence("Right"),
     ReplayActions.SKIP_FRAMES_BACK: QKeySequence("Left"),
@@ -73,7 +73,7 @@ def get_annotation_actions(mode: AnnotationMode):
         return [
             AnnotationActions.ANNOTATE,
             AnnotationActions.CUT,
-            AnnotationActions.CUT_ANNOTATE,
+            AnnotationActions.CUT_AND_ANNOTATE,
             AnnotationActions.MERGE_LEFT,
             AnnotationActions.MERGE_RIGHT,
         ]
@@ -81,7 +81,7 @@ def get_annotation_actions(mode: AnnotationMode):
         return [
             AnnotationActions.ACCEPT,
             AnnotationActions.REJECT,
-            AnnotationActions.ACCEPT_ALL,
+            # AnnotationActions.ACCEPT_ALL, TODO: implement
             AnnotationActions.MODIFY,
             AnnotationActions.CHANGE_FILTER,
         ]
@@ -108,8 +108,8 @@ def get_edit_actions(mode: AnnotationMode):
 def get_replay_actions(mode: AnnotationMode):
     if mode == AnnotationMode.MANUAL:
         return [
-            ReplayActions.TOGGLE_PLAY_PAUSE,
-            ReplayActions.TOGGLE_FORWARD_BACKWARD,
+            ReplayActions.PLAY_OR_PAUSE,
+            # ReplayActions.TOGGLE_FORWARD_BACKWARD,  # TODO: implement
             ReplayActions.SKIP_FRAMES,
             ReplayActions.SKIP_FRAMES_BACK,
             ReplayActions.SKIP_FRAMES_FAR,
@@ -119,7 +119,7 @@ def get_replay_actions(mode: AnnotationMode):
         ]
     elif mode == AnnotationMode.RETRIEVAL:
         return [
-            ReplayActions.TOGGLE_PLAY_PAUSE,
+            ReplayActions.PLAY_OR_PAUSE,
             ReplayActions.TOGGLE_FORWARD_BACKWARD,
             ReplayActions.SKIP_FRAMES,
             ReplayActions.SKIP_FRAMES_BACK,
