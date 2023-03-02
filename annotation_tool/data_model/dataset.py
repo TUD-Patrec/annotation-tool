@@ -1,5 +1,7 @@
 from copy import deepcopy
 from dataclasses import dataclass, field
+import json
+import pickle as pkl
 from typing import Optional
 
 import numpy as np
@@ -47,6 +49,40 @@ class Dataset:
 
     def __deepcopy__(self, memo):
         return Dataset(self.name, deepcopy(self.scheme), deepcopy(self.dependencies))
+
+    def to_pickle(self):
+        return pkl.dumps(self)
+
+    @staticmethod
+    def from_pickle(pickle):
+        return pkl.loads(pickle)
+
+    def to_dict(self):
+        _d = {
+            "name": self.name,
+            "scheme": self.scheme.scheme,
+            "dependencies": self.dependencies.tolist()
+            if self.dependencies is not None
+            else None,
+        }
+        return _d
+
+    @staticmethod
+    def from_dict(d):
+        return create_dataset(
+            d["name"],
+            AnnotationScheme(d["scheme"]),
+            np.array(d["dependencies"], dtype=np.int8)
+            if d["dependencies"] is not None
+            else None,
+        )
+
+    def to_json(self):
+        return json.dumps(self.to_dict())
+
+    @staticmethod
+    def from_json(json_str):
+        return Dataset.from_dict(json.loads(json_str))
 
 
 def create_dataset(

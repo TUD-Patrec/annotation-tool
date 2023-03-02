@@ -1,12 +1,12 @@
 from dataclasses import dataclass, field
 from typing import Tuple, Union
 
-from annotation_tool.data_model import Annotation, Sample
+from annotation_tool.data_model import Sample, SingleAnnotation
 
 
 @dataclass(eq=True, unsafe_hash=True)
 class RetrievalElement:
-    annotation: Annotation = field(init=True, hash=False)
+    annotation: SingleAnnotation = field(init=True, hash=False)
     interval: Tuple[int, int] = field(init=True, hash=False)
     distance: float = field(init=True, hash=True)
     i: int = field(init=True, hash=True)  # element index

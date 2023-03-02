@@ -5,7 +5,7 @@ from typing import Tuple
 
 from distinctipy import distinctipy
 
-from annotation_tool.data_model.annotation import Annotation
+from annotation_tool.data_model.single_annotation import SingleAnnotation
 from annotation_tool.utility.decorators import accepts_m, returns
 
 random.seed(42)
@@ -13,7 +13,7 @@ __color_map__ = distinctipy.get_colors(50, n_attempts=250)
 __default_color__ = 105, 105, 105
 
 
-def __annotation_to_color__(annotation: Annotation) -> Tuple[int, int, int, int]:
+def __annotation_to_color__(annotation: SingleAnnotation) -> Tuple[int, int, int, int]:
     """
     Converts an annotation to a color.
 
@@ -46,12 +46,12 @@ class Sample:
     _sort_index: int = field(init=False, repr=False, hash=False, compare=False)
     _start_pos: int = field(init=True, hash=True, compare=True)
     _end_pos: int = field(init=True, hash=True, compare=True)
-    _annotation: Annotation = field(init=True, hash=False, compare=False)
+    _annotation: SingleAnnotation = field(init=True, hash=False, compare=False)
 
     def __post_init__(self):
         assert isinstance(self._start_pos, int)
         assert isinstance(self._end_pos, int)
-        assert isinstance(self._annotation, Annotation)
+        assert isinstance(self._annotation, SingleAnnotation)
         assert self._start_pos <= self._end_pos
         assert self._start_pos >= 0
 
@@ -87,12 +87,12 @@ class Sample:
             self._end_pos = value
 
     @property
-    @returns(Annotation)
+    @returns(SingleAnnotation)
     def annotation(self):
         return self._annotation
 
     @annotation.setter
-    @accepts_m(Annotation)
+    @accepts_m(SingleAnnotation)
     def annotation(self, value):
         if value is None:
             raise ValueError("None not allowed")
@@ -112,7 +112,7 @@ class Sample:
         return Sample(self._start_pos, self._end_pos, deepcopy(self._annotation))
 
 
-def create_sample(start_pos: int, end_pos: int, annotation: Annotation) -> Sample:
+def create_sample(start_pos: int, end_pos: int, annotation: SingleAnnotation) -> Sample:
     """
     Creates a new sample.
 

@@ -5,7 +5,7 @@ from typing import List, Optional
 import PyQt6.QtCore as qtc
 import numpy as np
 
-from annotation_tool.data_model import Annotation, AnnotationScheme, Sample
+from annotation_tool.data_model import AnnotationScheme, Sample, SingleAnnotation
 from annotation_tool.dialogs.dialog_manager import DialogManager
 from annotation_tool.user_actions import AnnotationActions
 
@@ -299,7 +299,7 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
         pass
 
     def update_sample_annotation(
-        self, sample: Sample, new_annotation: Annotation
+        self, sample: Sample, new_annotation: SingleAnnotation
     ) -> None:
         """
         Update the annotation of a sample.

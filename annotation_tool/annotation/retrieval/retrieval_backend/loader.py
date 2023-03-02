@@ -7,7 +7,7 @@ from scipy import spatial
 from annotation_tool.annotation.retrieval.retrieval_backend.element import (
     RetrievalElement,
 )
-from annotation_tool.data_model import Annotation
+from annotation_tool.data_model import SingleAnnotation
 import annotation_tool.network.controller as network
 
 
@@ -21,9 +21,9 @@ class RetrievalLoader(qtc.QThread):
         self.controller = controller
 
     def run(self):
-        intervals, classifications, retrieval_elements = self.load()
-        self.success.emit(intervals, classifications, retrieval_elements)
-        return
+        # intervals, classifications, retrieval_elements = self.load()
+        # self.success.emit(intervals, classifications, retrieval_elements)
+        # return
         try:
             intervals, classifications, retrieval_elements = self.load()
             self.success.emit(intervals, classifications, retrieval_elements)
@@ -71,7 +71,9 @@ class RetrievalLoader(qtc.QThread):
             for i, interval in enumerate(intervals):
                 for j, attr_repr in enumerate(attribute_representations):
                     dist = dists[i, j]
-                    annotation = Annotation(self.controller.scheme, np.copy(attr_repr))
+                    annotation = SingleAnnotation(
+                        self.controller.scheme, np.copy(attr_repr)
+                    )
 
                     # RetrievalElements are just wrapped tuples more or less (for convenience)
                     # (see annotation_tool/annotation/retrieval/retrieval_backend/element.py)
@@ -84,7 +86,9 @@ class RetrievalLoader(qtc.QThread):
             for i, interval in enumerate(intervals):
                 attr_repr = np.round(classifications[i])
                 dist = spatial.distance.cosine(classifications[i], attr_repr)
-                annotation = Annotation(self.controller.scheme, np.copy(attr_repr))
+                annotation = SingleAnnotation(
+                    self.controller.scheme, np.copy(attr_repr)
+                )
                 elem = RetrievalElement(
                     annotation, interval, dist, i, None
                 )  # j is None here, because there are no dependencies.

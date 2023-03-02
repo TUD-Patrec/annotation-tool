@@ -91,6 +91,9 @@ class SettingsDialog(qtw.QDialog):
 
         self.setLayout(self.layout)
 
+        self.reset_button.setDisabled(True)
+        self.reset_button.hide()
+
     def change_appearance(self):
         dlg = AppearanceSettingsDialog(self)
         dlg.window_size_changed.connect(self.window_size_changed.emit)
@@ -306,7 +309,7 @@ class NavigationSettingsDialog(qtw.QDialog):
 
         # Small skip
         self.small_skip_layout = qtw.QHBoxLayout()
-        self.small_skip_label = qtw.QLabel("Small skip:")
+        self.small_skip_label = qtw.QLabel("Skip:")
         self.small_skip_spinbox = qtw.QSpinBox()
         self.small_skip_spinbox.setRange(1, 100)
         self.small_skip_spinbox.setValue(settings.small_skip)
@@ -317,7 +320,7 @@ class NavigationSettingsDialog(qtw.QDialog):
 
         # Big skip
         self.big_skip_layout = qtw.QHBoxLayout()
-        self.big_skip_label = qtw.QLabel("Big skip:")
+        self.big_skip_label = qtw.QLabel("Quick skip:")
         self.big_skip_spinbox = qtw.QSpinBox()
         self.big_skip_spinbox.setRange(100, 5000)
         self.big_skip_spinbox.setSingleStep(100)

@@ -1,11 +1,10 @@
 from dataclasses import dataclass, field, fields
-import json
 import logging
-import os
 
-from annotation_tool import file_cache
+from annotation_tool.file_cache import cached
 
 
+@cached
 @dataclass
 class Settings:
     annotator_id: int = field(init=False, default=0)
@@ -36,20 +35,11 @@ class Settings:
         for fld in fields(self):
             setattr(self, fld.name, dct.get(fld.name, fld.default))
 
-    def _write_to_file(self, path):
-        with open(path, "w") as f:
-            json.dump(self.as_dict(), f, indent=4)
 
-    def __setattr__(self, key, value):
-        super().__setattr__(key, value)
-        self._write_to_file(__settings_path__)
-
-
-__settings_path__ = os.path.join(file_cache.application_path(), "settings.json")
-print(f"Settings path: {__settings_path__}")
-config = (
-    json.load(open(__settings_path__, "r")) if os.path.exists(__settings_path__) else {}
-)
-settings = Settings()
-if config:
-    settings.from_dict(config)
+settings = Settings.get_all()
+if len(settings) == 0:
+    settings = Settings()
+else:
+    if len(settings) > 1:
+        logging.warning("Found multiple cached settings-objects. Using the first one.")
+    settings = settings[0]
