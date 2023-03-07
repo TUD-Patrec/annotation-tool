@@ -33,9 +33,9 @@ jobs:
 
       - name: Set up python
         id: setup-python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version-file: '.python-version'
 
       - name: Install and configure Poetry
         uses: snok/install-poetry@v1

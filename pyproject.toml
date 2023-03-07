@@ -74,8 +74,8 @@ version_files = [
     "annotation_tool/__init__.py:^__version__",
     "pyproject.toml:^version"
 ]
-update_changelog_on_bump = true
-changelog_incremental = true
+update_changelog_on_bump = false
+changelog_incremental = false
 annotated_tag = true
 use_shortcuts = true
 bump_message = "bump: Version $current_version → $new_version"
