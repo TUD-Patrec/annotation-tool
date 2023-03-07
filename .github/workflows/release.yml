@@ -36,6 +36,12 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set up python
+        id: setup-python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+
       - name: Install commitizen
         run: python3 -m pip install commitizen==2.39.1
 
@@ -43,6 +49,7 @@ jobs:
         run: |
           git config user.name 'Philipp Oberdiek'
           git config user.email 'git@oberdiek.net'
+          git config push.autoSetupRemote true
 
       # Get current date
       - name: Get current date
@@ -97,6 +104,7 @@ jobs:
 
       # Create new branch for release
       - name: Create release branch
+        if: ${{ !startsWith(github.ref_name, 'release/') }}
         id: release_branch
         run: |
           git checkout -b "release/v${{ steps.bump_version.outputs.version }}"
@@ -109,13 +117,14 @@ jobs:
           git add -u
           git commit -m "release v${{ steps.bump_version.outputs.version }}"
           git tag -a -m "v${{ steps.bump_version.outputs.version }}" v${{ steps.bump_version.outputs.version }}
-          git push origin "${{ steps.release_branch.outputs.name }}" --follow-tags
+          git push origin --follow-tags
 
       - name: "Create release"
         run: GH_TOKEN=${{ github.token }} gh release create v${{ steps.bump_version.outputs.version }} --notes-file tmp-changelog.md --title v${{ steps.bump_version.outputs.version }}
 
       - name: "Create Pull Request into master"
-        run: GH_TOKEN=${{ github.token }} gh pr create --base "master" --head "${{ steps.release_branch.outputs.name }}" --title "${{ steps.release_branch.outputs.name }} → master" --body-file "tmp-changelog.md"
+        if: ${{ !startsWith(github.ref_name, 'release/') }}
+        run: GH_TOKEN=${{ github.token }} gh pr create --base "master" --head "${{ steps.release_branch.outputs.name }}" --title "Changelog v${{ steps.bump_version.outputs.version }}" --body-file "tmp-changelog.md"
 
   PublishPyPI:
     needs: create-release

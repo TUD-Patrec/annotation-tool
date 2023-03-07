@@ -1,6 +1,6 @@
 name: Lint
 on:
-  pull_request_target:
+  pull_request:
   
   workflow_call:
     inputs:
@@ -24,7 +24,7 @@ jobs:
 
       - name: Set up python
         id: setup-python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: 3.8
 
