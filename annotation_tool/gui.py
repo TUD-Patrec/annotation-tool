@@ -49,7 +49,9 @@ class GUI(qtw.QMainWindow, DialogManager):
         self.current_mode = AnnotationMode.MANUAL
 
         self.resize(settings.preferred_width, settings.preferred_height)
-        self.setWindowTitle("{} v{}".format(__application_name__, __version__))
+        self.setWindowTitle(
+            "{} v{}".format(__application_name__.replace("_", " "), __version__)
+        )
         self.setWindowIcon(qtg.QIcon(qtg.QPixmap(":/icon.png")))
 
         self.main_widget = qtw.QWidget()
