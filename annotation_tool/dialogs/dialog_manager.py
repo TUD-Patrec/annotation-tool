@@ -31,7 +31,7 @@ class DialogManager:
     def open_dialog(self, dialog):
         if self.__open_dialog__ is None:
             self.__open_dialog__ = dialog
-            self.__open_dialog__.setWindowIcon(qtg.QIcon(qtg.QPixmap(":/5578694.png")))
+            self.__open_dialog__.setWindowIcon(qtg.QIcon(qtg.QPixmap(":/icon.png")))
 
             dialog.finished.connect(self.__free_dialog__)
 
