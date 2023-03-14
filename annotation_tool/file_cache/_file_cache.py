@@ -54,6 +54,27 @@ def get_size_in_bytes() -> int:
     )
 
 
+def path_of(obj) -> Union[bytes, str]:
+    """
+    Returns the path to the cache file of the given object.
+
+    Args:
+        obj: The object to get the path for.
+
+    Returns:
+        The path to the cache file of the given object.
+
+    Raises:
+        TypeError: If the object cannot be cached (i.e. it does not use the @cached decorator).
+    """
+    try:
+        cache_id = obj.cache_id
+    except AttributeError:
+        raise TypeError(f"Cannot cache object of type {type(obj)}")
+    enc_cache_id = __file_cache__._encode_key(cache_id)
+    return __file_cache__._key_to_filename(enc_cache_id)
+
+
 def get_next_id() -> str:
     _keys = get_keys()
     _next_id = max([int(x) for x in _keys], default=0) + 1

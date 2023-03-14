@@ -1,10 +1,17 @@
+import math
 import os
-import sys
+import platform
+import subprocess
 
 import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
 
-from annotation_tool.file_cache._file_cache import get_all, get_dir, get_size_in_bytes
+from annotation_tool.file_cache._file_cache import (
+    get_all,
+    get_dir,
+    get_size_in_bytes,
+    path_of,
+)
 from annotation_tool.qt_helper_widgets.lines import QHLine
 
 
@@ -31,7 +38,7 @@ class LocalFilesDialog(qtw.QDialog):
         # show total size of directory
         self.size_label = qtw.QLabel("Total Size on disk:")
         self.size_label_value = qtw.QLabel(
-            f" {get_size_in_bytes() / 1024 / 1024 :.2f} MB"
+            f" {math.ceil(get_size_in_bytes() / 1024)} KB"
         )
         self.layout().addWidget(self.size_label, 2, 0)
         self.layout().addWidget(self.size_label_value, 2, 1)
@@ -70,17 +77,26 @@ class LocalFilesDialog(qtw.QDialog):
         qtw.QApplication.clipboard().setText(get_dir())
 
     def open_dir(self):
-        os.startfile(get_dir())
+        path = get_dir()
+        if platform.system() == "Windows":
+            os.startfile(path)
+        elif platform.system() == "Darwin":
+            subprocess.Popen(["open", path])
+        else:
+            subprocess.Popen(["xdg-open", path])
 
     def accept(self):
         super().accept()
 
     def populate_list_widget(self):
         for cached_object in get_all():
-            obj_id = cached_object.cache_id
             class_name = cached_object.__class__.__name__
-            size_in_bytes = sys.getsizeof(cached_object)
+
+            _path = path_of(cached_object)
+            _size_in_bytes = os.path.getsize(_path)
+            _size_in_kb = math.ceil(_size_in_bytes / 1024)
+            _encoded_id = os.path.basename(_path)
 
             item = qtw.QListWidgetItem()
-            item.setText(f"{obj_id} - {class_name} - {size_in_bytes} bytes")
+            item.setText(f"{_encoded_id} - {class_name} - {_size_in_kb} KB")
             self.list_widget.addItem(item)
