@@ -102,7 +102,7 @@ class Annotation:
             upper = sample.end_position
             annotation_vector = sample.annotation.annotation_vector
 
-            for _ in range(lower, upper + 1):
+            for _ in range(upper - lower + 1):
                 x.append(annotation_vector)
         x = np.array(x, int)
         return x

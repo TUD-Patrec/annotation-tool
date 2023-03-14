@@ -235,6 +235,7 @@ def read_csv(
 
     Raises:
         FileNotFoundError: Raised if no file could be read.
+        ValueError: Raised if NaN_behavior is not a valid input.
 
     Returns:
         np.ndarray: Array containing the raw data.

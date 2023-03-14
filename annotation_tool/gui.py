@@ -19,6 +19,7 @@ from . import __application_name__, __version__
 from .data_model.annotation import Annotation
 from .dialogs.dialog_manager import DialogManager
 from .dialogs.edit_datasets import QEditDatasets
+from .dialogs.import_annotation_dialog import ImportAnnotationDialog
 from .dialogs.load_annotation_dialog import LoadAnnotationDialog
 from .dialogs.local_files import LocalFilesDialog
 from .dialogs.network_list import NetworksDialog
@@ -173,6 +174,8 @@ class GUI(qtw.QMainWindow, DialogManager):
             self.open_networks,
         )
 
+        file_menu.addAction("Import", self.import_annotations)
+
         file_menu.addAction("Exit", qtg.QKeySequence.StandardKey.Close, self._exit)
 
     def annotation_mode_menu(self):
@@ -237,6 +240,10 @@ class GUI(qtw.QMainWindow, DialogManager):
 
     def edit_datasets(self):
         dialog = QEditDatasets()
+        self.open_dialog(dialog)
+
+    def import_annotations(self):
+        dialog = ImportAnnotationDialog()
         self.open_dialog(dialog)
 
     @qtc.pyqtSlot(qtw.QWidget, LayoutPosition)
