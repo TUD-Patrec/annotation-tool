@@ -15,6 +15,8 @@ from annotation_tool.utility import filehandler
 class QEditDatasets(qtw.QDialog):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.setWindowTitle("Datasets")
         vbox = qtw.QVBoxLayout()
 
         self.scroll_widget = QAdaptiveScrollArea(self)
