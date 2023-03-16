@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Tuple
 
@@ -73,4 +74,4 @@ except ImportError:
     from base import register_video_reader
 
 register_video_reader(TorchVisionReader, -100)
-print("Registered TorchVisionReader.")
+logging.info("Registered TorchVisionReader.")

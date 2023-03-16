@@ -44,7 +44,7 @@ def __video_builder__(path=None, **kwargs) -> VideoReader:
 
 
 register_media_reader(
-    media_type="video_readers",
+    media_type="video",
     selector_function=__is_video__,
     factory=__video_builder__,
 )

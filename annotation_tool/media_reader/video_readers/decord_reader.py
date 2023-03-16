@@ -6,9 +6,9 @@ import decord
 import numpy as np
 
 try:
-    from .base import VideoReaderBase
+    from .base import VideoReaderBase, register_video_reader
 except ImportError:
-    from base import VideoReaderBase
+    from base import VideoReaderBase, register_video_reader
 
 
 class DecordReader(VideoReaderBase):
@@ -135,11 +135,6 @@ class DecordReader(VideoReaderBase):
         except Exception:  # noqa
             return False
 
-
-try:
-    from .base import register_video_reader
-except ImportError:
-    from base import register_video_reader
 
 register_video_reader(DecordReader, 10)
 logging.info("Registered decord video reader.")
