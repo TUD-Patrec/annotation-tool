@@ -1,12 +1,28 @@
 import logging
+from threading import Thread
+from time import sleep
 
 import PyQt6.QtCore as qtc
 import PyQt6.QtGui as qtg
 import PyQt6.QtWidgets as qtw
-import cv2
 
 from annotation_tool.media.backend.player import AbstractMediaPlayer, UpdateReason
 from annotation_tool.media_reader import media_reader as mr
+
+
+def check_resize(vp):
+    w, h = vp.lblVid.width(), vp.lblVid.height()
+    while True:
+        try:
+            active = vp._active  # noqa
+        except:  # noqa
+            break
+        if not active:
+            break
+        if w != vp.lblVid.width() or h != vp.lblVid.height():
+            vp.get_update.emit(UpdateReason.IGNORE)
+            w, h = vp.lblVid.width(), vp.lblVid.height()
+        sleep(0.1)
 
 
 class VideoPlayer(AbstractMediaPlayer):
@@ -25,9 +41,6 @@ class VideoPlayer(AbstractMediaPlayer):
         self.lblVid.setAlignment(qtc.Qt.AlignmentFlag.AlignCenter)
         self.layout().addWidget(self.lblVid)
 
-        self._pix = None
-        self._pix_mutex = qtc.QMutex()
-
         # design
         p = self.palette()
         p.setColor(self.backgroundRole(), qtc.Qt.GlobalColor.black)
@@ -41,6 +54,9 @@ class VideoPlayer(AbstractMediaPlayer):
 
         self._active = True
 
+        self.resize_worker = Thread(target=check_resize, args=(self,), daemon=True)
+        self.resize_worker.start()
+
     def load(self, path):
         self.load_worker.emit(path)
 
@@ -51,17 +67,12 @@ class VideoPlayer(AbstractMediaPlayer):
         self.loaded.emit(self)
         self.adjustSize()
 
-    def resizeEvent(self, event):
-        qtw.QWidget.resizeEvent(self, event)
-        self.lblVid.resize(event.size())
-        self.get_update.emit(UpdateReason.IGNORE)
-
     def update_media_position(self, update_reason: UpdateReason):
         self.get_update.emit(update_reason)
 
-    @qtc.pyqtSlot(UpdateReason)
-    def update_pixmap(self, update_reason: UpdateReason):
-        self.lblVid.setPixmap(self.pix)
+    @qtc.pyqtSlot(qtg.QPixmap, UpdateReason)
+    def update_pixmap(self, pix, update_reason: UpdateReason):
+        self.lblVid.setPixmap(pix)
         self.confirm_update(update_reason)
 
     @qtc.pyqtSlot(UpdateReason)
@@ -122,19 +133,9 @@ class VideoPlayer(AbstractMediaPlayer):
                 logging.debug("VideoPlayer: Worker-Thread already terminated.")
             self.worker_thread = None
 
-    @property
-    def pix(self):
-        with qtc.QMutexLocker(self._pix_mutex):
-            return self._pix
-
-    @pix.setter
-    def pix(self, pix):
-        with qtc.QMutexLocker(self._pix_mutex):
-            self._pix = pix
-
 
 class VideoHelper(qtc.QObject):
-    image_ready = qtc.pyqtSignal(UpdateReason)
+    image_ready = qtc.pyqtSignal(qtg.QPixmap, UpdateReason)
     no_update_needed = qtc.pyqtSignal(UpdateReason)
     loaded = qtc.pyqtSignal(int, int)
     finished = qtc.pyqtSignal()
@@ -208,10 +209,9 @@ class VideoHelper(qtc.QObject):
                 qtc.Qt.TransformationMode.SmoothTransformation,
             )
             pix = qtg.QPixmap.fromImage(img)
-            self._video_player.pix = pix  # set pixmap
 
             try:
-                self.image_ready.emit(update_reason)
+                self.image_ready.emit(pix, update_reason)
             except RuntimeError:
                 # widget already deleted
                 pass
@@ -220,7 +220,6 @@ class VideoHelper(qtc.QObject):
         # full update
         frame = self.media[pos]  # Loading image and pixmap
         if frame is not None:
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             h, w, ch = frame.shape
             bytes_per_line = ch * w
@@ -239,9 +238,8 @@ class VideoHelper(qtc.QObject):
             )
             pix = qtg.QPixmap.fromImage(img)
 
-            self._video_player.pix = pix  # set pixmap
             try:
-                self.image_ready.emit(update_reason)
+                self.image_ready.emit(pix, update_reason)
             except RuntimeError:
                 pass  # widget already deleted
         else:
