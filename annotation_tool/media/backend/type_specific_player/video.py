@@ -42,11 +42,7 @@ class VideoPlayer(AbstractMediaPlayer):
         self.layout().addWidget(self.lblVid)
 
         # design
-        p = self.palette()
-        p.setColor(self.backgroundRole(), qtc.Qt.GlobalColor.black)
-        self.setPalette(p)
         self.layout().setContentsMargins(0, 0, 0, 0)
-        # self.setAutoFillBackground(True)
 
         self.worker_thread = qtc.QThread()
         self.worker = VideoHelper(self)

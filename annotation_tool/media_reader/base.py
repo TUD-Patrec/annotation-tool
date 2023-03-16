@@ -133,6 +133,7 @@ class MediaReader(abc.ABC):
         """
         Returns the frame at the given index.
         If the index is a slice, returns a list of frames.
+        The shape of the frame depends on the media type, e.g. for video it is (h,w,c) with c being the 3-RGB channels.
 
         Args:
             idx: The index/indices of the frame(s) to return.
@@ -159,6 +160,9 @@ class MediaReader(abc.ABC):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.__del__()
+
+    def __iter__(self):
+        return self[:]
 
     @abc.abstractmethod
     def __get_frame__(self, idx: int) -> np.ndarray:
