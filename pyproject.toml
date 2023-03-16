@@ -39,6 +39,8 @@ sortedcontainers = "^2.4.0"
 fcache = "^0.4.7"
 appdirs = "^1.4.4"
 av = "^8.0.3"
+decord = "^0.6.0"
+tqdm = "^4.65.0"
 
 
 [tool.poetry.group.dev.dependencies]
