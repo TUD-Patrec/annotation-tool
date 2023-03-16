@@ -5,6 +5,7 @@ import PyQt6.QtGui as qtg
 import PyQt6.QtWidgets as qtw
 
 from annotation_tool.user_actions import ReplayActions
+from annotation_tool.utility.resources import *  # noqa: F403, F401
 
 from .qt_helper_widgets.lines import QHLine
 from .qt_helper_widgets.own_slider import OwnSlider
@@ -19,20 +20,25 @@ class QPlaybackWidget(qtw.QWidget):
     def __init__(self, *args, **kwargs):
         self.n_frames = 0
 
+        self.play_icon = qtg.QIcon(qtg.QPixmap(":/play_icon.png"))
+        self.pause_icon = qtg.QIcon(qtg.QPixmap(":/pause_icon.png"))
+        self.skip_forward_icon = qtg.QIcon(qtg.QPixmap(":/skip_next_icon.png"))
+        self.skip_backward_icon = qtg.QIcon(qtg.QPixmap(":/skip_previous_icon.png"))
+        self.skip_backward_fast_icon = qtg.QIcon(
+            qtg.QPixmap(":/skip_previous_2_icon.png")
+        )
+        self.skip_forward_fast_icon = qtg.QIcon(qtg.QPixmap(":/skip_next_2_icon.png"))
+
         super(QPlaybackWidget, self).__init__(*args, **kwargs)
         back_button = qtg.QAction("Skip backward (fast)", self)
         back_button.setStatusTip("Skip backward (fast)")
-        back_button.setIcon(
-            self.style().standardIcon(qtw.QStyle.StandardPixmap.SP_MediaSkipBackward)
-        )
+        back_button.setIcon(self.skip_backward_fast_icon)
         back_button.triggered.connect(lambda _: self.skip_frames.emit(False, True))
         self.back_button = back_button
 
         slow_back_button = qtg.QAction("Skip backward", self)
         slow_back_button.setStatusTip("Skip backward")
-        slow_back_button.setIcon(
-            self.style().standardIcon(qtw.QStyle.StandardPixmap.SP_ArrowBack)
-        )
+        slow_back_button.setIcon(self.skip_backward_icon)
         slow_back_button.triggered.connect(
             lambda _: self.skip_frames.emit(False, False)
         )
@@ -42,17 +48,14 @@ class QPlaybackWidget(qtw.QWidget):
         play_stop_button.setText("Start")
         play_stop_button.setStatusTip("Play/Pause")
         play_stop_button.setCheckable(True)
-        play_stop_button.setIcon(
-            self.style().standardIcon(qtw.QStyle.StandardPixmap.SP_MediaPlay)
-        )
+        play_stop_button.setIcon(self.play_icon)
+
         play_stop_button.triggered.connect(lambda _: self.play_stop_clicked())
         self.play_stop_button = play_stop_button
 
         slow_forward_button = qtg.QAction("Skip forward", self)
         slow_forward_button.setStatusTip("Skip forward")
-        slow_forward_button.setIcon(
-            self.style().standardIcon(qtw.QStyle.StandardPixmap.SP_ArrowForward)
-        )
+        slow_forward_button.setIcon(self.skip_forward_icon)
         slow_forward_button.triggered.connect(
             lambda _: self.skip_frames.emit(True, False)
         )
@@ -60,9 +63,7 @@ class QPlaybackWidget(qtw.QWidget):
 
         forward_button = qtg.QAction("Skip forward (fast)", self)
         forward_button.setStatusTip("Skip forward (fast)")
-        forward_button.setIcon(
-            self.style().standardIcon(qtw.QStyle.StandardPixmap.SP_MediaSkipForward)
-        )
+        forward_button.setIcon(self.skip_forward_fast_icon)
         forward_button.triggered.connect(lambda _: self.skip_frames.emit(True, True))
         self.forward_button = forward_button
 
@@ -110,12 +111,8 @@ class QPlaybackWidget(qtw.QWidget):
 
     def play_stop_clicked(self):
         playing = self.play_stop_button.isChecked()
-        icon_ = (
-            qtw.QStyle.StandardPixmap.SP_MediaPause
-            if playing
-            else qtw.QStyle.StandardPixmap.SP_MediaPlay
-        )
-        self.play_stop_button.setIcon(self.style().standardIcon(icon_))
+        icon_ = self.pause_icon if playing else self.play_icon
+        self.play_stop_button.setIcon(icon_)
         self.play_stop_button.setText("Pause" if playing else "Start")
         if playing:
             self.playing.emit()

@@ -18,6 +18,7 @@ class QRetrievalFilter(qtw.QDialog):
         self.init_UI()
 
     def init_UI(self):
+        self.setWindowTitle("Edit Retrieval-Filter")
         self.form = qtw.QFormLayout(self)
         self.combo_boxes = []
 
