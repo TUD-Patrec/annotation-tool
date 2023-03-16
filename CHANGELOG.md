@@ -4,6 +4,46 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). See also [RELEASE.md](RELEASE.md) for additional explanation.
 
+## 0.8.0 (2023-03-16)
+
+### ❗️ Breaking Changes
+
+- Remodel file cache and rename class attributes (#10)
+
+### 🚀 Features
+
+- Add support for loading annotation-files (#16)
+- Feat/UI changes (#17)
+
+### 🐛 Fixes
+
+- fix(local_files.py):  fixed bugs in local_files-dialog (#15)
+
+### 📔 Documentation
+
+- Update developer information (#2)
+- Update README with additional pip installation instructions (#4)
+- Update package homepage URL (#7)
+
+### 🧹 Refactoring
+
+- Rename some GUI items (#9)
+
+### ⚙️ CI/CD
+
+- Create workflow for automatic releases (#3)
+- Fix script for detecting SemVer increments (#5)
+- Add missing config for changelog generator (#6)
+- Fix order of steps in release workflow (#8)
+- Minor updates to the workflow files (#11)
+- Fix repository not checked out on workflow call on lint.yml (#18)
+
+### Other
+
+- Update icon and name in title bar (#12)
+- Add iconset for pyinstaller binaries (#13)
+- Add Windows icon and add Mac build targets to Makefile (#14)
+
 ## 0.7.1 (2023-02-17)
 
 ### 🐛 Fix
