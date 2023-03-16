@@ -12,9 +12,13 @@ except ImportError:
 import numpy as np
 import tqdm
 
-video_folder = r"C:\Users\Raphael\Desktop\example_videos"
-for p in os.walk(video_folder):
-    in_files = [os.path.join(p[0], f) for f in p[2]]
+try:
+    video_folder = r"C:\Users\Raphael\Desktop\example_videos"
+    for p in os.walk(video_folder):
+        in_files = [os.path.join(p[0], f) for f in p[2]]
+except:  # noqa: E722
+    in_files = []
+
 
 print(in_files)
 
@@ -131,3 +135,25 @@ if __name__ == "__main__":
 
     for res in results:
         print(res)
+
+    # save results to csv
+    import csv
+
+    out_path = r"C:\Users\Raphael\Desktop\results.csv"
+    with open(out_path, "w", newline="") as csvfile:
+        fieldnames = [
+            "reader",
+            "file_path",
+            "detected_frame_count",
+            "detected_fps",
+            "detected_duration",
+            "video_size",
+            "access_test_type",
+            "total_time",
+            "number_repetitions",
+            "frames_per_second",
+        ]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for res in results:
+            writer.writerow(dataclasses.asdict(res))

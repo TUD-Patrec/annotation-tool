@@ -111,7 +111,7 @@ class QMediaMainController(qtw.QWidget):
             elif media_type == "mocap":
                 widget = MocapPlayer(is_main_widget, self)
             else:
-                raise NotImplementedError("Media type not supported")
+                raise NotImplementedError(f"Media type {media_type} is not supported")
 
             if widget.is_main_replay_widget:
                 widget.position_changed.connect(self.position_changed)
