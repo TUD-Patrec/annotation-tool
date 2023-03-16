@@ -1,9 +1,5 @@
 name: "Create New Release"
 
-permissions:
-  contents: write
-  pull-requests: write
-
 on:
   workflow_dispatch:
     branches:
@@ -34,7 +30,7 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT }}
 
       - name: Set up python
         id: setup-python
@@ -69,8 +65,7 @@ jobs:
           owner: "TUD-Patrec"
           repo: "annotation-tool"
           toTag: ${{ github.sha }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT }}
 
       # Save changelog to file and remove trailing newlines
       - name: "Save changelog changes to file"
