@@ -115,11 +115,11 @@ jobs:
           git push origin --follow-tags
 
       - name: "Create release"
-        run: GH_TOKEN=${{ github.token }} gh release create v${{ steps.bump_version.outputs.version }} --notes-file tmp-changelog.md --title v${{ steps.bump_version.outputs.version }}
+        run: GH_TOKEN=${{ secrets.PAT }} gh release create v${{ steps.bump_version.outputs.version }} --notes-file tmp-changelog.md --title v${{ steps.bump_version.outputs.version }}
 
       - name: "Create Pull Request into master"
         if: ${{ !startsWith(github.ref_name, 'release/') }}
-        run: GH_TOKEN=${{ github.token }} gh pr create --base "master" --head "${{ steps.release_branch.outputs.name }}" --title "Changelog v${{ steps.bump_version.outputs.version }}" --body-file "tmp-changelog.md"
+        run: GH_TOKEN=${{ secrets.PAT }} gh pr create --base "master" --head "${{ steps.release_branch.outputs.name }}" --title "Changelog v${{ steps.bump_version.outputs.version }}" --body-file "tmp-changelog.md"
 
   PublishPyPI:
     needs: create-release
