@@ -26,9 +26,7 @@ class DecordReader(VideoReaderBase):
         self.path = path
         self.video = decord.VideoReader(path, ctx=decord.cpu(0))
 
-        logging.info(
-            f"DecordReader: {self.path} has {self.get_frame_count()} frames and {self.get_fps()} fps."
-        )
+        logging.info(f"Using decord for video {path}.")
 
     def get_frame(self, frame_idx: int) -> np.ndarray:
         """
@@ -137,4 +135,4 @@ class DecordReader(VideoReaderBase):
 
 
 register_video_reader(DecordReader, 10)
-logging.info("Registered decord video reader.")
+logging.info("Registered DecordReader.")

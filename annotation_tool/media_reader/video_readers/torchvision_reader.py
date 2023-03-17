@@ -20,6 +20,8 @@ class TorchVisionReader(VideoReaderBase):
 
         self.pos = 0
 
+        logging.info(f"Using torchvision for video {path}.")
+
     def get_frame(self, frame_idx: int) -> np.ndarray:
         if frame_idx != self.pos:
             timestamp = (frame_idx / self.get_fps()) - (1 / self.get_fps() / 2)

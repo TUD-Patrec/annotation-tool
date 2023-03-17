@@ -61,6 +61,7 @@ class RingBufEval:
 
 class OpenCvReader(VideoReaderBase):
     def __init__(self, path: os.PathLike, **kwargs):
+        self.path = path
         self.media = __get_vc__(path)
 
         self.FAST_SEEK_THRESHOLD = 5
@@ -79,6 +80,8 @@ class OpenCvReader(VideoReaderBase):
             self.delta_eval_buf = RingBufEval(buf_size)
 
             self._last_eval_time = time.time()
+
+        logging.info(f"Using OpenCV for video {path}.")
 
     def get_frame(self, frame_idx: int) -> np.ndarray:
         if frame_idx < 0 or frame_idx >= self.get_frame_count():
@@ -236,4 +239,4 @@ except ImportError:
 
 
 register_video_reader(OpenCvReader, 0)
-logging.info("Registered OpenCV video reader.")
+logging.info("Registered OpenCvReader.")

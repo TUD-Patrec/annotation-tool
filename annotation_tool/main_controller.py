@@ -117,7 +117,7 @@ class MainApplication(qtw.QApplication):
 
             media = media_reader(path=annotation.path)
             duration = media.duration
-            n_frames = media.n_frames
+            n_frames = len(media)
 
             FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
 
@@ -207,7 +207,7 @@ class MainApplication(qtw.QApplication):
         if self.current_annotation is not None:
             media = media_reader(path=self.current_annotation.path)
             duration = media.duration
-            n_frames = media.n_frames
+            n_frames = len(media)
 
             FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
 

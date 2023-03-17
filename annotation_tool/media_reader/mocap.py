@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 
@@ -8,37 +8,44 @@ from .base import MediaReader, register_media_reader
 
 
 class MocapReader(MediaReader):
-    def __init__(self, path: os.PathLike, **kwargs):
-        self._mocap = None
-        super().__init__(path)
+    def __init__(self, path: os.PathLike, **kwargs) -> None:
+        super().__init__(path, **kwargs)
 
-        print(f"{self.fps = }, {self.n_frames = }")
-
-    @property
-    def media(self):
-        if self._mocap is None:
-            self._mocap = self.__read_media__()
-        return self._mocap
-
-    def __del__(self):
-        pass
-
-    def __get_frame__(self, idx: int) -> np.ndarray:
-        """
-        Returns the mocap-frame at the given index.
-        """
-        return self.media.get_frame(idx)
-
-    def __read_media__(self):
         from .mocap_readers import get_mocap_reader
 
-        return get_mocap_reader(self.path)
+        try:
+            self._mocap_reader = get_mocap_reader(path)
+        except ValueError as e:
+            raise ValueError(f"Could not load mocap data {path}.") from e
 
-    def __detect_fps__(self) -> Optional[float]:
-        return None
+        self._fps = kwargs.get("fps", None)
+        self._duration = kwargs.get("duration", None)
 
-    def __detect_n_frames__(self) -> int:
-        return self.media.get_frame_count()
+    def __get_frame__(self, idx: int) -> np.ndarray:
+        return self._mocap_reader.get_frame(idx)
+
+    def __get_frame_count__(self) -> int:
+        return self._mocap_reader.get_frame_count()
+
+    def __get_duration__(self) -> Optional[float]:
+        if self._duration is None:
+            self._duration = self._mocap_reader.get_duration()
+        return self._duration
+
+    def __get_fps__(self) -> Optional[float]:
+        if self._fps is None:
+            self._fps = self._mocap_reader.get_fps()
+        return self._fps
+
+    def __get_path__(self) -> os.PathLike:
+        return self._mocap_reader.get_path()
+
+    def __set_fps__(self, fps: Union[int, float]) -> None:
+        if not isinstance(fps, (int, float)):
+            raise TypeError("Framerate must be a number.")
+        if fps <= 0:
+            raise ValueError("Framerate must be positive.")
+        self._fps = fps
 
 
 def __is_mocap__(path: os.PathLike) -> bool:
