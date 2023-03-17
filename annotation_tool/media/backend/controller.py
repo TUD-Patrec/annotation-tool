@@ -54,6 +54,10 @@ class MediaProxy(qtc.QObject):
     def position(self):
         return self.media_widget.position
 
+    @property
+    def main_replay_widget(self):
+        return self.media_widget._is_main_replay_widget
+
 
 class QMediaMainController(qtw.QWidget):
     position_changed = qtc.pyqtSignal(int)
@@ -93,15 +97,15 @@ class QMediaMainController(qtw.QWidget):
         self.pause()
         self.clear(notify=False)
         self.reset.emit()
-        self.add_replay_widget(file)
+        self.add_replay_widget(file, is_main_widget=True)
 
     def clear(self, notify=True):
         while self.replay_widgets:
             self.remove_replay_source(self.replay_widgets[0], notify)
 
-    def add_replay_widget(self, path):
+    def add_replay_widget(self, path, is_main_widget=False):
         if len(self.replay_widgets) < self.MAX_WIDGETS:
-            is_main_widget = len(self.replay_widgets) == 0
+            # is_main_widget = len(self.replay_widgets) == 0
 
             # select correct media_player
 

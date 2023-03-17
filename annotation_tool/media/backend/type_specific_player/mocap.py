@@ -29,6 +29,8 @@ class MocapPlayer(AbstractMediaPlayer):
         self.confirm_update(update_reason)
 
     def shutdown(self):
+        self.setFixedSize(0, 0)
+        self.hide()
         self.media_backend.shutdown()
         self.media_backend = None
         self.terminated = True
