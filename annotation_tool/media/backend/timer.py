@@ -71,7 +71,9 @@ class Timer(qtc.QObject):
                 else:
                     if len(self.subscribers) > 1:
                         if not self.subscribers_in_sync():
-                            logging.warning("Not all subscribers in sync!")
+                            # TODO: This is not working properly
+                            # logging.debug("Not all subscribers in sync!")
+                            pass
                 time.sleep(self.ACTIVE_IDLE_TIME)
                 self._inner_reset()
                 continue
@@ -101,8 +103,10 @@ class Timer(qtc.QObject):
 
     def subscribers_in_sync(self):
         if self.subscribers:
-            main_subscriber = self.subscribers[0][0]
-            fps_sync = self.subscribers[0][0].fps
+            # main_subscriber = self.subscribers[0][0]
+            main_subscriber = self.main_subscriber
+
+            fps_sync = main_subscriber.fps
             pos = main_subscriber.position
 
             for subscriber, _ in self.subscribers:
@@ -114,7 +118,8 @@ class Timer(qtc.QObject):
                     # print(
                     #    f"main_position = {pos},\t{subscriber.position = },\t{pos_adjusted = :.2f},\tmain_fps = {fps},\t{fps_sync = }")
                     pos_adjusted = int(frame_rate_ratio * pos)
-                    if subscriber.position != pos_adjusted:
+                    # TODO: needs rework!
+                    if abs(subscriber.position - pos_adjusted) > 5:
                         return False
                 else:
                     # print(
@@ -125,8 +130,15 @@ class Timer(qtc.QObject):
 
     def synchronize(self):
         if self.subscribers and self.next_position is None:
-            pos = self.subscribers[0][0].position
+            pos = self.main_subscriber.position
             self.query_position_update(pos)
+
+    @property
+    def main_subscriber(self):
+        for subscriber, _ in self.subscribers:
+            if subscriber.main_replay_widget:
+                return subscriber
+        return self.subscribers[0][0]
 
     @qtc.pyqtSlot(qtc.QObject)
     def subscribe(self, x):

@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
+import logging
 
 import PyQt6.QtCore as qtc
 import PyQt6.QtGui as qtg
@@ -88,7 +89,7 @@ class AbstractMediaPlayer(qtw.QWidget):
     @qtc.pyqtSlot()
     def adjust_offset(self):
         old_offset = self.offset
-        input_dialog = qtw.QInputDialog()
+        input_dialog = qtw.QInputDialog(self)
 
         input_dialog.setInputMode(qtw.QInputDialog.InputMode.IntInput)
         input_dialog.setIntRange(-(2**31), 2**31 - 1)
@@ -98,8 +99,6 @@ class AbstractMediaPlayer(qtw.QWidget):
         input_dialog.setLabelText("Offset")
 
         input_dialog.rejected.connect(lambda: self.change_offset(old_offset))
-
-        self.inp_dia = input_dialog
 
         input_dialog.open()
 
@@ -168,9 +167,12 @@ class AbstractMediaPlayer(qtw.QWidget):
         if self._is_main_replay_widget:
             return x
         else:
-            own_fps = self.fps
-            refence_fps = self._reference_fps
-            return int(x * own_fps / refence_fps)
+            try:
+                return int(x * self.fps / self._reference_fps)
+            except:  # noqa
+                logging.debug("Error in translate_frame_position")
+                # TODO fix this
+                return x
 
     def send_ACK(self, r):
         if r == UpdateReason.TIMEOUT:

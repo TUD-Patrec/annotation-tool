@@ -22,6 +22,7 @@ class QAnnotationDialog(qtw.QDialog):
         self.scheme = scheme
         self.dependencies = dependencies
 
+        self.setWindowTitle("Edit Annotation")
         self.init_top_widget()
         self.init_bottom_widget()
 

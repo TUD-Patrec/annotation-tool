@@ -25,12 +25,19 @@ class QDisplaySample(qtw.QWidget):
         )
         self.end_value = qtw.QLabel("", alignment=qtc.Qt.AlignmentFlag.AlignCenter)
 
+        self.delta_label = qtw.QLabel(
+            "Total Frames:", alignment=qtc.Qt.AlignmentFlag.AlignCenter
+        )
+
+        self.delta_value = qtw.QLabel("", alignment=qtc.Qt.AlignmentFlag.AlignCenter)
+
         self.middle_widget = QShowAnnotation(self)
 
         self.bottom_left_widget = qtw.QWidget()
         self.bottom_left_widget.setLayout(qtw.QFormLayout())
         self.bottom_left_widget.layout().addRow(self.start_label, self.start_value)
         self.bottom_left_widget.layout().addRow(self.end_label, self.end_value)
+        self.bottom_left_widget.layout().addRow(self.delta_label, self.delta_value)
 
         self.bottom_right_widget = qtw.QWidget()
         self.bottom_right_widget.setLayout(qtw.QVBoxLayout())
@@ -58,10 +65,14 @@ class QDisplaySample(qtw.QWidget):
             self.middle_widget.show_annotation(None)
             self.start_value.setText(str(0))
             self.end_value.setText(str(0))
+            self.delta_value.setText(str(0))
         else:
             self.middle_widget.show_annotation(sample.annotation)
             self.start_value.setText(str(sample.start_position))
             self.end_value.setText(str(sample.end_position))
+            self.delta_value.setText(
+                str(sample.end_position - sample.start_position + 1)
+            )
 
     @qtc.pyqtSlot(bool)
     def setEnabled(self, a0: bool) -> None:
