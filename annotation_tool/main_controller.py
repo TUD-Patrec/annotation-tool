@@ -161,9 +161,6 @@ class MainApplication(qtw.QApplication):
     @qtc.pyqtSlot(list)
     def set_additional_media_paths(self, paths: list):
         assert self.current_annotation is not None
-        logging.debug(
-            f"self.global_state: {self.current_annotation.path = } {self.current_annotation.get_additional_media_paths() = }"
-        )
         self.current_annotation.set_additional_media_paths(paths)
 
     @qtc.pyqtSlot()

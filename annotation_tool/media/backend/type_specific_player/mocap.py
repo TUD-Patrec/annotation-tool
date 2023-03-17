@@ -29,7 +29,6 @@ class MocapPlayer(AbstractMediaPlayer):
         self.confirm_update(update_reason)
 
     def shutdown(self):
-        self.media_backend.shutdown()
         self.media_backend = None
         self.terminated = True
         self.finished.emit(self)
@@ -80,12 +79,6 @@ class MocapBackend(gl.GLViewWidget):
         returns 1 a.t.m., even if the application uses scaling != 1.0.
         """
         return qtw.QApplication.primaryScreen().devicePixelRatio()
-
-    def shutdown(self):
-        self.media = None
-        self.position = None
-        self.current_skeleton = None
-        self.zgrid = None
 
 
 def _fix_skeleton_height(skeleton: np.ndarray) -> np.ndarray:
