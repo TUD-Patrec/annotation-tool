@@ -1,6 +1,5 @@
 import abc
 import dataclasses
-import logging
 import os
 from typing import Optional
 
@@ -88,42 +87,6 @@ class MocapReaderBase(abc.ABC):
             bool: Whether the video_readers format is supported by the reader.
         """
         return False
-
-
-class __Memoizer:
-    def __init__(self):
-        self._cache = {}
-
-    def __call__(self, mr: MocapReaderBase) -> np.ndarray:
-        """
-        Returns the memorized version of the given __MediaReader.
-
-        Args:
-            mr: The __MediaReader to memorize.
-
-        Returns:
-            The memorized version of the __MediaReader.
-        """
-        if not isinstance(mr, MocapReaderBase):
-            raise TypeError("Invalid argument type.")
-        key = id(mr)
-        if key not in self._cache:
-            media = mr.__read_media__()
-            self._cache[key] = media
-
-        return self._cache[key]
-
-    def remove(self, mr: MocapReaderBase) -> None:
-        """
-        Removes the given __MediaReader from the cache.
-
-        Args:
-            mr: The __MediaReader to remove.
-        """
-        key = id(mr)
-        if key in self._cache:
-            del self._cache[key]
-            logging.debug(f"Removed {mr} from cache. Cache size: {len(self._cache)}")
 
 
 @dataclasses.dataclass

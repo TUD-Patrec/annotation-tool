@@ -4,7 +4,7 @@ import logging
 import math
 from pathlib import Path
 import threading
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
 
@@ -55,9 +55,10 @@ class CachedMocapObject:
 
 
 class MocapCache(object):
-    def __init__(self, max_size_kb: int = 500000):
+    def __init__(self, max_size_kb: int = 250000, compress=False):
         self._cache = []
         self._lock = threading.Lock()
+        self._compress = compress
 
         self._max_size_bytes = max_size_kb * 1024
         self._current_size_bytes = 0
@@ -73,17 +74,43 @@ class MocapCache(object):
         _max_size_kb = math.ceil(self._max_size_bytes / 1024)
         return f"MocapCache(len={_len}, size={_size_kb}KB, max_size={_max_size_kb}KB)"
 
-    def __contains__(self, path: Union[Path, str]):
-        return self.get(path) is not None
+    def __contains__(self, path: Path):
+        _last_change = path.stat().st_mtime
+        for obj in self._cache:
+            if obj.path == path and obj.last_changed == _last_change:
+                return True
+        return False
 
-    def __getitem__(self, path: Union[Path, str]):
-        x = self.get(path)
-        if x is None:
-            raise KeyError(f"Path {path} not found in cache.")
-        return x
+    def __getitem__(self, path: Path):
+        _last_change = path.stat().st_mtime
+        for obj in reversed(self._cache):
+            if obj.path == path and obj.last_changed == _last_change:
+                return obj.data.copy()  # return a copy to avoid modifying the cache
+        raise KeyError(f"Path {path} not found in cache.")
 
     def __setitem__(self, key, value):
-        self.put(key, value)
+        self.__put__(key, value)
+
+    def __put__(self, path: Path, data: np.ndarray) -> None:
+        assert isinstance(data, np.ndarray), "Data must be a numpy array."
+        assert isinstance(path, Path), "Path must be a Path object."
+        assert path.exists(), "Path must exist."
+
+        with self._lock:
+            compressed_data = CompressedArray(arr=data, compress=self._compress)
+            new_obj = CachedMocapObject(compressed_data, path, path.stat().st_mtime)
+
+            if new_obj.nbytes > 0.9 * self._max_size_bytes:
+                logging.warning(
+                    f"Object {path.name} is larger than the cache size. Skipping."
+                )
+                return
+
+            self._current_size_bytes += compressed_data.nbytes
+            self._evict()
+            self._cache.append(new_obj)
+
+        logging.debug(f"Added {path.name} to cache -> {self}")
 
     def _evict(self):
         untouched = True
@@ -99,33 +126,36 @@ class MocapCache(object):
             self._current_size_bytes = 0
         logging.debug(f"Cleared cache -> {self}")
 
-    def get(self, path: Union[Path, str], default=None) -> Optional[np.ndarray]:
-        if isinstance(path, str):
-            path = Path(path)
-        for obj in self._cache:
-            if obj.path == path and obj.last_changed == path.stat().st_mtime:
-                return obj.data
-        return default
-
-    def put(self, path: Union[Path, str], data: np.ndarray) -> None:
-        assert isinstance(data, np.ndarray), "Data must be a numpy array."
-        assert isinstance(path, (Path, str)), "Path must be a path-like object."
-        if isinstance(path, str):
-            path = Path(path)
-        with self._lock:
-            compressed_data = CompressedArray(data)
-            new_obj = CachedMocapObject(compressed_data, path, path.stat().st_mtime)
-            if new_obj in self._cache:
-                return
-            self._cache.append(new_obj)
-            self._current_size_bytes += compressed_data.nbytes
-            self._evict()
-        logging.debug(f"Added {path.name} to cache -> {self}")
+    def get(self, path: Path, default=None) -> Optional[np.ndarray]:
+        try:
+            return self[path]
+        except KeyError:
+            return default
 
     def set_max_size(self, max_size_kb: int):
         with self._lock:
             self._max_size_bytes = max_size_kb * 1024
             self._evict()
 
+    def set_compress(self, compress: bool):
+        with self._lock:
+            self._compress = compress
 
-mocap_cache = MocapCache()
+
+mocap_cache = MocapCache(compress=True)
+
+
+def get_cache() -> MocapCache:
+    return mocap_cache
+
+
+def clear_cache():
+    mocap_cache.clear()
+
+
+def set_cache_max_size(max_size_kb: int):
+    mocap_cache.set_max_size(max_size_kb)
+
+
+def set_cache_compress(compress: bool):
+    mocap_cache.set_compress(compress)

@@ -5,7 +5,12 @@ from typing import Optional
 
 import numpy as np
 
-from .cache import mocap_cache
+try:
+    from .cache import get_cache
+except ImportError:
+    from cache import get_cache
+except Exception:
+    get_cache = None
 
 try:
     from .base import MocapReaderBase, register_mocap_reader
@@ -32,16 +37,23 @@ def load_lara_mocap(path: Path, data_type: np.dtype = float) -> np.ndarray:
         np.float32,
         np.float64,
         float,
-    ], "Invalid dtype for mocap data."
+    ], f"Invalid dtype {data_type} for mocap data."
     assert isinstance(path, Path), "Path must be a pathlib.Path object."
-    if path in mocap_cache:
-        logging.debug(f"Loaded mocap from cache: {path}")
-        return mocap_cache[path].copy().astype(data_type)
+
+    if get_cache is None:
+        logging.warning("Cache not available. Loading mocap from file.")
+        return __load_lara_mocap__(path).astype(data_type)
     else:
-        logging.debug(f"Loaded mocap from file: {path}")
-        mocap = __load_lara_mocap__(path).astype(data_type)
-        mocap_cache.put(path, mocap)
-        return mocap
+        mocap_cache = get_cache()
+
+        if path in mocap_cache:
+            logging.debug(f"Loaded mocap from cache: {path}")
+            return mocap_cache[path].astype(data_type)
+        else:
+            logging.debug(f"Loaded mocap from file: {path}")
+            mocap = __load_lara_mocap__(path).astype(data_type)
+            mocap_cache[path] = mocap
+            return mocap
 
 
 def __load_lara_mocap__(path: os.PathLike) -> np.ndarray:
@@ -149,7 +161,8 @@ class LARaMocapReader(MocapReaderBase):
         """
 
         self.path = path
-        self.mocap = load_lara_mocap(Path(self.path))
+        self._dtype = kwargs.get("dtype", float)
+        self.mocap = load_lara_mocap(Path(self.path), self._dtype)
 
     def get_frame(self, frame_idx: int) -> np.ndarray:
         """

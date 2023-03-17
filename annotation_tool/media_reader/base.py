@@ -58,11 +58,13 @@ class MediaReader(abc.ABC):
         """
         Returns the duration of the media in milliseconds.
         """
-        _duration = self.__get_duration__()
-        if _duration:
-            return int(self.__get_duration__() * 1000)
-        else:
-            return int(len(self) / self.fps * 1000)
+        return int(len(self) / self.fps) * 1000
+
+        # _duration = self.__get_duration__()
+        # if _duration:
+        #    return int(self.__get_duration__()) * 1000
+        # else:
+        #     return int(len(self) / self.fps) * 1000
 
     @property
     def fps(self) -> float:

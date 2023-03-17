@@ -107,12 +107,18 @@ class Timer(qtc.QObject):
 
             for subscriber, _ in self.subscribers:
                 fps = subscriber.fps
+
                 if fps != fps_sync:
                     frame_rate_ratio = fps / fps_sync
+                    # pos_adjusted = frame_rate_ratio * pos
+                    # print(
+                    #    f"main_position = {pos},\t{subscriber.position = },\t{pos_adjusted = :.2f},\tmain_fps = {fps},\t{fps_sync = }")
                     pos_adjusted = int(frame_rate_ratio * pos)
                     if subscriber.position != pos_adjusted:
                         return False
                 else:
+                    # print(
+                    #    f"main_position = {pos},\t{subscriber.position = },\tpos_adjusted = NaN, \tmain_fps = {fps}, \t{fps_sync = }")
                     if subscriber.position != pos:
                         return False
         return True
