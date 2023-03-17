@@ -147,8 +147,6 @@ class AbstractMediaPlayer(qtw.QWidget):
 
     @qtc.pyqtSlot()
     def shutdown(self):
-        if self.inp_dia:
-            self.inp_dia.close()
         self.terminated = True
         self.finished.emit(self)
 
