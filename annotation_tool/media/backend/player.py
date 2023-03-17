@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
+import logging
 
 import PyQt6.QtCore as qtc
 import PyQt6.QtGui as qtg
@@ -166,7 +167,12 @@ class AbstractMediaPlayer(qtw.QWidget):
         if self._is_main_replay_widget:
             return x
         else:
-            return int(x * self.fps / self._reference_fps)
+            try:
+                return int(x * self.fps / self._reference_fps)
+            except:  # noqa
+                logging.debug("Error in translate_frame_position")
+                # TODO fix this
+                return x
 
     def send_ACK(self, r):
         if r == UpdateReason.TIMEOUT:
