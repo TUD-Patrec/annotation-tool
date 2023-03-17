@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "annotation-tool"
-version = "0.8.0"
+version = "0.8.1"
 description = "Tool for annotating time series data from sources such as IMUs, MoCap, Videos and more."
 readme = "README.md"
 license = "MIT"
@@ -67,7 +67,7 @@ line_length = 88
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.8.0"
+version = "0.8.1"
 tag_format = "v$version"
 major_version_zero = true
 version_files = [
