@@ -88,7 +88,7 @@ class AbstractMediaPlayer(qtw.QWidget):
     @qtc.pyqtSlot()
     def adjust_offset(self):
         old_offset = self.offset
-        input_dialog = qtw.QInputDialog()
+        input_dialog = qtw.QInputDialog(self)
 
         input_dialog.setInputMode(qtw.QInputDialog.InputMode.IntInput)
         input_dialog.setIntRange(-(2**31), 2**31 - 1)
@@ -98,8 +98,6 @@ class AbstractMediaPlayer(qtw.QWidget):
         input_dialog.setLabelText("Offset")
 
         input_dialog.rejected.connect(lambda: self.change_offset(old_offset))
-
-        self.inp_dia = input_dialog
 
         input_dialog.open()
 
@@ -149,6 +147,8 @@ class AbstractMediaPlayer(qtw.QWidget):
 
     @qtc.pyqtSlot()
     def shutdown(self):
+        if self.inp_dia:
+            self.inp_dia.close()
         self.terminated = True
         self.finished.emit(self)
 
