@@ -1,5 +1,9 @@
 name: "Create New Release"
 
+permissions:
+  contents: write
+  pull-requests: write
+
 on:
   workflow_dispatch:
     branches:
@@ -30,7 +34,7 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v3
         with:
-          token: ${{ secrets.PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up python
         id: setup-python
@@ -65,7 +69,7 @@ jobs:
           owner: "TUD-Patrec"
           repo: "annotation-tool"
           toTag: ${{ github.sha }}
-          token: ${{ secrets.PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # Save changelog to file and remove trailing newlines
       - name: "Save changelog changes to file"
@@ -114,13 +118,16 @@ jobs:
           git tag -a -m "v${{ steps.bump_version.outputs.version }}" v${{ steps.bump_version.outputs.version }}
           git push origin --follow-tags
 
-      # NOTE: The following does not work with fine-grained personal access tokens
-      # - name: "Create release"
-      #   run: GH_TOKEN=${{ secrets.PAT }} gh release create v${{ steps.bump_version.outputs.version }} --notes-file tmp-changelog.md --title v${{ steps.bump_version.outputs.version }}
+      - name: "Create release"
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.bump_version.outputs.version }}
+          body_path: ${{ github.workspace }}/tmp-changelog.md
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      # - name: "Create Pull Request into master"
-      #   if: ${{ !startsWith(github.ref_name, 'release/') }}
-      #   run: GH_TOKEN=${{ secrets.PAT }} gh pr create --base "master" --head "${{ steps.release_branch.outputs.name }}" --title "Changelog v${{ steps.bump_version.outputs.version }}" --body-file "tmp-changelog.md"
+      - name: "Create Pull Request into master"
+        if: ${{ !startsWith(github.ref_name, 'release/') }}
+        run: GH_TOKEN=${{ secrets.GITHUB_TOKEN }} gh pr create --base "master" --head "${{ steps.release_branch.outputs.name }}" --title "Changelog v${{ steps.bump_version.outputs.version }}" --body-file "tmp-changelog.md"
 
   PublishPyPI:
     needs: create-release
