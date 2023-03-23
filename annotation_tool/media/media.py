@@ -1,7 +1,7 @@
 import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
 
-from .backend.controller import QMediaMainController
+from .backend.controller_ import QMediaMainController
 
 
 class QMediaWidget(qtw.QWidget):
