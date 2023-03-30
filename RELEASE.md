@@ -8,7 +8,7 @@ You can select the respective Semver increment (_PATCH_, _MINOR_, _MAJOR_) but i
 In this case the respective increment will be determined by looking at successfully merged pull requests and which labels were associated to them.
 The labels are also building the release notes for the new release.
 The mapping is defined in `.github/changelog-config.json`.
-After the release pipeline finished running there will be a new pull request opened by GitHub Actions in order to merge the new changelog entry into the main branch.
+After the release pipeline finished running there will be a new pull request opened by GitHub Actions in order to merge the new changelog entry into the master branch.
 Delete the respective release branch after the merge.
 Releases are tagged on their own release branches named `release/v<version-number>`.
 Whenever there needs to be a hotfix for one of the versions, checkout the respective tag `v<version-number>`, recreate the release branch and start working on the hotfix.
