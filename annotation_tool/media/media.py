@@ -1,7 +1,7 @@
 import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
 
-from .backend.controller_ import QMediaMainController
+from .backend.controller import QMediaMainController
 
 
 class QMediaWidget(qtw.QWidget):
@@ -11,7 +11,7 @@ class QMediaWidget(qtw.QWidget):
 
     Signals:
         position_changed
-            Transports the current position of the main replaysource
+            Transports the current position of the main replay source
             (always the leftmost on the screen)
 
     Slots:

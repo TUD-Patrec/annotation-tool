@@ -2,303 +2,185 @@ import logging
 import time
 
 import PyQt6.QtCore as qtc
-
-from annotation_tool.media.backend.queue import FairQueue
+import numpy as np
 
 
 def time_in_millis():
-    t = time.perf_counter()
-    return int(t * 1000)
+    return int(time.perf_counter() * 1000)
 
 
-class Timer(qtc.QObject):
-    timeout = qtc.pyqtSignal(qtc.QObject)
-    set_position = qtc.pyqtSignal(qtc.QObject, int)
+class RingBuf:
+    def __init__(self, size=50):
+        self._size = size
+        self._buf = np.zeros(size)
+        self._pos = 0
+
+    def append(self, item):
+        self._buf[self._pos] = item
+        self._pos = (self._pos + 1) % self._size
+
+    def avg(self):
+        return sum(self._buf) / self._size
+
+    def max(self):
+        return np.max(self._buf)
+
+    def min(self):
+        return np.min(self._buf)
+
+
+class Synchronizer(qtc.QObject):
     finished = qtc.pyqtSignal()
+    position_changed = qtc.pyqtSignal(qtc.QObject, int)
+    main_position_changed = qtc.pyqtSignal(int)
 
-    def init(self):
-        # list of [subscriber, #updates]
-        self.subscribers = []
+    def __init__(self):
+        super().__init__()
 
-        # queued subscribers
-        self.queue = FairQueue()
+        self._subscribers = []
 
-        self.next_position = None
-        self.open_position_updates = []
+        self._start_time = None
+        self._pos = 0
+        self._last_pos = 0
 
-        self.open_timeouts = []
-        self.MAX_OPEN_TIMEOUTS = 10
+        self._replay_speed = 1
+        self._fps = 60
 
-        self.ACTIVE_IDLE_TIME = 0.005
-        self.PASSIVE_IDLE_TIME = 0.05
+        self._active = True
+        self._paused = True
 
-        self.active = True
-        self.paused = True
-        self.just_paused = False
+        self._timer_interval = 5  # check every 5 ms for updates
+        self._timer = qtc.QTimer(self)
+        self._timer.timeout.connect(self.handle_timeout)
 
-        self.alpha = 1
-        self.replay_speed = 1
-
-        self.time = 0
-        self.last_real_time_ms = None
-
-    # Main-Loop
-    def run(self):
-        assert qtc.QThread.currentThread() is self.thread()
-        self.init()
-        self.last_real_time_ms = time_in_millis()
-
-        while self.active:
-            # Clearing the event_loop
-            qtc.QCoreApplication.processEvents()
-
-            # If there are set_position open tasks wait for all confirmations to arrive
-            if self.open_position_updates:
-                time.sleep(self.ACTIVE_IDLE_TIME)
-                self._inner_reset()
-                continue
-
-            # Position update available - has priority
-            if self.next_position is not None:
-                self.change_position()
-                continue
-
-            # Paused -> Idle and wait for unpause
-            if self.paused:
-                if self.just_paused:
-                    self.synchronize()
-                    self.just_paused = False
-                else:
-                    if len(self.subscribers) > 1:
-                        if not self.subscribers_in_sync():
-                            # TODO: This is not working properly
-                            # logging.debug("Not all subscribers in sync!")
-                            pass
-                time.sleep(self.ACTIVE_IDLE_TIME)
-                self._inner_reset()
-                continue
-
-            # No subscribers -> Idle and wait for subscribers
-            if len(self.subscribers) == 0:
-                time.sleep(self.PASSIVE_IDLE_TIME)
-                self.reset()
-                continue
-
-            self.compute_time()
-            self.update_queue()
-            self.update_alpha()
-
-            # logging.debug(f"{self.alpha = }, {self.replay_speed = }, {self.time = }")
-
-            if (
-                len(self.open_timeouts) < self.MAX_OPEN_TIMEOUTS
-                and self.queue.has_elements()
-            ):
-                self.process_queue()
-            else:
-                time.sleep(self.ACTIVE_IDLE_TIME)
-
-        # logging.info('*** Timer FINISHED ***')
-        self.finished.emit()
-
-    def subscribers_in_sync(self):
-        if self.subscribers:
-            # main_subscriber = self.subscribers[0][0]
-            main_subscriber = self.main_subscriber
-
-            fps_sync = main_subscriber.fps
-            pos = main_subscriber.position
-
-            for subscriber, _ in self.subscribers:
-                fps = subscriber.fps
-
-                if fps != fps_sync:
-                    frame_rate_ratio = fps / fps_sync
-                    # pos_adjusted = frame_rate_ratio * pos
-                    # print(
-                    #    f"main_position = {pos},\t{subscriber.position = },\t{pos_adjusted = :.2f},\tmain_fps = {fps},\t{fps_sync = }")
-                    pos_adjusted = int(frame_rate_ratio * pos)
-                    # TODO: needs rework!
-                    if abs(subscriber.position - pos_adjusted) > 5:
-                        return False
-                else:
-                    # print(
-                    #    f"main_position = {pos},\t{subscriber.position = },\tpos_adjusted = NaN, \tmain_fps = {fps}, \t{fps_sync = }")
-                    if subscriber.position != pos:
-                        return False
-        return True
-
-    def synchronize(self):
-        if self.subscribers and self.next_position is None:
-            pos = self.main_subscriber.position
-            self.query_position_update(pos)
-
-    @property
-    def main_subscriber(self):
-        for subscriber, _ in self.subscribers:
-            if subscriber.main_replay_widget:
-                return subscriber
-        return self.subscribers[0][0]
-
-    @qtc.pyqtSlot(qtc.QObject)
-    def subscribe(self, x):
-        assert qtc.QThread.currentThread() is self.thread()
-
-        # Insert new subscriber with the count adjusted
-        # to the current inner time of the timer
-        r = 1000 / x.fps
-        cnt = self.time / r
-        self.subscribers.append([x, int(cnt)])
-
-        # Wire signals
-        self.timeout.connect(x.on_timeout_)
-        self.set_position.connect(x.set_position_)
-        x.ACK_timeout.connect(self.ACK_timeout)
-        x.ACK_setpos.connect(self.ACK_setpos)
-
-        self.synchronize()
-
-    @qtc.pyqtSlot(qtc.QObject)
-    def unsubscribe(self, x):
-        assert qtc.QThread.currentThread() is self.thread()
-        for idx in range(len(self.subscribers)):
-            if self.subscribers[idx][0] is x:
-                break
-        else:
-            logging.error(f"Subscriber {x} not found!")
-            raise RuntimeError
-
-        # Unwire connections
-        self.timeout.disconnect(x.on_timeout_)
-        self.set_position.disconnect(x.set_position_)
-        x.ACK_timeout.disconnect(self.ACK_timeout)
-        x.ACK_setpos.disconnect(self.ACK_setpos)
-
-        del self.subscribers[idx]
-        self.queue.remove_item(x)
-
-        # kinda hacky - but works
-        for _ in range(len(self.open_timeouts)):
-            self.ACK_timeout(x)
-
-        for _ in range(len(self.open_position_updates)):
-            self.ACK_setpos(x)
+        # evaluation
+        self._last_timeout = time_in_millis()
+        self._timer_interval_buf = RingBuf(100)
+        self._notify_interval = 250
+        self._notify = 1
 
     @qtc.pyqtSlot()
-    def reset(self):
-        self.subscribers = []
+    def handle_timeout(self):
+        if not self._active:
+            return
+        if len(self._subscribers) == 0:
+            return
+        if self._paused:
+            return
 
-        # queued subscribers
-        self.queue = FairQueue()
+        now = time_in_millis()
+        self._timer_interval_buf.append(now - self._last_timeout)
+        self._last_timeout = now
 
-        self.next_position = None
-        self.open_position_updates = []
+        if self._notify % self._notify_interval == 0:
+            logging.debug(
+                f"timer interval: {self._timer_interval_buf.avg():.2f} ms, max: {self._timer_interval_buf.max():.2f} ms, min: {self._timer_interval_buf.min():.2f} ms"
+            )
+        self._notify += 1
 
-        self.open_timeouts = []
+        self.update_positions(from_timeout=True)
 
-        self.just_paused = False
+    def update_positions(self, from_timeout=True, force=False):
+        if self._active:
+            fps = self._fps
+            abs_pos = self.frame_position
 
-        self.alpha = 1
+            if abs_pos == self._last_pos and not force:
+                return
 
-        self.time = 0
-        self.last_real_time_ms = time_in_millis()
+            # print(f"UPDATING_POS: {abs_pos = }, {self._last_pos = }, {self._paused = }, {self._start_time =}")
 
-    @qtc.pyqtSlot(float)
-    def set_replay_speed(self, x):
-        assert qtc.QThread.currentThread() is self.thread()
-        self.replay_speed = max(0.01, x)
+            for subscriber in self._subscribers:
+                new_pos = int(abs_pos * subscriber.fps / fps)
+
+                if (
+                    subscriber.main_replay_widget
+                    and from_timeout
+                    and new_pos != subscriber.position
+                ):
+                    self.main_position_changed.emit(
+                        new_pos
+                    )  # Update the rest of the app (e.g. the timeline)
+
+                if new_pos != subscriber.position or force:
+                    self.position_changed.emit(
+                        subscriber, new_pos
+                    )  # Update the displaying widgets
+
+            self._last_pos = abs_pos
+
+    @qtc.pyqtSlot(bool)
+    def set_paused(self, paused):
+        if paused:
+            self.pause()
+        else:
+            self.unpause()
 
     @qtc.pyqtSlot()
     def pause(self):
-        self.setPaused(True)
+        self._timer.stop()
+        self._paused = True
+        self._pos = self.frame_position
+        self._start_time = None
 
     @qtc.pyqtSlot()
     def unpause(self):
-        self.setPaused(False)
+        self._paused = False
+        self._start_time = time_in_millis()
+        self._timer.start(self._timer_interval)
 
-    @qtc.pyqtSlot(bool)
-    def setPaused(self, x):
-        assert qtc.QThread.currentThread() is self.thread()
-        self.just_paused = x
-        self.paused = x
+    @qtc.pyqtSlot(float)
+    def set_replay_speed(self, x):
+        self.sync_position()
+        self._replay_speed = max(0.01, x)
+
+    @qtc.pyqtSlot(int)
+    def set_position(self, x):
+        fps = 0
+        for subscriber in self._subscribers:
+            if subscriber.main_replay_widget:
+                fps = subscriber.fps
+                break
+        pos_adjusted = int(x * self._fps / fps) if fps > 0 else x
+        self._pos = pos_adjusted
+        self._start_time = time_in_millis() if not self._paused else None
+        self.update_positions(from_timeout=False)
 
     @qtc.pyqtSlot()
     def stop(self):
-        assert qtc.QThread.currentThread() is self.thread()
-        self.active = False
+        self._active = False
+        self._timer.stop()
+        self._timer.deleteLater()
+        self._timer = None
+        self.finished.emit()
 
-    @qtc.pyqtSlot(int)
-    def query_position_update(self, x):
-        assert qtc.QThread.currentThread() is self.thread()
-        self.next_position = x
+    @qtc.pyqtSlot()
+    def reset(self):
+        self._timer.stop()
+        self._paused = True
+        self._pos = 0
+        self._last_pos = 0
+        self._start_time = None
+        self._subscribers = []
 
     @qtc.pyqtSlot(qtc.QObject)
-    def ACK_timeout(self, x):
-        self.confirm(x, self.open_timeouts)
+    def subscribe(self, subscriber):
+        self._subscribers.append(subscriber)
+        self.position_changed.connect(subscriber.set_position_)
+        self.update_positions(from_timeout=False, force=True)
 
     @qtc.pyqtSlot(qtc.QObject)
-    def ACK_setpos(self, x):
-        self.confirm(x, self.open_position_updates)
+    def unsubscribe(self, subscriber):
+        self._subscribers = [x for x in self._subscribers if x != subscriber]
+        self.position_changed.disconnect(subscriber.set_position_)
 
-    def confirm(self, x, open_tasks):
-        assert qtc.QThread.currentThread() is self.thread()
-        for idx, l in enumerate(open_tasks):
-            if x is l:
-                del open_tasks[idx]
-                return
+    @property
+    def frame_position(self):
+        if self._start_time is None:
+            return self._pos
+        elapsed = self._replay_speed * (time_in_millis() - self._start_time)
+        return int(self._pos + elapsed * self._fps / 1000)
 
-    def _inner_reset(self):
-        self.queue.clear()
-        self.last_real_time_ms = time_in_millis()
-
-    def compute_time(self):
-        assert qtc.QThread.currentThread() is self.thread()
-        current = time_in_millis()
-        time_multiplier = self.replay_speed * self.alpha
-        delta = int(time_multiplier * (current - self.last_real_time_ms))
-        if delta > 0:
-            self.time += delta
-            self.last_real_time_ms = current
-
-    def update_queue(self):
-        assert qtc.QThread.currentThread() is self.thread()
-        for idx, (subscriber, cnt) in enumerate(self.subscribers):
-            old_cnt = cnt
-            r = 1000 / (subscriber.fps)
-            new_cnt = int(self.time / r)
-            self.subscribers[idx][1] = new_cnt
-            for _ in range(new_cnt - old_cnt):
-                self.queue.push(subscriber)
-
-    def process_queue(self):
-        assert qtc.QThread.currentThread() is self.thread()
-        while (
-            len(self.open_timeouts) < self.MAX_OPEN_TIMEOUTS
-            and self.queue.has_elements()
-        ):
-            subscriber = self.queue.pop()
-            self.open_timeouts.append(subscriber)
-            self.timeout.emit(subscriber)
-
-    def update_alpha(self):
-        assert qtc.QThread.currentThread() is self.thread()
-        N = len(self.queue)
-        THETA = min(len(self.subscribers) * 2, 5)
-        # allow THETA queued timeouts without reducing speed,
-        # offsettings some inconsistencies
-        if N < THETA:
-            self.alpha = 1
-        else:
-            MAX_QUEUE_LEN = 50
-            EPSILON = 0.001
-            self.alpha = max(EPSILON, 1 - (N - THETA) / (MAX_QUEUE_LEN - THETA))
-
-    def change_position(self):
-        assert qtc.QThread.currentThread() is self.thread()
-        assert len(self.open_position_updates) == 0
-        pos = self.next_position
-        self.next_position = None
-
-        for subscriber, _ in self.subscribers:
-            self.open_position_updates.append(subscriber)
-            self.set_position.emit(subscriber, pos)
+    def sync_position(self):
+        self._pos = self.frame_position
+        self._start_time = time_in_millis() if not self._paused else None

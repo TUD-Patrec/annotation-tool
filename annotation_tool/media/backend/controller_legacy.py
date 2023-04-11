@@ -6,7 +6,7 @@ import PyQt6.QtGui as qtg
 import PyQt6.QtWidgets as qtw
 
 from annotation_tool.media.backend.player import AbstractMediaPlayer
-from annotation_tool.media.backend.timer_ import Synchronizer
+from annotation_tool.media.backend.timer import Timer
 from annotation_tool.media.backend.type_specific_player.mocap import MocapPlayer
 from annotation_tool.media.backend.type_specific_player.video import VideoPlayer
 from annotation_tool.media_reader import media_type_of
@@ -22,6 +22,9 @@ class MediaProxy(qtc.QObject):
 
     def __init__(self, media_widget: AbstractMediaPlayer):
         super().__init__()
+        media_widget.ACK_timeout.connect(self.forward_ACK_timeout)
+        media_widget.ACK_setpos.connect(self.forward_ACK_setpos)
+        self.timeout.connect(media_widget.on_timeout)
         self.set_position.connect(media_widget.set_position)
 
         media_proxy_map[id(media_widget)] = self
@@ -29,11 +32,23 @@ class MediaProxy(qtc.QObject):
 
         self.fps = media_widget.fps
 
+    @qtc.pyqtSlot(qtc.QObject)
+    def on_timeout_(self, proxy):
+        if proxy is self:
+            self.timeout.emit()
+
     @qtc.pyqtSlot(qtc.QObject, int)
     def set_position_(self, proxy, position):
-        # print("set_position_", proxy, position)
         if proxy is self:
             self.set_position.emit(position)
+
+    @qtc.pyqtSlot()
+    def forward_ACK_timeout(self):
+        self.ACK_timeout.emit(self)
+
+    @qtc.pyqtSlot()
+    def forward_ACK_setpos(self):
+        self.ACK_setpos.emit(self)
 
     @property
     def position(self):
@@ -103,8 +118,11 @@ class QMediaMainController(qtw.QWidget):
                 raise NotImplementedError(f"Media type {media_type} is not supported")
 
             if widget.is_main_replay_widget:
+                widget.position_changed.connect(self.position_changed)
                 self.grid.addWidget(widget, 0, 0)
             else:
+                widget._reference_fps = self.replay_widgets[0].fps
+                widget._reference_N = self.replay_widgets[0].n_frames
                 widget.remove_wanted.connect(self.remove_replay_source)
                 self.vbox.addWidget(widget)
 
@@ -216,28 +234,25 @@ class QMediaMainController(qtw.QWidget):
     def set_replay_speed(self, x):
         self.replay_speed_changed.emit(x)
 
-    def main_pos_changed(self, pos):
-        self.position_changed.emit(pos)
-
     def init_timer(self):
         self.timer_thread = qtc.QThread()
-        self.timer_worker = Synchronizer()
+        self.timer_worker = Timer()
         self.timer_worker.moveToThread(self.timer_thread)
 
         # connecting worker and thread
+        self.timer_thread.started.connect(self.timer_worker.run)
         self.timer_worker.finished.connect(self.timer_thread.quit)
         self.timer_worker.finished.connect(self.timer_worker.deleteLater)
         self.timer_thread.finished.connect(self.timer_thread.deleteLater)
 
         # connecting signals and slots
-        self.setPaused.connect(self.timer_worker.set_paused)
+        self.setPaused.connect(self.timer_worker.setPaused)
         self.stop.connect(self.timer_worker.stop)
         self.reset.connect(self.timer_worker.reset)
         self.replay_speed_changed.connect(self.timer_worker.set_replay_speed)
         self.subscribe.connect(self.timer_worker.subscribe)
         self.unsubscribe.connect(self.timer_worker.unsubscribe)
-        self.query_position_update.connect(self.timer_worker.set_position)
-        self.timer_worker.main_position_changed.connect(self.main_pos_changed)
+        self.query_position_update.connect(self.timer_worker.query_position_update)
 
         self.timer_thread.start()
 
