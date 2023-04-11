@@ -46,7 +46,7 @@ class MediaProxy(qtc.QObject):
 
 class QMediaMainController(qtw.QWidget):
     position_changed = qtc.pyqtSignal(int)
-    query_position_update = qtc.pyqtSignal(int, int)
+    query_position_update = qtc.pyqtSignal(int)
     setPaused = qtc.pyqtSignal(bool)
     stop = qtc.pyqtSignal()
     replay_speed_changed = qtc.pyqtSignal(float)
@@ -210,15 +210,13 @@ class QMediaMainController(qtw.QWidget):
 
     @qtc.pyqtSlot(int)
     def set_position(self, pos):
-        fps = self.replay_widgets[0].fps if self.replay_widgets else 0
-        self.query_position_update.emit(pos, fps)
+        self.query_position_update.emit(pos)
 
     @qtc.pyqtSlot(float)
     def set_replay_speed(self, x):
         self.replay_speed_changed.emit(x)
 
     def main_pos_changed(self, pos):
-        print(f"main_pos_changed {pos}")
         self.position_changed.emit(pos)
 
     def init_timer(self):

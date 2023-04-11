@@ -63,6 +63,7 @@ class AbstractMediaPlayer(qtw.QWidget):
 
     def change_offset(self, offs):
         self.offset = offs
+        self.update_media_position()
 
     @qtc.pyqtSlot()
     def adjust_offset(self):
