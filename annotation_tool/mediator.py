@@ -78,18 +78,14 @@ class Mediator(qtc.QObject):
         assert (0 <= x < self.n_frames) or (x == 0 == self.n_frames)
 
         # Filter valid timeouts -> remove outdated ones
-        if x == self.position + 1:
-            if self.looping and x >= self.upper:
-                self.set_position(self.lower)
-                return
-            # only update non-mediaWidgets
-            self.position += 1
-            for rec in self.receivers:
-                if not isinstance(rec, QMediaWidget):
-                    rec.set_position(self.position)
-        else:
-            # logging.debug(f"Filtered outdated update = {x = }")
-            pass
+        if self.looping and x >= self.upper:
+            self.set_position(self.lower)
+            return
+
+        self.position = x
+        for rec in self.receivers:
+            if not isinstance(rec, QMediaWidget):
+                rec.set_position(self.position)
 
     @qtc.pyqtSlot(bool, bool)
     def skip_frames(self, forward_step, fast):

@@ -3,7 +3,6 @@ import logging
 import os
 from typing import Optional, Union
 
-import cv2 as cv
 import numpy as np
 
 __FALLBACK_FPS__ = 30  # fallback framerate if no framerate can be determined
@@ -39,6 +38,7 @@ class MediaReader(abc.ABC):
     Baseclass for media readers (e.g. video, mocap, etc.)
     """
 
+    @abc.abstractmethod
     def __init__(self, path: os.PathLike, **kwargs) -> None:
         """
         Initializes a new __MediaReader object.
@@ -50,89 +50,46 @@ class MediaReader(abc.ABC):
         Raises:
             FileNotFoundError: If the file does not exist.
         """
-
-        # check parameters
-        if not os.path.isfile(path):
-            raise FileNotFoundError(path)
-
-        self._path: os.PathLike = path
-
-        if "fps" in kwargs:
-            fps = kwargs["fps"]
-            assert (
-                isinstance(fps, (int, float)) and fps > 0 or fps is None
-            ), f"Framerate must be a positive number or None, not {fps}."
-            self._fps = fps
-        else:
-            self._fps = self.__detect_fps__()
-
-        if "n_frames" in kwargs:
-            n_frames = kwargs["n_frames"]
-            assert (
-                isinstance(n_frames, int) and n_frames > 0
-            ), f"Number of frames must be an positive integer, not {n_frames}."
-            self._n_frames = n_frames
-        else:
-            self._n_frames = self.__detect_n_frames__()
-
-    @property
-    def path(self) -> os.PathLike:
-        return self._path
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"File {path} does not exist.")
 
     @property
     def duration(self) -> int:
         """
         Returns the duration of the media in milliseconds.
         """
-        return int(self.n_frames / self.fps) * 1000
+        return int(len(self) / self.fps) * 1000
+
+        # _duration = self.__get_duration__()
+        # if _duration:
+        #    return int(self.__get_duration__()) * 1000
+        # else:
+        #     return int(len(self) / self.fps) * 1000
 
     @property
     def fps(self) -> float:
-        if self._fps:
-            return self._fps
+        _fps = self.__get_fps__()
+        if _fps:
+            return _fps
         else:
             return get_fallback_fps()
 
     @fps.setter
     def fps(self, fps: Union[int, float]) -> None:
-        if isinstance(fps, (int, float)):
-            self._fps = fps
-        else:
-            raise TypeError("Framerate must be a number.")
+        self.__set_fps__(fps)
 
     @property
-    def n_frames(self) -> int:
-        return self._n_frames
-
-    @property
-    def media(self):
-        return __memoizer__(self)
-
-    def raw_fps(self) -> Optional[float]:
-        """
-        Returns the framerate of the media data.
-        If the framerate cannot be determined, returns None.
-
-        Returns:
-            The framerate of the media data.
-        """
-        return self._fps
+    def path(self) -> os.PathLike:
+        return self.__get_path__()
 
     def __len__(self):
-        return self.n_frames
-
-    def __eq__(self, other) -> bool:
-        if isinstance(other, MediaReader):
-            return self.id == other.id
-        return False
-
-    def __del__(self):
-        __memoizer__.remove(self)
+        return self.__get_frame_count__()
 
     def __getitem__(self, idx):
         """
         Returns the frame at the given index.
         If the index is a slice, returns a list of frames.
+        The shape of the frame depends on the media type, e.g. for video it is (h,w,c) with c being the 3-RGB channels.
 
         Args:
             idx: The index/indices of the frame(s) to return.
@@ -154,11 +111,8 @@ class MediaReader(abc.ABC):
         else:
             raise TypeError("Invalid argument type.")
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.__del__()
+    def __iter__(self):
+        return self[:]
 
     @abc.abstractmethod
     def __get_frame__(self, idx: int) -> np.ndarray:
@@ -173,14 +127,24 @@ class MediaReader(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def __read_media__(self):
+    def __get_frame_count__(self) -> int:
         """
-        Reads the media file.
+        Returns the number of frames in the media file.
+
+        Returns:
+            The number of frames in the media file.
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def __detect_fps__(self) -> Optional[float]:
+    def __get_duration__(self) -> Optional[float]:
+        """
+        Returns the duration of the media in seconds.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def __get_fps__(self) -> Optional[float]:
         """
         Detects the framerate of the media file.
 
@@ -190,50 +154,24 @@ class MediaReader(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def __detect_n_frames__(self) -> int:
+    def __get_path__(self) -> os.PathLike:
         """
-        Detects the number of frames in the media file.
+        Returns the path to the media file.
 
         Returns:
-            The number of frames in the media file.
+            The path to the media file.
         """
         raise NotImplementedError
 
-
-class __Memoizer:
-    def __init__(self):
-        self._cache = {}
-
-    def __call__(self, mr: MediaReader) -> Union[cv.VideoCapture, np.ndarray]:
+    @abc.abstractmethod
+    def __set_fps__(self, fps: Union[int, float]) -> None:
         """
-        Returns the memorized version of the given __MediaReader.
+        Sets the framerate of the media file.
 
         Args:
-            mr: The __MediaReader to memorize.
-
-        Returns:
-            The memorized version of the __MediaReader.
+            fps: The framerate to set.
         """
-        if not isinstance(mr, MediaReader):
-            raise TypeError("Invalid argument type.")
-        key = id(mr)
-        if key not in self._cache:
-            media = mr.__read_media__()
-            self._cache[key] = media
-
-        return self._cache[key]
-
-    def remove(self, mr: MediaReader) -> None:
-        """
-        Removes the given __MediaReader from the cache.
-
-        Args:
-            mr: The __MediaReader to remove.
-        """
-        key = id(mr)
-        if key in self._cache:
-            del self._cache[key]
-            logging.debug(f"Removed {mr} from cache. Cache size: {len(self._cache)}")
+        raise NotImplementedError
 
 
 class __MediaSelector:
@@ -316,10 +254,8 @@ class __MediaFactory:
 
 
 # Global variables, should be singleton instances
-__memoizer__ = __Memoizer()
 __media_selector__ = __MediaSelector()
 __media_factory__ = __MediaFactory()
-__kwarg_dict__ = {}
 
 
 def register_media_reader(
@@ -340,13 +276,12 @@ def register_media_reader(
     __media_factory__.register(media_type, factory)
 
 
-def media_reader(path: os.PathLike, **ignored) -> MediaReader:
+def media_reader(path: os.PathLike, **kwargs) -> MediaReader:
     """
     Returns a MediaReader for the given path.
 
     Args:
         path: The path to the media file.
-        **kwargs: Additional arguments to pass to the MediaReader constructor.
 
     Returns:
         A MediaReader for the given path.
@@ -355,15 +290,8 @@ def media_reader(path: os.PathLike, **ignored) -> MediaReader:
         ValueError: If the media type could not be determined.
     """
 
-    kwargs = __kwarg_dict__.get(path, {})
-
     media_type = __media_selector__.select(path)
     mr = __media_factory__.create(media_type, path=path, **kwargs)
-
-    __kwarg_dict__[path] = {
-        "fps": mr.raw_fps(),
-        "n_frames": mr.n_frames,
-    }  # fps-property hides None-values, raw_fps() does not
 
     return mr
 

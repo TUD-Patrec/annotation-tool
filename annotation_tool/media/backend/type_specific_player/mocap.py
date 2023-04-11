@@ -5,7 +5,7 @@ import PyQt6.QtWidgets as qtw
 import numpy as np
 import pyqtgraph.opengl as gl
 
-from annotation_tool.media.backend.player import AbstractMediaPlayer, UpdateReason
+from annotation_tool.media.backend.player import AbstractMediaPlayer
 from annotation_tool.media_reader import media_reader as mr
 
 
@@ -19,14 +19,13 @@ class MocapPlayer(AbstractMediaPlayer):
         self.media_backend.media = media
         self.layout().addWidget(self.media_backend)
         self.n_frames = len(media)
-        self.update_media_position(UpdateReason.INIT)
+        self.update_media_position()
         self.loaded.emit(self)
 
-    def update_media_position(self, update_reason: UpdateReason):
+    def update_media_position(self):
         pos = self.position + self.offset
         pos_adjusted = max(0, min(pos, self.n_frames - 1))
         self.media_backend.set_position(pos_adjusted)
-        self.confirm_update(update_reason)
 
     def shutdown(self):
         self.setFixedSize(0, 0)

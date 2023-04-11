@@ -11,7 +11,7 @@ class QMediaWidget(qtw.QWidget):
 
     Signals:
         position_changed
-            Transports the current position of the main replaysource
+            Transports the current position of the main replay source
             (always the leftmost on the screen)
 
     Slots:

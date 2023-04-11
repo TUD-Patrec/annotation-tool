@@ -117,7 +117,7 @@ class MainApplication(qtw.QApplication):
 
             media = media_reader(path=annotation.path)
             duration = media.duration
-            n_frames = media.n_frames
+            n_frames = len(media)
 
             FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
 
@@ -161,9 +161,6 @@ class MainApplication(qtw.QApplication):
     @qtc.pyqtSlot(list)
     def set_additional_media_paths(self, paths: list):
         assert self.current_annotation is not None
-        logging.debug(
-            f"self.global_state: {self.current_annotation.path = } {self.current_annotation.get_additional_media_paths() = }"
-        )
         self.current_annotation.set_additional_media_paths(paths)
 
     @qtc.pyqtSlot()
@@ -207,7 +204,7 @@ class MainApplication(qtw.QApplication):
         if self.current_annotation is not None:
             media = media_reader(path=self.current_annotation.path)
             duration = media.duration
-            n_frames = media.n_frames
+            n_frames = len(media)
 
             FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
 
