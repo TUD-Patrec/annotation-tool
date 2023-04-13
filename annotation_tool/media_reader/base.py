@@ -70,7 +70,6 @@ class MediaReader(abc.ABC):
     @property
     def fps(self) -> float:
         _fps = self.__get_fps__()
-        print("mr_base: fps", _fps)
         if _fps:
             return _fps
         else:
