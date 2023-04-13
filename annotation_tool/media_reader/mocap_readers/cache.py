@@ -63,7 +63,7 @@ class MocapCache(object):
         self._max_size_bytes = max_size_kb * 1024
         self._current_size_bytes = 0
 
-        print(f"{self = }")
+        logging.debug(f"Initialized {self}")
 
     def __len__(self):
         return len(self._cache)

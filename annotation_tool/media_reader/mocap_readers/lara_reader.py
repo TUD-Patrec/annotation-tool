@@ -198,7 +198,7 @@ class LARaMocapReader(MocapReaderBase):
     def is_supported(path: os.PathLike) -> bool:
         # TODO: improve this
         try:
-            __load_lara_mocap__(path)
+            load_lara_mocap(Path(path))
             return True
         except:  # noqa E722
             return False

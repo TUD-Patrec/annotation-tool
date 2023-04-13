@@ -66,9 +66,10 @@ class OpenCvReader(VideoReaderBase):
 
         self.FAST_SEEK_THRESHOLD = 5
 
-        self.dynamic_threshold = kwargs.get("dynamic_threshold", False)
+        self.use_dynamic_threshold = kwargs.get("dynamic_threshold", False)
+        logging.debug(f"Using dynamic threshold: {self.use_dynamic_threshold}.")
 
-        if self.dynamic_threshold:
+        if self.use_dynamic_threshold:
             self.MIN_SEEK_THRESHOLD = 3
             self.MAX_SEEK_THRESHOLD = 15
             self._EVAL_INTERVAL = 5  # seconds
@@ -102,7 +103,7 @@ class OpenCvReader(VideoReaderBase):
             return np.zeros((self.get_height(), self.get_width(), 3), dtype=np.uint8)
 
     def _eval_performance(self):
-        if not self.dynamic_threshold:
+        if not self.use_dynamic_threshold:
             return
         if time.time() - self._last_eval_time > self._EVAL_INTERVAL:
             self._last_eval_time = time.time()
@@ -135,7 +136,7 @@ class OpenCvReader(VideoReaderBase):
         return int(self.media.get(cv2.CAP_PROP_POS_FRAMES))
 
     def _seek(self, idx: int) -> None:
-        if self.dynamic_threshold:
+        if self.use_dynamic_threshold:
             self._eval_performance()
 
         pos = self.current_position
@@ -153,7 +154,7 @@ class OpenCvReader(VideoReaderBase):
         else:
             self._skip_frames(idx - self.current_position)
 
-        if self.dynamic_threshold:
+        if self.use_dynamic_threshold:
             self.delta_eval_buf.push(delta)
 
         assert (
@@ -161,7 +162,7 @@ class OpenCvReader(VideoReaderBase):
         ), f"Seeking failed. Expected index {idx}, got {self.current_position}."  # sanity check
 
     def _set_cap_pos(self, idx: int) -> None:
-        if self.dynamic_threshold:
+        if self.use_dynamic_threshold:
             start = time.perf_counter()
             self.media.set(cv2.CAP_PROP_POS_FRAMES, idx)
             delta = time.perf_counter() - start
@@ -170,7 +171,7 @@ class OpenCvReader(VideoReaderBase):
             self.media.set(cv2.CAP_PROP_POS_FRAMES, idx)
 
     def _skip_frames(self, frames_to_skip) -> None:
-        if self.dynamic_threshold:
+        if self.use_dynamic_threshold:
             start = time.perf_counter()
             for _ in range(frames_to_skip):
                 self.media.read()
