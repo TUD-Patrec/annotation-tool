@@ -162,6 +162,7 @@ class Synchronizer(qtc.QObject):
         self._last_pos = 0
         self._start_time = None
         self._subscribers = []
+        self.main_position_changed.emit(0)
 
     @qtc.pyqtSlot(qtc.QObject)
     def subscribe(self, subscriber):
