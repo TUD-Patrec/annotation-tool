@@ -1,5 +1,5 @@
+import enum
 import logging
-from typing import List, Tuple
 
 import PyQt6.QtCore as qtc
 import PyQt6.QtGui as qtg
@@ -44,8 +44,13 @@ class MediaProxy(qtc.QObject):
         return self.media_widget._is_main_replay_widget
 
 
+class MediaState(enum.Enum):
+    LOADING = 0
+    AVAILABLE = 1
+
+
 class QMediaMainController(qtw.QWidget):
-    position_changed = qtc.pyqtSignal(int)
+    timeout = qtc.pyqtSignal(int)
     query_position_update = qtc.pyqtSignal(int)
     setPaused = qtc.pyqtSignal(bool)
     stop = qtc.pyqtSignal()
@@ -60,6 +65,9 @@ class QMediaMainController(qtw.QWidget):
         super().__init__(*args, **kwargs)
         self.replay_widgets = []
 
+        self.STATE = MediaState.AVAILABLE
+        self._open_loading_tasks = 0
+
         self.grid = qtw.QGridLayout(self)
         self.grid.setContentsMargins(0, 0, 0, 10)
         self.MAX_WIDGETS = 4
@@ -73,22 +81,43 @@ class QMediaMainController(qtw.QWidget):
         self._dead_widgets = []
         self._widget_2_path = {}
 
-        self._loading_idx = 0  # keep track of how many times load() was called
-        self._loading_widgets: List[Tuple[AbstractMediaPlayer, int]] = []
+    @qtc.pyqtSlot(str, list)
+    def load(self, file, additional_media=[]):
+        if self.STATE == MediaState.AVAILABLE:
+            self.STATE = MediaState.LOADING
+            self._load(file, additional_media)
+        else:
+            logging.warning("Media is already loading -> ignoring new loading")
 
-    @qtc.pyqtSlot(str)
-    def load(self, file):
-        self._loading_idx += 1
+    def _load(self, file, additional_media=[]):
         self.pause()
         self.clear(notify=False)
         self.reset.emit()
-        self.add_replay_widget(file, is_main_widget=True)
+
+        assert (
+            self._open_loading_tasks == 0
+        ), f"Open loading tasks must be 0 but is {self._open_loading_tasks}"
+        assert (
+            len(self.replay_widgets) == 0
+        ), f"Replay widgets must be 0 but is {len(self.replay_widgets)}"
+        assert (
+            self.STATE == MediaState.LOADING
+        ), f"State must be LOADING but is {self.STATE}"
+
+        self._open_loading_tasks = 1 + len(additional_media)
+
+        self.add_replay_widget(file, is_main_widget=True, from_load=True)
+        for path in additional_media:
+            self.add_replay_widget(path, from_load=True)
 
     def clear(self, notify=True):
         while self.replay_widgets:
             self.remove_replay_source(self.replay_widgets[0], notify)
 
-    def add_replay_widget(self, path, is_main_widget=False):
+    def add_replay_widget(self, path, is_main_widget=False, from_load=False):
+        if self.STATE == MediaState.LOADING and not from_load:
+            logging.warning("Media is loading -> ignoring new replay widget")
+            return
         if len(self.replay_widgets) < self.MAX_WIDGETS:
             # is_main_widget = len(self.replay_widgets) == 0
 
@@ -113,52 +142,42 @@ class QMediaMainController(qtw.QWidget):
 
             widget.loaded.connect(self.widget_loaded)
             widget.failed.connect(self.widget_failed)
-            self._loading_widgets.append(
-                (widget, self._loading_idx)
-            )  # keep track of which widget was loaded when
             widget.load(path)
+
+    def _check_loading_finished(self):
+        if self.STATE == MediaState.LOADING:
+            self._open_loading_tasks -= 1
+            if self._open_loading_tasks == 0:
+                self.STATE = MediaState.AVAILABLE
+                self.loaded.emit()
+            assert (
+                self._open_loading_tasks >= 0
+            ), f"Open loading tasks must be >= 0 but is {self._open_loading_tasks}"
+        else:
+            assert (
+                self._open_loading_tasks == 0
+            ), f"Open loading tasks must be 0 but is {self._open_loading_tasks}"
 
     @qtc.pyqtSlot(AbstractMediaPlayer)
     def widget_loaded(self, widget: AbstractMediaPlayer):
-        # remove widget from loading list
-        for i, (w, idx) in enumerate(self._loading_widgets):
-            if w is widget:
-                _, idx_ = self._loading_widgets.pop(i)
-                break
-        else:
-            raise RuntimeError("Widget was not in loading list")
-
         # check if widget belongs to current loading process
-        if idx_ != self._loading_idx:
-            self.remove_replay_source(widget, ignore_errors=True)
-            logging.debug(
-                f"Widget {widget} was loaded in a previous loading process. Ignoring it."
-            )
-            return
 
         widget.new_input_wanted.connect(self.add_replay_widget)
         widget.finished.connect(self.widget_terminated)
         self.replay_widgets.append(widget)
         proxy = MediaProxy(widget)
 
-        if not widget.is_main_replay_widget:
-            self.additional_media_changed.emit(self._widget_2_path.values())
-        else:
-            self.loaded.emit()
         self.subscribe.emit(proxy)
+
+        self._check_loading_finished()  # check if loading is finished
 
     @qtc.pyqtSlot(AbstractMediaPlayer)
     def widget_failed(self, widget):
-        # remove widget from loading list
-        for i, (w, idx) in enumerate(self._loading_widgets):
-            if w is widget:
-                _, idx_ = self._loading_widgets.pop(i)
-                break
-        else:
-            raise RuntimeError("Widget was not in loading list")
-
         self.remove_replay_source(widget, ignore_errors=True)
         logging.error(f"COULD NOT LOAD {widget = }")
+
+        self._check_loading_finished()  # check if loading is finished
+
         raise RuntimeError
 
     def remove_replay_source(self, widget, notify=True, ignore_errors=False):
@@ -216,8 +235,8 @@ class QMediaMainController(qtw.QWidget):
     def set_replay_speed(self, x):
         self.replay_speed_changed.emit(x)
 
-    def main_pos_changed(self, pos):
-        self.position_changed.emit(pos)
+    def on_timeout(self, pos):
+        self.timeout.emit(pos)
 
     def init_timer(self):
         self.timer_thread = qtc.QThread()
@@ -237,7 +256,7 @@ class QMediaMainController(qtw.QWidget):
         self.subscribe.connect(self.timer_worker.subscribe)
         self.unsubscribe.connect(self.timer_worker.unsubscribe)
         self.query_position_update.connect(self.timer_worker.set_position)
-        self.timer_worker.main_position_changed.connect(self.main_pos_changed)
+        self.timer_worker.timeout.connect(self.on_timeout)
 
         self.timer_thread.start()
 

@@ -32,7 +32,7 @@ class RingBuf:
 class Synchronizer(qtc.QObject):
     finished = qtc.pyqtSignal()
     position_changed = qtc.pyqtSignal(qtc.QObject, int)
-    main_position_changed = qtc.pyqtSignal(int)
+    timeout = qtc.pyqtSignal(int)
 
     def __init__(self):
         super().__init__()
@@ -98,7 +98,7 @@ class Synchronizer(qtc.QObject):
                     and from_timeout
                     and new_pos != subscriber.position
                 ):
-                    self.main_position_changed.emit(
+                    self.timeout.emit(
                         new_pos
                     )  # Update the rest of the app (e.g. the timeline)
 
@@ -162,7 +162,6 @@ class Synchronizer(qtc.QObject):
         self._last_pos = 0
         self._start_time = None
         self._subscribers = []
-        self.main_position_changed.emit(0)
 
     @qtc.pyqtSlot(qtc.QObject)
     def subscribe(self, subscriber):

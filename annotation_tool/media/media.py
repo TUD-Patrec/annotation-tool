@@ -38,16 +38,16 @@ class QMediaWidget(qtw.QWidget):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.controller = QMediaMainController()
-        self.controller.position_changed.connect(self.position_changed)
+        self.controller.timeout.connect(self.position_changed)
         self.controller.additional_media_changed.connect(self.additional_media_changed)
         self.controller.loaded.connect(self.loaded)
         self._layout = qtw.QHBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.addWidget(self.controller)
 
-    @qtc.pyqtSlot(str)
-    def load(self, file):
-        self.controller.load(file)
+    @qtc.pyqtSlot(str, list)
+    def load(self, file, additional_media=[]):
+        self.controller.load(file, additional_media)
 
     @qtc.pyqtSlot(list)
     def set_additional_media(self, files):
