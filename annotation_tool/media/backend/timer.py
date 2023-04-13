@@ -42,6 +42,7 @@ class Synchronizer(qtc.QObject):
         self._start_time = None
         self._pos = 0
         self._last_pos = 0
+        self._last_timeout_pos = -1
 
         self._replay_speed = 1
         self._fps = 60
@@ -88,24 +89,23 @@ class Synchronizer(qtc.QObject):
             if abs_pos == self._last_pos and not force:
                 return
 
-            # print(f"UPDATING_POS: {abs_pos = }, {self._last_pos = }, {self._paused = }, {self._start_time =}")
-
             for subscriber in self._subscribers:
                 new_pos = int(abs_pos * subscriber.fps / fps)
-
-                if (
-                    subscriber.main_replay_widget
-                    and from_timeout
-                    and new_pos != subscriber.position
-                ):
-                    self.timeout.emit(
-                        new_pos
-                    )  # Update the rest of the app (e.g. the timeline)
 
                 if new_pos != subscriber.position or force:
                     self.position_changed.emit(
                         subscriber, new_pos
                     )  # Update the displaying widgets
+
+                if (
+                    subscriber.main_replay_widget
+                    and from_timeout
+                    and new_pos != self._last_timeout_pos
+                ):
+                    self._last_timeout_pos = new_pos
+                    self.timeout.emit(
+                        new_pos
+                    )  # Update the rest of the app (e.g. the timeline)
 
             self._last_pos = abs_pos
 
@@ -162,6 +162,9 @@ class Synchronizer(qtc.QObject):
         self._last_pos = 0
         self._start_time = None
         self._subscribers = []
+        self.timeout.emit(
+            0
+        )  # Overwrite outdated timeouts from previous replay, could be handled somewhere else
 
     @qtc.pyqtSlot(qtc.QObject)
     def subscribe(self, subscriber):

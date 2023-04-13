@@ -156,7 +156,8 @@ class MainApplication(qtw.QApplication):
                 n_frames,
             )
 
-            self.mediator.set_position(0, force_update=True)
+            # self.mediator.set_position(0, force_update=True)
+            self.mediator.reset_position()
 
             self.save_annotation()
 
