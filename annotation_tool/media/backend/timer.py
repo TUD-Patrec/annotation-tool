@@ -100,17 +100,6 @@ class Synchronizer(qtc.QObject):
                     new_pos
                 )  # rounding to the closest frame, always rounding down does not always make sense
 
-                print(
-                    "new_pos",
-                    new_pos,
-                    "abs_pos",
-                    abs_pos,
-                    "fps",
-                    fps,
-                    "subscriber.fps",
-                    subscriber.fps,
-                )
-
                 if new_pos != subscriber.position or force:
                     self.position_changed.emit(
                         subscriber, new_pos
@@ -198,7 +187,6 @@ class Synchronizer(qtc.QObject):
                 2 * subscriber.fps if check_int and check_small_fps else subscriber.fps
             )
             self.sync_position()
-            print(f"Updating fps to {self._fps}")
         self.position_changed.connect(subscriber.set_position_)
         self.update_positions(from_timeout=False, force=True)
 
@@ -209,7 +197,6 @@ class Synchronizer(qtc.QObject):
         if subscriber.main_replay_widget:
             self._fps = None
             self.sync_position()
-            print(f"Updating fps to {self.fps}")
 
     @property
     def frame_position(self):
