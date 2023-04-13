@@ -71,9 +71,9 @@ class TorchVisionReader(VideoReaderBase):
 
 
 try:
-    from .base import register_video_reader
+    from .base import register_video_reader  # noqa
 except ImportError:
-    from base import register_video_reader
+    from base import register_video_reader  # noqa
 
-register_video_reader(TorchVisionReader, -100)
+# register_video_reader(TorchVisionReader, -100)
 logging.info("Registered TorchVisionReader.")
