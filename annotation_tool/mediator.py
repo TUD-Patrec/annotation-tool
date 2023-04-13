@@ -73,19 +73,26 @@ class Mediator(qtc.QObject):
             for rec in self.receivers:
                 rec.set_position(x)
 
+    def reset_position(self):
+        self.position = 0
+        for rec in self.receivers:
+            rec.set_position(0)
+        for rec in self.emitters:
+            rec.set_position(0)
+
     @qtc.pyqtSlot(int)
     def on_timeout(self, x):
-        assert (0 <= x < self.n_frames) or (x == 0 == self.n_frames)
+        if (0 <= x < self.n_frames) or (x == 0 == self.n_frames):
 
-        # Filter valid timeouts -> remove outdated ones
-        if self.looping and x >= self.upper:
-            self.set_position(self.lower)
-            return
+            # Filter valid timeouts -> remove outdated ones
+            if self.looping and x >= self.upper:
+                self.set_position(self.lower)
+                return
 
-        self.position = x
-        for rec in self.receivers:
-            if not isinstance(rec, QMediaWidget):
-                rec.set_position(self.position)
+            self.position = x
+            for rec in self.receivers:
+                if not isinstance(rec, QMediaWidget):
+                    rec.set_position(self.position)
 
     @qtc.pyqtSlot(bool, bool)
     def skip_frames(self, forward_step, fast):

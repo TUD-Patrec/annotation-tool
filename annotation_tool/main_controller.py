@@ -30,6 +30,7 @@ set_fallback_fps(settings.refresh_rate)
 class MainApplication(qtw.QApplication):
     update_media_pos = qtc.pyqtSignal(int)
     update_annotation_pos = qtc.pyqtSignal(int)
+    load_media = qtc.pyqtSignal(str, list)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -67,6 +68,7 @@ class MainApplication(qtw.QApplication):
         self.media_player.additional_media_changed.connect(
             self.set_additional_media_paths
         )
+        self.load_media.connect(self.media_player.load)
         self.media_player.loaded.connect(self.media_player_loaded)
 
         # from QAnnotationWidget
@@ -122,8 +124,11 @@ class MainApplication(qtw.QApplication):
             FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
 
             # load media
-            self.media_player.additional_media_changed.disconnect()  # disconnect to filter out outdated signals
-            self.media_player.load(media.path)
+            # self.media_player.additional_media_changed.disconnect()  # disconnect to filter out outdated signals
+            # self.media_player.load(media.path)
+            self.load_media.emit(
+                annotation.path, annotation.get_additional_media_paths()
+            )  # noqa TODO: Make get_additional_media_paths() a property
 
             # update network module
             network.update_file(media.path)
@@ -151,7 +156,8 @@ class MainApplication(qtw.QApplication):
                 n_frames,
             )
 
-            self.mediator.set_position(0, force_update=True)
+            # self.mediator.set_position(0, force_update=True)
+            self.mediator.reset_position()
 
             self.save_annotation()
 
@@ -169,8 +175,10 @@ class MainApplication(qtw.QApplication):
         self.media_player.additional_media_changed.connect(
             self.set_additional_media_paths
         )  # reconnect after loading
-        additional_media = self.current_annotation.get_additional_media_paths()
-        self.media_player.set_additional_media(additional_media)
+
+        # additional_media = self.current_annotation.get_additional_media_paths()
+        # self.media_player.set_additional_media(additional_media)
+        logging.debug("media_player_loaded")
 
     def save_annotation(self):
         if self.current_annotation is not None:
