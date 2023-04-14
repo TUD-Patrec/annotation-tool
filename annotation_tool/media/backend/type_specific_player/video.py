@@ -56,7 +56,7 @@ class VideoPlayer(AbstractMediaPlayer):
     def load(self, path):
         self.load_worker.emit(path)
 
-    @qtc.pyqtSlot(int, int)
+    @qtc.pyqtSlot(float, int)
     def worker_loaded(self, fps, n_frames):
         self.fps = fps
         self.n_frames = n_frames
@@ -126,7 +126,7 @@ class VideoPlayer(AbstractMediaPlayer):
 
 class VideoHelper(qtc.QObject):
     image_ready = qtc.pyqtSignal(qtg.QPixmap)
-    loaded = qtc.pyqtSignal(int, int)
+    loaded = qtc.pyqtSignal(float, int)
     finished = qtc.pyqtSignal()
 
     def __init__(self, video_player: VideoPlayer):
@@ -144,6 +144,7 @@ class VideoHelper(qtc.QObject):
     @qtc.pyqtSlot(str)
     def load(self, path):
         self.media = mr(path)
+        print(f"Loaded with fps: {self.fps} and n_frames: {self.n_frames}")
         self.loaded.emit(self.fps, self.n_frames)
 
     @property

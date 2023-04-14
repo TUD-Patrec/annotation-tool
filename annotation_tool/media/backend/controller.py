@@ -169,6 +169,9 @@ class QMediaMainController(qtw.QWidget):
 
         self.subscribe.emit(proxy)
 
+        if not widget.is_main_replay_widget and self.STATE != MediaState.LOADING:
+            self.additional_media_changed.emit(self._widget_2_path.values())
+
         self._check_loading_finished()  # check if loading is finished
 
     @qtc.pyqtSlot(AbstractMediaPlayer)
