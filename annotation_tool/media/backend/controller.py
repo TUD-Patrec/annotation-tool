@@ -27,17 +27,24 @@ class MediaProxy(qtc.QObject):
         media_proxy_map[id(media_widget)] = self
         self.media_widget = media_widget
 
-        self.fps = media_widget.fps
+        self._fps = media_widget.fps
 
     @qtc.pyqtSlot(qtc.QObject, int)
     def set_position_(self, proxy, position):
-        # print("set_position_", proxy, position)
         if proxy is self:
             self.set_position.emit(position)
 
     @property
     def position(self):
         return self.media_widget.position
+
+    @property
+    def fps(self):
+        return self._fps
+
+    @property
+    def n_frames(self):
+        return self.media_widget.n_frames
 
     @property
     def main_replay_widget(self):
