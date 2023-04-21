@@ -10,7 +10,6 @@ except ImportError:
     from decord_reader import DecordReader
 
 import numpy as np
-import tqdm
 
 try:
     video_folder = r"C:\Users\Raphael\Desktop\example_videos"
@@ -128,6 +127,11 @@ def sequential_access_test(N=100):
 
 
 if __name__ == "__main__":
+    try:
+        import tqdm
+    except ImportError:
+        print("tqdm not installed. Please install tqdm to run this script.")
+        exit()
     sequential_access_test(1000)
     random_access_test(100)
 
