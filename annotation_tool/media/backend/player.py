@@ -89,9 +89,6 @@ class AbstractMediaPlayer(qtw.QWidget):
     @qtc.pyqtSlot(int)
     def set_position(self, new_pos):
         if new_pos != self.position:
-            if self._is_main_replay_widget:
-                # print("set main-position to", new_pos)
-                pass
             self.position = new_pos
             self.update_media_position()
 

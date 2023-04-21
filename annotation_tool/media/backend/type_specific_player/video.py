@@ -144,7 +144,6 @@ class VideoHelper(qtc.QObject):
     @qtc.pyqtSlot(str)
     def load(self, path):
         self.media = mr(path)
-        print(f"Loaded with fps: {self.fps} and n_frames: {self.n_frames}")
         self.loaded.emit(self.fps, self.n_frames)
 
     @property

@@ -31,7 +31,6 @@ class MediaProxy(qtc.QObject):
 
     @qtc.pyqtSlot(qtc.QObject, int)
     def set_position_(self, proxy, position):
-        # print("set_position_", proxy, position)
         if proxy is self:
             self.set_position.emit(position)
 
