@@ -34,13 +34,10 @@ PyQt6 = "^6.4.0"
 pyqtgraph = "^0.12.4"
 scipy = "^1.10.0"
 torch = "^2.0.0"
-torchvision= "^0.15.1"
 sortedcontainers = "^2.4.0"
 fcache = "^0.4.7"
 appdirs = "^1.4.4"
-av = "^8.0.3"
-decord = "^0.6.0"
-tqdm = "^4.65.0"
+decord = { version = "^0.6.0", platform = "win32"}
 
 
 [tool.poetry.group.dev.dependencies]
