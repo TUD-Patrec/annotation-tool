@@ -2,7 +2,16 @@ import logging
 import os
 from typing import Tuple
 
-import decord
+try:
+    import decord
+
+    # use decord only for windows
+    _use_decord = os.name == "nt"
+except ImportError:
+    logging.debug("Decord not available, falling back to OpenCV")
+    decord = None
+    _use_decord = False
+
 import numpy as np
 
 try:
@@ -98,7 +107,7 @@ class DecordReader(VideoReaderBase):
         Returns:
             str: The codec of the video.
         """
-        return self.video.codec
+        raise NotImplementedError
 
     def get_fourcc(self) -> str:
         raise NotImplementedError
@@ -134,5 +143,7 @@ class DecordReader(VideoReaderBase):
             return False
 
 
-register_video_reader(DecordReader, 10)
+if _use_decord:
+    register_video_reader(DecordReader, 1)
+
 logging.info("Registered DecordReader.")
