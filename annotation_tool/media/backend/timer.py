@@ -44,7 +44,13 @@ class Synchronizer(qtc.QObject):
     @property
     def frame_position(self):
         if self.reference_widget:
-            if self._start_time:
+            if not self._start_time or self._paused:
+                # return the last known position
+
+                return self.reference_widget.position
+            else:
+                # calculate the position based on the current time
+
                 delta_t = (
                     time_in_millis() - self._start_time
                 ) * self._replay_speed  # ms
@@ -53,9 +59,9 @@ class Synchronizer(qtc.QObject):
                 return min(
                     new_pos, self.reference_widget.n_frames - 1
                 )  # do not go beyond the end
-            else:
-                return self.reference_widget.position
         else:
+            # no reference widget, so we cannot calculate the position
+
             return 0
 
     @qtc.pyqtSlot()
@@ -83,7 +89,7 @@ class Synchronizer(qtc.QObject):
                 target_pos *= (
                     subscriber.fps / self.fps
                 )  # scale to the fps of the subscriber
-                target_pos = round(target_pos)  # rounding to the nearest frame
+                target_pos = int(target_pos)
 
             if target_pos != subscriber.position:
                 self.position_changed.emit(
