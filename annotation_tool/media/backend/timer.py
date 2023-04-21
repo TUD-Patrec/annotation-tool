@@ -1,32 +1,10 @@
-import logging
 import time
 
 import PyQt6.QtCore as qtc
-import numpy as np
 
 
 def time_in_millis():
     return int(time.perf_counter() * 1000)
-
-
-class RingBuf:
-    def __init__(self, size=50):
-        self._size = size
-        self._buf = np.zeros(size)
-        self._pos = 0
-
-    def append(self, item):
-        self._buf[self._pos] = item
-        self._pos = (self._pos + 1) % self._size
-
-    def avg(self):
-        return sum(self._buf) / self._size
-
-    def max(self):
-        return np.max(self._buf)
-
-    def min(self):
-        return np.min(self._buf)
 
 
 class Synchronizer(qtc.QObject):
@@ -40,13 +18,10 @@ class Synchronizer(qtc.QObject):
         self._subscribers = []
 
         self._start_time = None
-        self._pos = 0
-        self._last_pos = 0
+        self._start_pos = 0
         self._last_timeout_pos = -1
 
         self._replay_speed = 1
-        self._DEFAULT_FPS = 60
-        self._fps = None
 
         self._active = True
         self._paused = True
@@ -55,67 +30,75 @@ class Synchronizer(qtc.QObject):
         self._timer = qtc.QTimer(self)
         self._timer.timeout.connect(self.handle_timeout)
 
-        # evaluation
-        self._last_timeout = time_in_millis()
-        self._timer_interval_buf = RingBuf(100)
-        self._notify_interval = 250
-        self._notify = 1
+    @property
+    def reference_widget(self):
+        for subscriber in self._subscribers:
+            if subscriber.main_replay_widget:
+                return subscriber
+        return None
 
     @property
     def fps(self):
-        return self._fps if self._fps is not None else self._DEFAULT_FPS
+        return 0 if self.reference_widget is None else self.reference_widget.fps
+
+    @property
+    def frame_position(self):
+        if self.reference_widget:
+            if self._start_time:
+                delta_t = (
+                    time_in_millis() - self._start_time
+                ) * self._replay_speed  # ms
+                delta_pos = int(delta_t * self.fps / 1000)  # frames
+                new_pos = self._start_pos + delta_pos
+                return min(
+                    new_pos, self.reference_widget.n_frames - 1
+                )  # do not go beyond the end
+            else:
+                return self.reference_widget.position
+        else:
+            return 0
 
     @qtc.pyqtSlot()
     def handle_timeout(self):
-        if not self._active:
+        is_valid = (
+            self.reference_widget is not None and self._active and not self._paused
+        )
+        if is_valid:
+            self.update_positions(from_timeout=True)
+
+    def update_positions(self, from_timeout=False, new_pos=None):
+        is_valid = self.reference_widget is not None and self._active
+        if not is_valid:
             return
-        if len(self._subscribers) == 0:
-            return
-        if self._paused:
-            return
 
-        now = time_in_millis()
-        self._timer_interval_buf.append(now - self._last_timeout)
-        self._last_timeout = now
+        if new_pos is None:
+            new_pos = self.frame_position
 
-        if self._notify % self._notify_interval == 0:
-            logging.debug(
-                f"timer interval: {self._timer_interval_buf.avg():.2f} ms, max: {self._timer_interval_buf.max():.2f} ms, min: {self._timer_interval_buf.min():.2f} ms"
-            )
-        self._notify += 1
+        assert 0 <= new_pos <= self.reference_widget.n_frames - 1  # sanity check
 
-        self.update_positions(from_timeout=True)
+        for subscriber in self._subscribers:
+            target_pos = new_pos  # target position in the subscriber's fps
 
-    def update_positions(self, from_timeout=True, force=False):
-        if self._active:
-            fps = self.fps
-            abs_pos = self.frame_position
+            if subscriber.fps != self.fps:
+                target_pos *= (
+                    subscriber.fps / self.fps
+                )  # scale to the fps of the subscriber
+                target_pos = round(target_pos)  # rounding to the nearest frame
 
-            if abs_pos == self._last_pos and not force:
-                return
+            if target_pos != subscriber.position:
+                self.position_changed.emit(
+                    subscriber, target_pos
+                )  # Update the displaying widgets
 
-            for subscriber in self._subscribers:
-                new_pos = abs_pos * subscriber.fps / fps
-                new_pos = round(
-                    new_pos
-                )  # rounding to the closest frame, always rounding down does not always make sense
-
-                if new_pos != subscriber.position or force:
-                    self.position_changed.emit(
-                        subscriber, new_pos
-                    )  # Update the displaying widgets
-
-                if (
-                    subscriber.main_replay_widget
-                    and from_timeout
-                    and new_pos != self._last_timeout_pos
-                ):
-                    self._last_timeout_pos = new_pos
-                    self.timeout.emit(
-                        new_pos
-                    )  # Update the rest of the app (e.g. the timeline)
-
-            self._last_pos = abs_pos
+            if (
+                subscriber.main_replay_widget
+                and from_timeout
+                and target_pos != self._last_timeout_pos
+            ):
+                self._last_timeout_pos = target_pos
+                self.timeout.emit(
+                    target_pos
+                )  # Update the rest of the app (e.g. the timeline)
 
     @qtc.pyqtSlot(bool)
     def set_paused(self, paused):
@@ -128,31 +111,23 @@ class Synchronizer(qtc.QObject):
     def pause(self):
         self._timer.stop()
         self._paused = True
-        self._pos = self.frame_position
         self._start_time = None
 
     @qtc.pyqtSlot()
     def unpause(self):
         self._paused = False
-        self._start_time = time_in_millis()
+        self.sync_time()
         self._timer.start(self._timer_interval)
 
     @qtc.pyqtSlot(float)
     def set_replay_speed(self, x):
-        self.sync_position()
         self._replay_speed = max(0.01, x)
+        self.sync_time()
 
     @qtc.pyqtSlot(int)
     def set_position(self, x):
-        fps = 0
-        for subscriber in self._subscribers:
-            if subscriber.main_replay_widget:
-                fps = subscriber.fps
-                break
-        pos_adjusted = int(x * self.fps / fps) if fps > 0 else x
-        self._pos = pos_adjusted
-        self._start_time = time_in_millis() if not self._paused else None
-        self.update_positions(from_timeout=False)
+        self.sync_time()
+        self.update_positions(from_timeout=False, new_pos=x)
 
     @qtc.pyqtSlot()
     def stop(self):
@@ -166,8 +141,6 @@ class Synchronizer(qtc.QObject):
     def reset(self):
         self._timer.stop()
         self._paused = True
-        self._pos = 0
-        self._last_pos = 0
         self._start_time = None
         self._subscribers = []
         self.timeout.emit(
@@ -176,35 +149,22 @@ class Synchronizer(qtc.QObject):
 
     @qtc.pyqtSlot(qtc.QObject)
     def subscribe(self, subscriber):
-        self._subscribers.append(subscriber)
-        if subscriber.main_replay_widget:
-            assert self._fps is None
-            assert subscriber.fps > 0
-            check_small_fps = subscriber.fps <= 60
-            check_int = subscriber.fps == int(subscriber.fps)
-
-            self._fps = (
-                2 * subscriber.fps if check_int and check_small_fps else subscriber.fps
+        if subscriber.main_replay_widget and self.reference_widget is not None:
+            raise ValueError(
+                "Only one main replay widget allowed, but {} and {} are both marked as main".format(
+                    self.reference_widget, subscriber
+                )
             )
-            self.sync_position()
+        self._subscribers.append(subscriber)
+
         self.position_changed.connect(subscriber.set_position_)
-        self.update_positions(from_timeout=False, force=True)
+        self.update_positions()
 
     @qtc.pyqtSlot(qtc.QObject)
     def unsubscribe(self, subscriber):
         self._subscribers = [x for x in self._subscribers if x != subscriber]
         self.position_changed.disconnect(subscriber.set_position_)
-        if subscriber.main_replay_widget:
-            self._fps = None
-            self.sync_position()
 
-    @property
-    def frame_position(self):
-        if self._start_time is None:
-            return self._pos
-        elapsed = self._replay_speed * (time_in_millis() - self._start_time)
-        return int(self._pos + elapsed * self.fps / 1000)
-
-    def sync_position(self):
-        self._pos = self.frame_position
+    def sync_time(self):
+        self._start_pos = self.frame_position
         self._start_time = time_in_millis() if not self._paused else None
