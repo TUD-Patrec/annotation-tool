@@ -37,7 +37,7 @@ torch = "^2.0.0"
 sortedcontainers = "^2.4.0"
 fcache = "^0.4.7"
 appdirs = "^1.4.4"
-decord = "^0.6.0"
+decord = { version = "^0.6.0", platform = "win32"}
 
 
 [tool.poetry.group.dev.dependencies]
