@@ -47,8 +47,8 @@ jobs:
 
       - name: Setup Git
         run: |
-          git config user.name 'Philipp Oberdiek'
-          git config user.email 'git@oberdiek.net'
+          git config user.name "Philipp Oberdiek"
+          git config user.email "git@oberdiek.net"
           git config push.autoSetupRemote true
 
       # Get current date
@@ -73,7 +73,7 @@ jobs:
 
       # Save changelog to file and remove trailing newlines
       - name: "Save changelog changes to file"
-        run: echo '${{ steps.build_changelog.outputs.changelog }}' | sed -e :a -e '/^\n*$/{$d;N;};/\n$/ba' > tmp-changelog.md
+        run: echo "${{ steps.build_changelog.outputs.changelog }}" | sed -e :a -e '/^\n*$/{$d;N;};/\n$/ba' > tmp-changelog.md
 
       # Detect increment
       - name: Detect increment
