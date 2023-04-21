@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). See also [RELEASE.md](RELEASE.md) for additional explanation.
 
+## 0.8.2 (2023-04-21)
+
+### 🐛 Fixes
+
+- Fix media position not always at 0 after reloading (#25)
+- Fix mocap reader not always using the mocap-cache (#26)
+- Fix some media loading bugs (#27)
+- Fix some bugs and improve media-backend's FPS handling (#28)
+- Fix media-readers used to access video-data (#31)
+
+### 🧹 Refactoring
+
+- Reimplement media-reading and media-playing (#24)
+- Refactor synchronization-timer in the media-backend (#30)
+- Fix media-readers used to access video-data (#31)
+
+### 🏎️ Performance
+
+- Reimplement media-reading and media-playing (#24)
+- Fix mocap reader not always using the mocap-cache (#26)
+
 ## 0.8.1 (2023-03-17)
 
 ### 🐛 Fixes
