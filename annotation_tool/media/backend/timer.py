@@ -132,7 +132,7 @@ class Synchronizer(qtc.QObject):
 
     @qtc.pyqtSlot(int)
     def set_position(self, x):
-        self.sync_time()
+        self.sync_time(x)
         self.update_positions(from_timeout=False, new_pos=x)
 
     @qtc.pyqtSlot()
@@ -171,6 +171,6 @@ class Synchronizer(qtc.QObject):
         self._subscribers = [x for x in self._subscribers if x != subscriber]
         self.position_changed.disconnect(subscriber.set_position_)
 
-    def sync_time(self):
-        self._start_pos = self.frame_position
+    def sync_time(self, new_pos: int = None):
+        self._start_pos = new_pos if new_pos else self.frame_position
         self._start_time = time_in_millis() if not self._paused else None
