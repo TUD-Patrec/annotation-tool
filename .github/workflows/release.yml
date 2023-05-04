@@ -34,7 +34,7 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT }}
 
       - name: Set up python
         id: setup-python
@@ -125,9 +125,12 @@ jobs:
           body_path: ${{ github.workspace }}/tmp-changelog.md
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: "Create Pull Request into master"
-        if: ${{ !startsWith(github.ref_name, 'release/') }}
-        run: GH_TOKEN=${{ secrets.GITHUB_TOKEN }} gh pr create --base "master" --head "${{ steps.release_branch.outputs.name }}" --title "Changelog v${{ steps.bump_version.outputs.version }}" --body-file "tmp-changelog.md"
+      - name: "Merge Changelog into master"
+        run: |
+          git checkout master
+          git pull
+          git merge "release/v${{ steps.bump_version.outputs.version }}" -m "Changelog v${{ steps.bump_version.outputs.version }}" --squash
+          git push origin master
 
   PublishPyPI:
     needs: create-release
