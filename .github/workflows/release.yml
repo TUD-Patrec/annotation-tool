@@ -9,15 +9,14 @@ env:
 
 on:
   workflow_dispatch:
-    branches:
-      - master
     inputs:
       increment:
-        description: 'Semver increment. Leave empty for automatic detection'
+        description: 'Semver increment. Leave as AUTO for automatic detection'
         required: false
         type: choice
+        default: 'AUTO'
         options:
-        - ''
+        - 'AUTO'
         - 'PATCH'
         - 'MINOR'
         - 'MAJOR'
@@ -80,14 +79,14 @@ jobs:
 
       # Detect increment
       - name: Detect increment
-        if: inputs.increment == ''
+        if: inputs.increment == 'AUTO'
         id: detect_increment
         run: echo "increment=$(.github/detect-increment.sh tmp-changelog.md)" >> $GITHUB_OUTPUT
 
       - name: Register correct increment
         id: set_increment
         run: |
-          if [  -z "${{ inputs.increment }}" ]; then
+          if [ "${{ inputs.increment }}" == "AUTO" ]; then
             echo "increment=${{ steps.detect_increment.outputs.increment }}" >> $GITHUB_OUTPUT
           else
             echo "increment=${{ inputs.increment }}" >> $GITHUB_OUTPUT
