@@ -133,14 +133,14 @@ jobs:
           git push origin master
 
   PublishPyPI:
-    needs: create-release
+    needs: [create-release, lint]
     uses: TUD-Patrec/annotation-tool/.github/workflows/publish-to-pypi.yml@master
     with:
       ref: "v${{ needs.create-release.outputs.new_version }}"
     secrets: inherit
 
   PublishTestPyPI:
-    needs: create-release
+    needs: [create-release, lint]
     uses: TUD-Patrec/annotation-tool/.github/workflows/publish-to-testpypi.yml@master
     with:
       ref: "v${{ needs.create-release.outputs.new_version }}"
