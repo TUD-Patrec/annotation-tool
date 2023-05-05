@@ -109,18 +109,17 @@ jobs:
         id: release_branch
         run: |
           git checkout -b "release/v${{ steps.bump_version.outputs.version }}"
-          git push origin "release/v${{ steps.bump_version.outputs.version }}"
           echo "name=release/v${{ steps.bump_version.outputs.version }}" >> $GITHUB_OUTPUT
 
       # Commit changes and push with new tag
-      - name: "Commit version bump and changelog update and push"
+      - name: "Commit version bump and changelog update and push new tag"
         run: |
           git add -u
           git commit -m "release v${{ steps.bump_version.outputs.version }}"
           git tag -a -m "v${{ steps.bump_version.outputs.version }}" v${{ steps.bump_version.outputs.version }}
-          git push origin --follow-tags
+          git push origin --tags
 
-      - name: "Create release"
+      - name: "Create release from new tag"
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.bump_version.outputs.version }}
@@ -130,8 +129,10 @@ jobs:
       - name: "Merge Changelog into master"
         run: |
           git checkout master
-          git pull
-          git merge "release/v${{ steps.bump_version.outputs.version }}" -m "Changelog v${{ steps.bump_version.outputs.version }}" --squash
+          git fetch origin master
+          git reset --hard origin/master
+          git merge "release/v${{ steps.bump_version.outputs.version }}" --squash
+          git commit -m "Changelog v${{ steps.bump_version.outputs.version }}"
           git push origin master
 
   PublishPyPI:
