@@ -269,9 +269,9 @@ def write_csv(path: os.PathLike, data: np.ndarray, header: List[str] = None) -> 
     else:
         header = ""
     if np.issubdtype(data.dtype, np.integer):
-        np.savetxt(path, data, fmt="%d", delimiter=",", header=header)
+        np.savetxt(path, data, fmt="%d", delimiter=",", header=header, comments="")
     else:
-        np.savetxt(path, data, delimiter=",", header=header)
+        np.savetxt(path, data, delimiter=",", header=header, comments="")
 
 
 def write_pickle(path: os.PathLike, data: object) -> None:
