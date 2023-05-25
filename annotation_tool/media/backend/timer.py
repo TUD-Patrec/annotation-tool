@@ -172,5 +172,5 @@ class Synchronizer(qtc.QObject):
         self.position_changed.disconnect(subscriber.set_position_)
 
     def sync_time(self, new_pos: int = None):
-        self._start_pos = new_pos if new_pos else self.frame_position
+        self._start_pos = new_pos if new_pos is not None else self.frame_position
         self._start_time = time_in_millis() if not self._paused else None
