@@ -1,4 +1,3 @@
-import enum
 from functools import lru_cache
 import os
 from typing import List, Tuple
@@ -6,25 +5,9 @@ from typing import List, Tuple
 import numpy as np
 import torch
 
-from annotation_tool.data_model.media_type import MediaType, from_str
-from annotation_tool.media_reader import media_reader, media_type_of
-from annotation_tool.network.LARa import lara_specifics
+from annotation_tool.data_model.model import Model, get_models
+from annotation_tool.media_reader import MediaReader, media_reader
 from annotation_tool.network.network import Network
-
-__network_dict__ = {}
-
-
-class NetworkType(enum.Enum):
-    LARA_ATTR = 0
-    LARA_ATTR_CNN_IMU = 1
-
-
-def to_tensor(data: np.ndarray) -> torch.Tensor:
-    # if cuda available, use it
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # logging.info(f"{device = }")
-    return torch.from_numpy(data).to(device)
-
 
 __data_file__ = None
 
@@ -44,37 +27,22 @@ def run_network(lower, upper) -> np.ndarray:
     return __run_network__(path, lower, upper)
 
 
-@lru_cache(maxsize=1)
-def __get_data__(file: os.PathLike) -> Tuple[np.ndarray, MediaType]:
-    media_type = from_str(media_type_of(file))
-
-    # load from disk
-    data = __load_raw_data__(file, media_type)
-
-    # preprocess
-    data = __preprocess__(data, media_type)
-
-    return data, media_type
-
-
 def __run_network__(file: os.PathLike, start: int = 0, end: int = -1) -> np.ndarray:
     # load data
-    data, media_type = __get_data__(file)
-
-    # logging.info(f"{media_type = }, {data.shape = }")
+    mr = media_reader(file)
 
     # select compatible networks
-    network, config = __load_network__(media_type)
-    # logging.info(f"{config = }")
+    model = __select_model__(mr)
+    data = np.ndarray(mr[start:end])
 
     # for segmentation
-    segment_size = config.get("sliding_window_length")
+    segment_size = model.input_shape[0]
     assert isinstance(segment_size, int) and segment_size > 0
-    # logging.info(f"{segment_size = }")
 
-    assert (
-        segment_size <= data.shape[0]
-    ), f"{segment_size = } is bigger than {data.shape[0] = }"
+    assert segment_size <= len(mr), f"{segment_size = } is bigger than {len(mr) = }"
+
+    # mr_fps = mr.fps
+    # model_fps = model.sampling_rate
 
     # filter element if specified
     if end >= 0:
@@ -121,104 +89,18 @@ def __run_network__(file: os.PathLike, start: int = 0, end: int = -1) -> np.ndar
 
     assert data.shape[0] == segment_size, f"{data.shape = }, {segment_size = }"
 
+    network = None
     y = __forward__(data, network)
 
     return y
 
 
-def __load_raw_data__(file: os.PathLike, media_type: MediaType = None) -> np.ndarray:
-    if media_type is None:
-        media_type = from_str(media_type_of(file))
-
-    if media_type == MediaType.MOCAP:
-        data = media_reader(file)  # TODO remove hard coded fps
-    elif media_type == MediaType.VIDEO:
-        raise NotImplementedError
-    else:
-        data = None
-
-    return data
-
-
 @lru_cache(maxsize=1)
-def __load_network__(media_type: MediaType) -> Tuple[Network, dict]:
+def __select_model__(media_reader: MediaReader) -> Model:
     # find best fitting network
 
-    if media_type == MediaType.MOCAP:
-        from annotation_tool.data_model import get_model_by_mediatype
-
-        # path to desktop
-        model = get_model_by_mediatype(MediaType.MOCAP)
-        if model:
-            network_path = model.path
-        else:
-            raise FileNotFoundError("No model found for mocap")
-        if not os.path.isfile(network_path):
-            raise FileNotFoundError("Could not find any LARa-Network")
-
-        network, config = __load_lara_network__(network_path)
-
-    elif media_type == MediaType.VIDEO:
-        raise NotImplementedError
-    else:
-        raise ValueError(f"{media_type = } is not supported")
-
-    # to cuda
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    network.to(device)
-
-    return network, config
-
-
-def __load_lara_network__(network_path: os.PathLike) -> Tuple[Network, dict]:
-    try:
-        print(f"Loading network from {network_path}")
-        checkpoint = torch.load(network_path, map_location=torch.device("cpu"))
-
-        state_dict = checkpoint["state_dict"]
-        config = checkpoint["network_config"]
-
-        # TODO Remove this hack
-        config["fully_convolutional"] = "FC"
-
-        network = Network(config)
-        network.load_state_dict(state_dict)
-        network.eval()
-
-        return network, config
-    except Exception:
-        raise
-
-
-def __load_video_network(network_path: os.PathLike) -> Tuple[Network, dict]:
-    try:
-        pass
-    except Exception:
-        raise
-
-
-def __preprocess__(data, media_type: MediaType) -> np.ndarray:
-    if media_type == MediaType.MOCAP:
-        data = __preprocess_lara__(data)
-    elif media_type == MediaType.VIDEO:
-        data = __preprocess_video__(data)
-    else:
-        raise ValueError(f"{media_type} cannot be used for network prediction.")
-    return data
-
-
-def __preprocess_lara__(data) -> np.ndarray:
-    data = np.delete(data, range(66, 72), 1)
-    data = lara_specifics.normalize(data)
-    return data
-
-
-def __preprocess_video__(data) -> np.ndarray:
-    raise NotImplementedError
-
-
-def __postprocess__(data: np.ndarray, media_type: MediaType) -> np.ndarray:
-    return data
+    compatible_networks = get_models(media_reader.media_type)
+    return compatible_networks[0]
 
 
 def __segment_data__(

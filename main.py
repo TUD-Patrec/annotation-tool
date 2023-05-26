@@ -65,5 +65,27 @@ def start():
     main()
 
 
+def test():
+    from annotation_tool.utility import filehandler
+
+    filehandler.init_logger()
+
+    from annotation_tool.data_model.media_type import MediaType
+    from annotation_tool.data_model.model import Model, create_model
+
+    model = create_model(
+        network_path=r"C:\Users\Raphael\Desktop\pytorch_jit\traced_network.pt",
+        sampling_rate=100,
+        media_type=MediaType.MOCAP,
+        input_shape=(100, 132),
+    )
+
+    print(f"{model.output_shape = }")
+
+    print(*Model.get_all(), sep="\n")
+    Model.del_all()
+
+
 if __name__ == "__main__":
-    start()
+    # start()
+    test()

@@ -299,6 +299,9 @@ class MainApplication(qtw.QApplication):
         self.gui.close()  # close main window
         logging.info("Successfully stopped application!")
 
+    def refocus(self):
+        self.gui.setFocus()
+
 
 def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)

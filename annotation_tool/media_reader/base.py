@@ -83,6 +83,10 @@ class MediaReader(abc.ABC):
     def path(self) -> os.PathLike:
         return self.__get_path__()
 
+    @property
+    def media_type(self) -> str:
+        return media_type_of(self.path)
+
     def __len__(self):
         return self.__get_frame_count__()
 

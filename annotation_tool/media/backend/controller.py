@@ -181,6 +181,10 @@ class QMediaMainController(qtw.QWidget):
 
         self._check_loading_finished()  # check if loading is finished
 
+        # Refocus main window
+        app = qtw.QApplication.instance()
+        app.refocus()
+
     @qtc.pyqtSlot(AbstractMediaPlayer)
     def widget_failed(self, widget):
         self.remove_replay_source(widget, ignore_errors=True)

@@ -1,7 +1,9 @@
 from dataclasses import dataclass, field
 import os
 import time
-from typing import List, Optional
+from typing import List, Optional, Tuple
+
+import torch
 
 from annotation_tool.data_model.media_type import MediaType
 from annotation_tool.file_cache import cached
@@ -28,8 +30,10 @@ class Model:
     """
 
     network_path: os.PathLike
-    sampling_rate: int
     media_type: MediaType
+    sampling_rate: int
+    input_shape: Tuple[int, ...] = field(init=True)
+    output_shape: Tuple[int, ...] = field(init=True, default=None)
     name: str = field(init=True, default=None)
     activated: bool = field(init=False, default=True)
     footprint: int = field(init=False)
@@ -47,6 +51,30 @@ class Model:
         self.footprint = footprint_of_file(self.network_path, fast_hash=True)
         if self.name is None:
             self.name = get_unique_name()
+
+        # try to load network and check if it is valid
+        try:
+            network = self.load()
+        except Exception as e:
+            raise Exception(
+                f"Network at {self.network_path} could not be loaded."
+            ) from e
+
+        network.eval()
+        sample_input = torch.randn(1, *self.input_shape)
+        try:
+            out = network(sample_input)
+        except Exception as e:
+            raise Exception(
+                f"Network at {self.network_path} could not be evaluated."
+            ) from e
+
+        if self.output_shape is None:
+            self.output_shape = tuple(out.shape[1:])
+
+        if self.output_shape != out.shape[1:]:
+            error_str = f"Network output shape mismatch. Expected {self.output_shape}, got {out.shape[1:]}"
+            raise RuntimeError(error_str)
 
     @property
     def path(self):
@@ -70,29 +98,30 @@ class Model:
         self.correct_classifications = 0
         self.incorrect_classifications = 0
 
-    def __copy__(self):
-        return Model(
-            self.network_path,
-            self.sampling_rate,
-            self.media_type,
-            self.name,
-            self.activated,
-            self.footprint,
-            self.basename,
-            self.size_bytes,
-            self.creation_time,
-            self.correct_classifications,
-            self.incorrect_classifications,
-        )
+    def load(self, allow_cuda: bool = False) -> torch.nn.Module:
+        """
+        Loads the network from disk.
 
-    def __deepcopy__(self, memo):
-        return self.__copy__()
+        Args:
+            allow_cuda: Whether to allow CUDA usage.
+        Returns:
+            The loaded network.
+        """
+        if allow_cuda and torch.cuda.is_available():
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else:
+            device = torch.device("cpu")
+        model = torch.load(self.network_path, map_location=device)
+        model.eval()
+        return model
 
 
 def create_model(
     network_path: os.PathLike,
-    sampling_rate: int,
     media_type: MediaType,
+    sampling_rate: int,
+    input_shape: Tuple[int, ...],
+    output_shape: Tuple[int, ...] = None,
     name: str = None,
 ) -> Model:
     """
@@ -100,13 +129,17 @@ def create_model(
 
     Args:
         network_path: The path to the network file.
-        sampling_rate: The sampling rate of the network.
         media_type: The media type of the network.
+        sampling_rate: The sampling rate (FPS) of the network [1/s].
+        input_shape: The input shape of the network.
+        output_shape: The output shape of the network. If None, it will be inferred from the network.
         name: The name of the network. If None, a unique name will be generated.
     Returns:
         The new Model object.
     """
-    return Model(network_path, sampling_rate, media_type, name)
+    return Model(
+        network_path, media_type, sampling_rate, input_shape, output_shape, name
+    )
 
 
 def get_models(media_type: MediaType, get_deactivated=False) -> List[Model]:
