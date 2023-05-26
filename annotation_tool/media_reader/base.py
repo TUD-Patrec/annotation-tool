@@ -178,6 +178,19 @@ class MediaReader(abc.ABC):
         """
         raise NotImplementedError
 
+    def numpy(self, lo: int, hi: int, step: int = 1):
+        """
+        Returns a numpy array of the frames between lo and hi.
+
+        Args:
+            lo: The lower bound of the frame indices.
+            hi: The upper bound of the frame indices.
+            step: The step size between frames.
+        Returns:
+            A numpy array of the frames between lo and hi with step size step.
+        """
+        return np.array([self[i] for i in range(lo, hi, step)])
+
 
 class __MediaSelector:
     def __init__(self):

@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from functools import cached_property
 import os
 import time
 from typing import List, Optional, Tuple
@@ -114,6 +115,16 @@ class Model:
         model = torch.load(self.network_path, map_location=device)
         model.eval()
         return model
+
+    @cached_property
+    def network(self) -> torch.nn.Module:
+        """
+        Loads the network from disk.
+
+        Returns:
+            The loaded network.
+        """
+        return self.load()
 
 
 def create_model(
