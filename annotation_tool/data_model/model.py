@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from functools import cached_property
+from functools import lru_cache
 import os
 import time
 from typing import List, Optional, Tuple
@@ -23,6 +23,24 @@ def get_unique_name() -> str:
         i += 1
 
 
+@lru_cache(maxsize=1)
+def load_network(path, expected_hash, allow_cuda):
+    computed_hash = footprint_of_file(path, fast_hash=True)
+    if computed_hash is None or computed_hash != expected_hash:
+        raise RuntimeError(
+            f"The file {path} has an unexpected hash. Expected {expected_hash} but got {computed_hash}."
+        )
+    if allow_cuda and torch.cuda.is_available():
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    else:
+        device = torch.device("cpu")
+    try:
+        model = torch.load(path, map_location=device)
+    except Exception as e:
+        raise RuntimeError(f"Loading the network from location {path} failed.") from e
+    return model
+
+
 @cached
 @dataclass
 class Model:
@@ -33,16 +51,14 @@ class Model:
     network_path: os.PathLike
     media_type: MediaType
     sampling_rate: int
-    input_shape: Tuple[int, ...] = field(init=True)
-    output_shape: Tuple[int, ...] = field(init=True, default=None)
+    input_shape: Tuple[int, ...]
+    output_size: int
     name: str = field(init=True, default=None)
     activated: bool = field(init=False, default=True)
-    footprint: int = field(init=False)
+    footprint: str = field(init=False)
     basename: str = field(init=False)
     size_bytes: int = field(init=False, default=0)
-    creation_time: time.struct_time = field(
-        init=False, default_factory=lambda: time.localtime
-    )
+    creation_time: time.struct_time = field(init=False, default=None)
     correct_classifications: int = field(init=False, default=0)
     incorrect_classifications: int = field(init=False, default=0)
 
@@ -50,32 +66,9 @@ class Model:
         self.size_bytes = 0  # placeholder for now -> later something like: os.path.getsize(self.network_path)
         self.basename = os.path.basename(self.network_path)
         self.footprint = footprint_of_file(self.network_path, fast_hash=True)
+        self.creation_time = time.localtime(os.path.getctime(self.network_path))
         if self.name is None:
             self.name = get_unique_name()
-
-        # try to load network and check if it is valid
-        try:
-            network = self.load()
-        except Exception as e:
-            raise Exception(
-                f"Network at {self.network_path} could not be loaded."
-            ) from e
-
-        network.eval()
-        sample_input = torch.randn(1, *self.input_shape)
-        try:
-            out = network(sample_input)
-        except Exception as e:
-            raise Exception(
-                f"Network at {self.network_path} could not be evaluated."
-            ) from e
-
-        if self.output_shape is None:
-            self.output_shape = tuple(out.shape[1:])
-
-        if self.output_shape != out.shape[1:]:
-            error_str = f"Network output shape mismatch. Expected {self.output_shape}, got {out.shape[1:]}"
-            raise RuntimeError(error_str)
 
     @property
     def path(self):
@@ -108,23 +101,7 @@ class Model:
         Returns:
             The loaded network.
         """
-        if allow_cuda and torch.cuda.is_available():
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        else:
-            device = torch.device("cpu")
-        model = torch.load(self.network_path, map_location=device)
-        model.eval()
-        return model
-
-    @cached_property
-    def network(self) -> torch.nn.Module:
-        """
-        Loads the network from disk.
-
-        Returns:
-            The loaded network.
-        """
-        return self.load()
+        return load_network(self.network_path, self.footprint, allow_cuda)
 
 
 def create_model(
@@ -132,7 +109,7 @@ def create_model(
     media_type: MediaType,
     sampling_rate: int,
     input_shape: Tuple[int, ...],
-    output_shape: Tuple[int, ...] = None,
+    output_size: int = None,
     name: str = None,
 ) -> Model:
     """
@@ -143,13 +120,45 @@ def create_model(
         media_type: The media type of the network.
         sampling_rate: The sampling rate (FPS) of the network [1/s].
         input_shape: The input shape of the network.
-        output_shape: The output shape of the network. If None, it will be inferred from the network.
+        output_size: The number of output classes of the network. If None, this will be inferred by running the network once.
         name: The name of the network. If None, a unique name will be generated.
     Returns:
         The new Model object.
     """
+    # try to load network and check if it is valid
+    try:
+        network = torch.load(network_path, map_location="cpu")
+    except Exception as e:
+        raise RuntimeError(
+            f"Loading the network from location {network_path} failed."
+        ) from e
+
+    network.eval()
+    _sample_shape = [x if isinstance(x, int) else x[0] for x in input_shape]
+    sample_input = torch.randn(1, *_sample_shape)
+    try:
+        with torch.no_grad():
+            out = network(sample_input)
+    except Exception as e:
+        raise ValueError(
+            f"The network at {network_path} does not accept input of shape {input_shape}"
+        ) from e
+
+    assert (
+        len(out.shape) == 2
+    ), f"The network is expected to return a (B, C) tensor. Got a tensor of shape {out.shape}"
+
+    if output_size is None:
+        output_size = out.shape[1]  # infer from network output
+
+    if output_size != out.shape[1]:
+        error_str = (
+            f"Network output shape mismatch. Expected {output_size}, got {out.shape[1]}"
+        )
+        raise ValueError(error_str)
+
     return Model(
-        network_path, media_type, sampling_rate, input_shape, output_shape, name
+        network_path, media_type, sampling_rate, input_shape, output_size, name
     )
 
 

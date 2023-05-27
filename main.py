@@ -75,7 +75,7 @@ def test():
     from annotation_tool.media_reader import set_fallback_fps
     from annotation_tool.network.controller import __run_network__
 
-    mocap_file = r"C:\Users\Raphael\Desktop\L01_S07_R01_norm_data.csv"
+    mocap_file = r"C:\Users\Raphael\Desktop\L01_S14_R01.csv"
     network_file = r"C:\Users\Raphael\Desktop\traced_network.pt"
 
     set_fallback_fps(6)
@@ -135,5 +135,5 @@ def test():
 
 
 if __name__ == "__main__":
-    # start()
-    test()
+    start()
+    # test()

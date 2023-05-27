@@ -295,6 +295,6 @@ class QMediaMainController(qtw.QWidget):
             if proxy is None:
                 raise RuntimeError(f"Could not find proxy for widget {widget}")
             if proxy.fps != widget.fps:
-                proxy.fps = widget.fps
+                proxy._fps = widget.fps
                 self.unsubscribe.emit(proxy)
                 self.subscribe.emit(proxy)

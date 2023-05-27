@@ -49,7 +49,7 @@ def parse_input_shape(input_str: str):
 
     res = []
 
-    print(tuples, shapes)
+    # print(tuples, shapes)
 
     for shape in shapes:
         if shape == placeholder:
@@ -63,6 +63,7 @@ def parse_input_shape(input_str: str):
                 )
             if min_ <= 0 or max_ <= 0:
                 raise ValueError(f"Values must be positive, got {min_} and {max_}")
+            max_ = -1 if max_ == _magical_number else max_
             res.append((min_, max_))
 
         else:
@@ -73,7 +74,8 @@ def parse_input_shape(input_str: str):
                 raise ValueError(f"Value must be positive, got {val}")
             res.append(val)
 
-    return tuple(res)
+    res = tuple(res)
+    return res
 
 
 class NetworkWidget(qtw.QWidget):
@@ -264,9 +266,16 @@ class CreateNetworkDialog(qtw.QDialog):
         self.input_shape_label = qtw.QLabel("Input Shape:")
         self.input_shape_edit = qtw.QLineEdit()
         self.input_shape_edit.setPlaceholderText("e.g. (100, (100, *), 1000)")
-        self.input_shape_label.setToolTip(
-            "The input shape of the network. Batch-size is not included. Examples: (100, 200), (100, (150, *), 1000), (100, (100, 100), 1000)"
+        _example_1 = (
+            "(100, 200, 200) -> A single number means that the dimension is fixed"
         )
+        _example_2 = "(100, (150, 200)) -> If a tuple is given for a dimension any value x with lower <= x <= upper is valid"
+        _example_3 = "((50, 100), (100, *), 1000) -> * is a wildcard for the upper bound (any value >= lower is valid)"
+        _tool_tip = "The input shape of the network. Batch-size is not included. \n Examples: \n {} \n {} \n {}".format(
+            _example_1, _example_2, _example_3
+        )
+        self.input_shape_label.setToolTip(_tool_tip)
+        self.input_shape_edit.setToolTip(_tool_tip)
 
         self.layout.addWidget(self.input_shape_label)
         self.layout.addWidget(self.input_shape_edit)
@@ -358,12 +367,38 @@ class NetworksDialog(qtw.QDialog):
             path = create_dialog.get_path()
             sampling_rate = create_dialog.get_sampling_rate()
             media_type = create_dialog.get_media_type()
-            input_shape = create_dialog.get_input_shape()
-            create_model(
-                network_path=path,
-                media_type=media_type,
-                sampling_rate=sampling_rate,
-                input_shape=input_shape,
-                name=name,
-            )
+            try:
+                input_shape = create_dialog.get_input_shape()
+            except ValueError:
+                qtw.QMessageBox.critical(
+                    self,
+                    "Error",
+                    "Input shape could not be parsed. Please check your input shape.",
+                )
+                return
+            try:
+                print(f"Parsed: {input_shape = }")
+                m = create_model(
+                    network_path=path,
+                    media_type=media_type,
+                    sampling_rate=sampling_rate,
+                    input_shape=input_shape,
+                    name=name,
+                )
+                print(f"Created model {m}")
+            except RuntimeError as e:
+                qtw.QMessageBox.critical(
+                    self,
+                    "Error",
+                    f"Could not create model. Error: {e}",
+                )
+                return
+            except ValueError as e:
+                qtw.QMessageBox.critical(
+                    self,
+                    "Error",
+                    f"Could not create model. Error: {e}",
+                )
+                return
+
             self.update()
