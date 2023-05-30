@@ -1,5 +1,6 @@
 import logging
 import logging.config
+from pathlib import Path
 import sys
 import time
 
@@ -9,7 +10,7 @@ from PyQt6.QtGui import QColor, QPalette
 import PyQt6.QtWidgets as qtw
 
 from annotation_tool.annotation.timeline import QTimeLine
-from annotation_tool.media_reader import media_reader, set_fallback_fps
+from annotation_tool.media_reader import media_reader
 import annotation_tool.network.controller as network
 from annotation_tool.settings import settings
 
@@ -23,19 +24,16 @@ from .playback import QPlaybackWidget
 from .utility import filehandler
 from .utility.functions import FrameTimeMapper
 
-# init media_reader
-set_fallback_fps(settings.refresh_rate)
-
 
 class MainApplication(qtw.QApplication):
     update_media_pos = qtc.pyqtSignal(int)
     update_annotation_pos = qtc.pyqtSignal(int)
-    load_media = qtc.pyqtSignal(str, list)
+    load_media = qtc.pyqtSignal(Path, list)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Controll-Attributes
+        # Control-Attributes
         self.current_annotation = None
         self.n_frames = 0
         self.mediator = Mediator()
@@ -208,8 +206,6 @@ class MainApplication(qtw.QApplication):
     @qtc.pyqtSlot()
     def settings_changed(self):
         filehandler.set_logging_level(settings.logging_level)
-
-        set_fallback_fps(settings.refresh_rate)
 
         if self.current_annotation is not None:
             media = media_reader(path=self.current_annotation.path)

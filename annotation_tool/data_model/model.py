@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from functools import lru_cache
 import os
+from pathlib import Path
 import time
 from typing import List, Optional, Tuple
 
@@ -8,7 +9,7 @@ import torch
 
 from annotation_tool.data_model.media_type import MediaType
 from annotation_tool.file_cache import cached
-from annotation_tool.utility.filehandler import footprint_of_file
+from annotation_tool.utility.filehandler import checksum
 
 
 def get_unique_name() -> str:
@@ -24,8 +25,8 @@ def get_unique_name() -> str:
 
 
 @lru_cache(maxsize=1)
-def load_network(path, expected_hash, allow_cuda):
-    computed_hash = footprint_of_file(path, fast_hash=True)
+def load_network(path: Path, expected_hash: str, allow_cuda: bool):
+    computed_hash = checksum(path, fast_hash=True)
     if computed_hash is None or computed_hash != expected_hash:
         raise RuntimeError(
             f"The file {path} has an unexpected hash. Expected {expected_hash} but got {computed_hash}."
@@ -48,24 +49,20 @@ class Model:
     Wrapper for storing metadata about neural network models.
     """
 
-    network_path: os.PathLike
+    network_path: Path
     media_type: MediaType
     sampling_rate: int
     input_shape: Tuple[int, ...]
     output_size: int
     name: str = field(init=True, default=None)
     activated: bool = field(init=False, default=True)
-    footprint: str = field(init=False)
-    basename: str = field(init=False)
+    _checksum: str = field(init=False)
     size_bytes: int = field(init=False, default=0)
     creation_time: time.struct_time = field(init=False, default=None)
-    correct_classifications: int = field(init=False, default=0)
-    incorrect_classifications: int = field(init=False, default=0)
 
     def __post_init__(self):
-        self.size_bytes = 0  # placeholder for now -> later something like: os.path.getsize(self.network_path)
-        self.basename = os.path.basename(self.network_path)
-        self.footprint = footprint_of_file(self.network_path, fast_hash=True)
+        self.size_bytes = os.path.getsize(self.network_path)
+        self._checksum = checksum(self.network_path, fast_hash=True)
         self.creation_time = time.localtime(os.path.getctime(self.network_path))
         if self.name is None:
             self.name = get_unique_name()
@@ -79,18 +76,8 @@ class Model:
         return time.strftime("%Y-%m-%d_%H-%M-%S", self.creation_time)
 
     @property
-    def accuracy(self) -> float:
-        return self.correct_classifications / (
-            self.correct_classifications + self.incorrect_classifications
-        )
-
-    @property
-    def n_predictions(self) -> int:
-        return self.correct_classifications + self.incorrect_classifications
-
-    def reset(self):
-        self.correct_classifications = 0
-        self.incorrect_classifications = 0
+    def checksum(self) -> str:
+        return self._checksum
 
     def load(self, allow_cuda: bool = False) -> torch.nn.Module:
         """
@@ -101,11 +88,11 @@ class Model:
         Returns:
             The loaded network.
         """
-        return load_network(self.network_path, self.footprint, allow_cuda)
+        return load_network(self.network_path, self.checksum, allow_cuda)
 
 
 def create_model(
-    network_path: os.PathLike,
+    network_path: Path,
     media_type: MediaType,
     sampling_rate: int,
     input_shape: Tuple[int, ...],

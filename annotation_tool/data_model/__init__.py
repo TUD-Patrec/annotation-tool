@@ -9,4 +9,4 @@ from .model import (  # noqa F401
     get_unique_name,
 )
 from .sample import Sample, create_sample  # noqa F401
-from .single_annotation import SingleAnnotation, create_annotation  # noqa F401
+from .single_annotation import SingleAnnotation, create_single_annotation  # noqa F401

@@ -4,7 +4,7 @@ import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
 import numpy as np
 
-from annotation_tool.data_model import Annotation, Dataset, create_annotation
+from annotation_tool.data_model import Annotation, Dataset
 from annotation_tool.media_reader import media_reader as mr
 from annotation_tool.qt_helper_widgets.line_edit_adapted import QLineEditAdapted
 from annotation_tool.settings import settings

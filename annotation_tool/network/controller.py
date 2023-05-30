@@ -1,5 +1,6 @@
 from functools import lru_cache
 import os
+from pathlib import Path
 import time
 from typing import List, Tuple
 
@@ -16,7 +17,7 @@ _state_ = {
 }
 
 
-def update_state(file: os.PathLike, num_labels: int):
+def update_state(file: Path, num_labels: int):
     _state_["file"] = file
     _state_["num_labels"] = num_labels
     print(f"Updated state: {_state_}")
@@ -42,7 +43,7 @@ def run_network(lower: int, upper: int) -> np.ndarray:
 
 
 @lru_cache(maxsize=1)
-def __get_media_reader__(file: os.PathLike) -> MediaReader:
+def __get_media_reader__(file: Path) -> MediaReader:
     return media_reader(file)
 
 
@@ -99,9 +100,7 @@ def __get_model__(mr: MediaReader, num_labels: int) -> Model:
     return res[0] if len(res) > 0 else None
 
 
-def __run_network__(
-    file: os.PathLike, start: int, end: int, num_labels: int
-) -> np.ndarray:
+def __run_network__(file: Path, start: int, end: int, num_labels: int) -> np.ndarray:
     start_time = time.perf_counter()
 
     assert os.path.isfile(file), f"{file = } is not a file"

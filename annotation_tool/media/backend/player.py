@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from pathlib import Path
 
 import PyQt6.QtCore as qtc
 import PyQt6.QtGui as qtg
@@ -9,7 +10,7 @@ from annotation_tool.utility import filehandler
 
 class AbstractMediaPlayer(qtw.QWidget):
     remove_wanted = qtc.pyqtSignal(qtw.QWidget)  # Emit self to be removed
-    new_input_wanted = qtc.pyqtSignal(str)  # Path to new input-file
+    new_input_wanted = qtc.pyqtSignal(Path)  # Path to new input-file
     loaded = qtc.pyqtSignal(
         qtw.QWidget
     )  # Emit self to notify controller about successfully loading
@@ -54,6 +55,7 @@ class AbstractMediaPlayer(qtw.QWidget):
         filename, _ = qtw.QFileDialog.getOpenFileName(
             directory="", filter="Video MoCap (*.mp4 *.avi *.csv)"
         )
+        filename = Path(filename)
         if filehandler.is_non_zero_file(filename):
             self.new_input_wanted.emit(filename)
 

@@ -1,7 +1,5 @@
 from dataclasses import dataclass, field
 import logging
-import math
-import os
 from pathlib import Path
 import time
 from typing import List, Tuple
@@ -9,8 +7,9 @@ from typing import List, Tuple
 import numpy as np
 
 from annotation_tool.file_cache import cached
+from annotation_tool.media_reader import MediaReader, media_reader
 from annotation_tool.utility.decorators import accepts
-from annotation_tool.utility.filehandler import footprint_of_file
+from annotation_tool.utility.filehandler import checksum, is_non_zero_file
 
 from .dataset import Dataset
 from .sample import Sample
@@ -24,42 +23,19 @@ class Annotation:
     _dataset: Dataset
     name: str
     _annotated_file: Path
-    _file_hash: str = field(init=False)
+    _checksum: str = field(init=False)
     _samples: list = field(init=False, default_factory=list)
     _timestamp: time.struct_time = field(init=False, default_factory=time.localtime)
-    _additional_media_paths: List[Tuple[Path, int]] = field(init=False, default_factory=list)
+    _additional_media_paths: List[Tuple[Path, int]] = field(
+        init=False, default_factory=list
+    )
 
     def __post_init__(self):
-        # finish initialization
-        from annotation_tool.utility.filehandler import footprint_of_file
-
-        self.__init_valid__()
-        self._file_hash = footprint_of_file(self.path)
+        self._checksum = checksum(self.path)
         self.__init_samples__()
 
-    def __init_valid__(self):
-        assert self.dataset is not None, "Dataset must not be None."
-        assert isinstance(self.dataset, Dataset), "Dataset must be of type Dataset."
-        assert self.name is not None, "Name must not be None."
-        assert isinstance(self.name, str), "Name must be of type str."
-        assert len(self.name) > 0, "Name must not be empty."
-        assert self.annotator_id is not None, "Annotator ID must not be None."
-        assert isinstance(self.annotator_id, int), "Annotator ID must be of type int."
-        assert (
-            self.annotator_id >= 0
-        ), "Annotator ID must be greater than or equal to 0."
-        assert self.path is not None, "Path must not be None."
-        assert isinstance(
-            self.path, Path
-        ), "Path must be of type pathlib.Path."
-        assert self.path.is_file(), "Path must be a file."
-        assert os.path.getsize(self.path) > 0, "Path must not be empty."
-
     def __init_samples__(self):
-        from annotation_tool.media_reader import MediaReader, media_reader
-
         media: MediaReader = media_reader(self.path)
-
         a = empty_annotation(self.dataset.scheme)
         s = Sample(0, len(media) - 1, a)
         self._samples.append(s)
@@ -116,9 +92,9 @@ class Annotation:
 
     @path.setter
     def path(self, path: Path):
-        if path.is_file():
+        if not path.is_file():
             raise FileNotFoundError(path)
-        if footprint_of_file(path) != self.footprint:
+        if checksum(path) != self.checksum:
             raise ValueError("File has changed.")
         self._annotated_file = path
 
@@ -144,22 +120,22 @@ class Annotation:
                 if not s.annotation.is_empty()
             ]
         )
-        return math.ceil(n_annotations / n_frames * 100)
+        return int(n_annotations / n_frames * 100)
 
     @property
     def meta_data(self) -> dict:
         return {
             "annotator_id": self.annotator_id,
             "dataset": self.dataset.name,
-            "file": self.path,
+            "file": self.path.as_posix(),
             "name": self.name,
             "creation_time": self.timestamp,
             "progress": self.progress,
         }
 
     @property
-    def footprint(self) -> str:
-        return self._file_hash
+    def checksum(self) -> str:
+        return self._checksum
 
     def set_additional_media_paths(self, paths_with_offsets: List[Tuple[Path, int]]):
         additional_paths = []
@@ -173,6 +149,7 @@ class Annotation:
         return self._additional_media_paths
 
 
+@accepts(int, Dataset, str, Path)
 def create_annotation(
     annotator_id: int, dataset: Dataset, name: str, file_path: Path
 ) -> Annotation:
@@ -190,7 +167,7 @@ def create_annotation(
     Raises:
         ValueError If parameters are invalid.
     """
-    try:
+    if is_non_zero_file(file_path):
         return Annotation(annotator_id, dataset, name, file_path)
-    except AssertionError as e:
-        raise ValueError(e)
+    else:
+        raise ValueError(f"File {file_path} does not exist or is empty.")

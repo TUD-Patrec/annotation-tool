@@ -6,7 +6,7 @@ from typing import Tuple
 from distinctipy import distinctipy
 
 from annotation_tool.data_model.single_annotation import SingleAnnotation
-from annotation_tool.utility.decorators import accepts_m, returns
+from annotation_tool.utility.decorators import accepts, accepts_m, returns
 
 random.seed(42)
 __color_map__ = distinctipy.get_colors(50, n_attempts=250)
@@ -43,19 +43,9 @@ def __annotation_to_color__(annotation: SingleAnnotation) -> Tuple[int, int, int
 
 @dataclass(order=True, unsafe_hash=True)
 class Sample:
-    _sort_index: int = field(init=False, repr=False, hash=False, compare=False)
     _start_pos: int = field(init=True, hash=True, compare=True)
     _end_pos: int = field(init=True, hash=True, compare=True)
     _annotation: SingleAnnotation = field(init=True, hash=False, compare=False)
-
-    def __post_init__(self):
-        assert isinstance(self._start_pos, int)
-        assert isinstance(self._end_pos, int)
-        assert isinstance(self._annotation, SingleAnnotation)
-        assert self._start_pos <= self._end_pos
-        assert self._start_pos >= 0
-
-        self._sort_index = self._start_pos
 
     def __len__(self):
         return (self._end_pos - self._start_pos) + 1
@@ -112,6 +102,7 @@ class Sample:
         return Sample(self._start_pos, self._end_pos, deepcopy(self._annotation))
 
 
+@accepts(int, int, SingleAnnotation)
 def create_sample(start_pos: int, end_pos: int, annotation: SingleAnnotation) -> Sample:
     """
     Creates a new sample.
@@ -127,7 +118,4 @@ def create_sample(start_pos: int, end_pos: int, annotation: SingleAnnotation) ->
     Raises:
         ValueError: If the parameters are invalid.
     """
-    try:
-        return Sample(start_pos, end_pos, annotation)
-    except AssertionError:
-        raise ValueError("Invalid sample.")
+    return Sample(start_pos, end_pos, annotation)

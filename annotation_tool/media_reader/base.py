@@ -1,36 +1,8 @@
 import abc
-import logging
-import os
+from pathlib import Path
 from typing import Optional, Union
 
 import numpy as np
-
-__FALLBACK_FPS__ = 30  # fallback framerate if no framerate can be determined
-
-
-def set_fallback_fps(fps: float) -> None:
-    """
-    Sets the fallback framerate.
-
-    Args:
-        fps: The fallback framerate.
-    """
-    if isinstance(fps, (int, float)):
-        logging.debug(f"Setting fallback framerate to {fps}.")
-        global __FALLBACK_FPS__
-        __FALLBACK_FPS__ = fps
-    else:
-        raise TypeError("Framerate must be a number.")
-
-
-def get_fallback_fps() -> Union[int, float]:
-    """
-    Returns the fallback framerate.
-
-    Returns:
-        The fallback framerate.
-    """
-    return __FALLBACK_FPS__
 
 
 class MediaReader(abc.ABC):
@@ -39,7 +11,7 @@ class MediaReader(abc.ABC):
     """
 
     @abc.abstractmethod
-    def __init__(self, path: os.PathLike, **kwargs) -> None:
+    def __init__(self, path: Path, **kwargs) -> None:
         """
         Initializes a new __MediaReader object.
 
@@ -50,7 +22,7 @@ class MediaReader(abc.ABC):
         Raises:
             FileNotFoundError: If the file does not exist.
         """
-        if not os.path.exists(path):
+        if not path.is_file():
             raise FileNotFoundError(f"File {path} does not exist.")
 
     @property
@@ -62,25 +34,17 @@ class MediaReader(abc.ABC):
             _duration = self.__get_duration__()
         except NotImplementedError:
             _duration = None
-        if _duration:
+        if _duration is not None:
             return int(self.__get_duration__()) * 1000
         else:
             return int(len(self) / self.fps) * 1000
 
     @property
     def fps(self) -> float:
-        _fps = self.__get_fps__()
-        if _fps:
-            return _fps
-        else:
-            return get_fallback_fps()
-
-    @fps.setter
-    def fps(self, fps: Union[int, float]) -> None:
-        self.__set_fps__(fps)
+        return self.__get_fps__()
 
     @property
-    def path(self) -> os.PathLike:
+    def path(self) -> Path:
         return self.__get_path__()
 
     @property
@@ -159,7 +123,7 @@ class MediaReader(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def __get_path__(self) -> os.PathLike:
+    def __get_path__(self) -> Path:
         """
         Returns the path to the media file.
 
@@ -214,7 +178,7 @@ class __MediaSelector:
             raise TypeError(f"Invalid argument type {type(selector_function) = }")
         self._selector_functions[media_type] = selector_function
 
-    def select(self, path: os.PathLike) -> Optional[str]:
+    def select(self, path: Path) -> Optional[str]:
         """
         Selects the media type of the given path.
 
@@ -294,7 +258,7 @@ def register_media_reader(
     __media_factory__.register(media_type, factory)
 
 
-def media_reader(path: os.PathLike, **kwargs) -> MediaReader:
+def media_reader(path: Path, **kwargs) -> MediaReader:
     """
     Returns a MediaReader for the given path.
 
@@ -307,6 +271,8 @@ def media_reader(path: os.PathLike, **kwargs) -> MediaReader:
     Raises:
         ValueError: If the media type could not be determined.
     """
+    if not isinstance(path, Path):
+        raise TypeError(f"Invalid argument type {type(path) = }")
 
     media_type = __media_selector__.select(path)
     mr = __media_factory__.create(media_type, path=path, **kwargs)
@@ -314,7 +280,7 @@ def media_reader(path: os.PathLike, **kwargs) -> MediaReader:
     return mr
 
 
-def media_type_of(path: os.PathLike) -> str:
+def media_type_of(path: Path) -> str:
     """
     Returns the media type of the given path.
 
