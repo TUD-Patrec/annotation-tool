@@ -51,8 +51,8 @@ class Annotation:
         assert self.path is not None, "Path must not be None."
         assert isinstance(
             self.path, Path
-        ), "Path must be of type os.PathLike."
-        assert os.path.isfile(self.path), "Path must be a file."
+        ), "Path must be of type pathlib.Path."
+        assert self.path.is_file(), "Path must be a file."
         assert os.path.getsize(self.path) > 0, "Path must not be empty."
 
     def __init_samples__(self):
@@ -111,12 +111,12 @@ class Annotation:
         return self._dataset
 
     @property
-    def path(self) -> os.PathLike:
+    def path(self) -> Path:
         return self._annotated_file
 
     @path.setter
-    def path(self, path: os.PathLike):
-        if not os.path.isfile(path):
+    def path(self, path: Path):
+        if path.is_file():
             raise FileNotFoundError(path)
         if footprint_of_file(path) != self.footprint:
             raise ValueError("File has changed.")
@@ -164,7 +164,7 @@ class Annotation:
     def set_additional_media_paths(self, paths_with_offsets: List[Tuple[Path, int]]):
         additional_paths = []
         for p, o in paths_with_offsets:
-            if not os.path.isfile(p):
+            if not p.is_file():
                 raise FileNotFoundError(p)
             additional_paths.append((p, o))
         self._additional_media_paths = additional_paths
@@ -183,7 +183,7 @@ def create_annotation(
         annotator_id (int): The id of the annotator.
         dataset (Dataset): The dataset.
         name (str): The name of the annotation.
-        file_path (os.PathLike): The path to the file to be annotated.
+        file_path (Path): The path to the file to be annotated.
 
     Returns:
         Annotation: The new GlobalState object.
