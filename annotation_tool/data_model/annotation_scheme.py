@@ -42,7 +42,6 @@ class AnnotationScheme:
                 yield scheme_element(group_name, elem, row, col)
 
     def __copy__(self):
-
         return AnnotationScheme(self.scheme, self._scheme_str, self._n)
 
     def __deepcopy__(self, memo):
