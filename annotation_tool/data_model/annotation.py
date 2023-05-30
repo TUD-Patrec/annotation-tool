@@ -4,8 +4,9 @@ import json
 import logging
 import math
 import os
+from pathlib import Path
 import time
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 
@@ -24,18 +25,18 @@ class Annotation:
     annotator_id: int
     _dataset: Dataset
     name: str
-    _media_path: os.PathLike
-    _footprint: str = field(init=False)
+    _annotated_file: Path
+    _file_hash: str = field(init=False)
     _samples: list = field(init=False, default_factory=list)
     _timestamp: time.struct_time = field(init=False, default_factory=time.localtime)
-    _additional_media_paths: List[os.PathLike] = field(init=False, default_factory=list)
+    _additional_media_paths: List[Tuple[Path, int]] = field(init=False, default_factory=list)
 
     def __post_init__(self):
         # finish initialization
         from annotation_tool.utility.filehandler import footprint_of_file
 
         self.__init_valid__()
-        self._footprint = footprint_of_file(self.path)
+        self._file_hash = footprint_of_file(self.path)
         self.__init_samples__()
 
     def __init_valid__(self):
@@ -51,7 +52,7 @@ class Annotation:
         ), "Annotator ID must be greater than or equal to 0."
         assert self.path is not None, "Path must not be None."
         assert isinstance(
-            self.path, (str, os.PathLike)
+            self.path, Path
         ), "Path must be of type os.PathLike."
         assert os.path.isfile(self.path), "Path must be a file."
         assert os.path.getsize(self.path) > 0, "Path must not be empty."
@@ -113,7 +114,7 @@ class Annotation:
 
     @property
     def path(self) -> os.PathLike:
-        return self._media_path
+        return self._annotated_file
 
     @path.setter
     def path(self, path: os.PathLike):
@@ -121,7 +122,7 @@ class Annotation:
             raise FileNotFoundError(path)
         if footprint_of_file(path) != self.footprint:
             raise ValueError("File has changed.")
-        self._media_path = path
+        self._annotated_file = path
 
     @property
     def creation_time(self) -> time.struct_time:
@@ -160,68 +161,22 @@ class Annotation:
 
     @property
     def footprint(self) -> str:
-        return self._footprint
+        return self._file_hash
 
-    def set_additional_media_paths(self, paths: List[os.PathLike]):
+    def set_additional_media_paths(self, paths_with_offsets: List[Tuple[Path, int]]):
         additional_paths = []
-        for x in paths:
-            if not os.path.isfile(x):
-                raise FileNotFoundError(x)
-            additional_paths.append(x)
+        for p, o in paths_with_offsets:
+            if not os.path.isfile(p):
+                raise FileNotFoundError(p)
+            additional_paths.append((p, o))
         self._additional_media_paths = additional_paths
 
-    def get_additional_media_paths(self) -> List[os.PathLike]:
+    def get_additional_media_paths(self) -> List[Tuple[Path, int]]:
         return self._additional_media_paths
 
-    # TODO: update copy functions (additional media paths)
-    def __copy__(self):
-        return Annotation(
-            self.annotator_id,
-            self.dataset,
-            self.name,
-            self.path,
-        )
 
-    def __deepcopy__(self, memodict={}):
-        return Annotation(
-            self.annotator_id,
-            copy.deepcopy(self.dataset),
-            self.name,
-            self.path,
-        )
-
-    def to_dict(self) -> dict:
-        _annotations = []
-        for sample in self.samples:
-            _tmp = {
-                "start": sample.start_position,
-                "end": sample.end_position,
-                "annotation": sample.annotation.annotation_dict,
-            }
-            _annotations.append(_tmp)
-
-        _dataset = self.dataset.to_dict()
-
-        _additional_media_paths = self._additional_media_paths
-
-        _d = {
-            "annotator_id": self.annotator_id,
-            "dataset": _dataset,
-            "annotations": _annotations,
-            "name": self.name,
-            "path": self.path,
-            "footprint": self.footprint,
-            "timestamp": self.timestamp,
-            "additional_media_paths": _additional_media_paths,
-        }
-        return _d
-
-    def to_json(self) -> str:
-        return json.dumps(self.to_dict(), indent=4, sort_keys=True, ensure_ascii=False)
-
-
-def create_global_state(
-    annotator_id: int, dataset: Dataset, name: str, path: os.PathLike
+def create_annotation(
+    annotator_id: int, dataset: Dataset, name: str, file_path: Path
 ) -> Annotation:
     """
     Creates a new GlobalState object.
@@ -230,7 +185,7 @@ def create_global_state(
         annotator_id (int): The id of the annotator.
         dataset (Dataset): The dataset.
         name (str): The name of the annotation.
-        path (os.PathLike): The path to the media file.
+        file_path (os.PathLike): The path to the file to be annotated.
 
     Returns:
         Annotation: The new GlobalState object.
@@ -238,6 +193,6 @@ def create_global_state(
         ValueError If parameters are invalid.
     """
     try:
-        return Annotation(annotator_id, dataset, name, path)
+        return Annotation(annotator_id, dataset, name, file_path)
     except AssertionError as e:
         raise ValueError(e)
