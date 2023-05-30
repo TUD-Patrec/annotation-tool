@@ -1,5 +1,7 @@
 import enum
 
+from annotation_tool.utility.decorators import accepts, returns
+
 
 class MediaType(enum.Enum):
     UNKNOWN = 0
@@ -11,6 +13,8 @@ class MediaType(enum.Enum):
 __str_map__ = {x.name: x for x in MediaType}
 
 
+@returns(str)
+@accepts(MediaType)
 def to_str(media_type: MediaType) -> str:
     """
     Returns the string representation of a media type.
@@ -23,6 +27,8 @@ def to_str(media_type: MediaType) -> str:
     return media_type.name
 
 
+@returns(MediaType)
+@accepts(str)
 def from_str(media_type: str) -> MediaType:
     """
     Returns the media type from a string.
