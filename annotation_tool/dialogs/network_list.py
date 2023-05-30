@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import re
 
 import PyQt6.QtCore as qtc
@@ -98,7 +99,7 @@ class NetworkWidget(qtw.QWidget):
         # path to network
         self.path_label = qtw.QLabel("Path:")
         # readonly -> open file dialog on click
-        self.path_edit = qtw.QLineEdit(self.model.network_path)
+        self.path_edit = qtw.QLineEdit(self.model.network_path.as_posix())
         # make text red if path does not exist
         if not os.path.exists(self.model.network_path):
             self.path_edit.setStyleSheet("color: red")
@@ -379,7 +380,7 @@ class NetworksDialog(qtw.QDialog):
             try:
                 print(f"Parsed: {input_shape = }")
                 m = create_model(
-                    network_path=path,
+                    network_path=Path(path),
                     media_type=media_type,
                     sampling_rate=sampling_rate,
                     input_shape=input_shape,

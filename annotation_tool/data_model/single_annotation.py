@@ -152,12 +152,12 @@ class SingleAnnotation:
             return False
 
     def __copy__(self):
-        new_anno = SingleAnnotation(self.scheme, self.annotation_vector)
+        new_anno = create_single_annotation(self.scheme, self.annotation_vector)
         assert self == new_anno and new_anno is not self
         return new_anno
 
     def __deepcopy__(self, memo):
-        new_anno = SingleAnnotation(
+        new_anno = create_single_annotation(
             deepcopy(self.scheme), deepcopy(self.annotation_vector)
         )
         assert self == new_anno
@@ -183,7 +183,7 @@ class SingleAnnotation:
         return hash((self.scheme, self.binary_str))
 
 
-def create_annotation(
+def create_single_annotation(
     scheme: AnnotationScheme, annotation: Union[np.ndarray, dict, None] = None
 ) -> SingleAnnotation:
     """

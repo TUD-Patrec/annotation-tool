@@ -1,5 +1,5 @@
 import logging
-import os
+from pathlib import Path
 from typing import Optional, Union
 
 import filetype
@@ -13,7 +13,7 @@ class VideoReader(MediaReader):
     Adapter class for video_readers for loading and reading videos frame by frame.
     """
 
-    def __init__(self, path: os.PathLike, **kwargs) -> None:
+    def __init__(self, path: Path, **kwargs) -> None:
         super().__init__(path, **kwargs)
 
         from .video_readers import get_video_reader
@@ -35,23 +35,25 @@ class VideoReader(MediaReader):
     def __get_fps__(self) -> Optional[float]:
         return self._video_reader.get_fps()
 
-    def __get_path__(self) -> os.PathLike:
+    def __get_path__(self) -> Path:
         return self._video_reader.get_path()
 
     def __set_fps__(self, fps: Union[int, float]) -> None:
         raise NotImplementedError("Setting the framerate of a video is not supported.")
 
 
-def __is_video__(path: os.PathLike) -> bool:
-    if not os.path.isfile(path):
-        return False
-    try:
-        return filetype.is_video(path)
-    except TypeError:
-        return False
+def __is_video__(path: Path) -> bool:
+    if path.is_file():
+        try:
+            return filetype.is_video(path)
+        except TypeError:
+            return False
+    else:
+        print(f"File does not exist: {path}")
+        raise FileNotFoundError(f"File {path} does not exist.")
 
 
-def __video_builder__(path=None, **kwargs) -> VideoReader:
+def __video_builder__(path, **kwargs) -> VideoReader:
     if __is_video__(path):
         return VideoReader(path, **kwargs)
     else:
@@ -63,5 +65,12 @@ register_media_reader(
     selector_function=__is_video__,
     factory=__video_builder__,
 )
+
+
+# register_media_reader(
+#    media_type="video",
+#    selector_function=lambda path: filetype.is_video(path),
+#    factory=lambda path, **kwargs: VideoReader(path, **kwargs),
+# )
 
 logging.debug("VideoReader registered.")

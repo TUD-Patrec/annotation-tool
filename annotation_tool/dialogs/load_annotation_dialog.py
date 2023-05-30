@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
@@ -15,8 +16,8 @@ class LoadAnnotationDialog(qtw.QDialog):
     def __init__(self, *args, **kwargs):
         super(LoadAnnotationDialog, self).__init__(*args, **kwargs)
 
-        self.global_states = Annotation.get_all()
-        self.global_states.sort(key=lambda x: x.timestamp, reverse=True)
+        self.annotations = Annotation.get_all()
+        self.annotations.sort(key=lambda x: x.timestamp, reverse=True)
 
         self.name_changed_msg = (
             "The name of the annotation has changed, please insert the new name."
@@ -36,7 +37,7 @@ class LoadAnnotationDialog(qtw.QDialog):
         form = qtw.QFormLayout()
         self.combobox = qtw.QComboBox()
 
-        for global_state in self.global_states:
+        for global_state in self.annotations:
             self.combobox.addItem(global_state.name)
 
         self.combobox.currentIndexChanged.connect(
@@ -80,8 +81,8 @@ class LoadAnnotationDialog(qtw.QDialog):
         self.setMinimumWidth(500)
 
     def process_combobox_value(self, idx):
-        if idx >= 0 and idx < len(self.global_states):
-            global_state = self.global_states[idx]
+        if 0 <= idx < len(self.annotations):
+            global_state = self.annotations[idx]
 
             dataset = global_state.dataset
 
@@ -95,7 +96,7 @@ class LoadAnnotationDialog(qtw.QDialog):
                 )
 
             if os.path.isfile(global_state.path):
-                self.line_edit.setText(global_state.path)
+                self.line_edit.setText(global_state.path.as_posix())
             else:
                 self.line_edit.setText(
                     "The path of the input has changed, please select the new path."
@@ -109,19 +110,21 @@ class LoadAnnotationDialog(qtw.QDialog):
         file_path, _ = qtw.QFileDialog.getOpenFileName(
             parent=self, directory="", filter="Video MoCap (*.mp4 *.avi *.csv)"
         )
+        file_path = Path(file_path)
+        print(f"Selected file: {file_path}")
         if filehandler.is_non_zero_file(file_path):
-            hash = filehandler.footprint_of_file(file_path)
+            hash = filehandler.checksum(file_path)
             idx = self.combobox.currentIndex()
 
             if idx < 0:
                 self.line_edit.setText("")
                 return
 
-            global_state: Annotation = self.global_states[idx]
-            other_hash = global_state.footprint
+            global_state: Annotation = self.annotations[idx]
+            other_hash = global_state.checksum
 
             if hash == other_hash:
-                self.line_edit.setText(file_path)
+                self.line_edit.setText(file_path.as_posix())
             else:
                 self.line_edit.setText(
                     "The input_file is not compatible with the selected global_state, please select the correct file."  # noqa E501
@@ -143,14 +146,14 @@ class LoadAnnotationDialog(qtw.QDialog):
 
     def open_pressed(self):
         idx = self.combobox.currentIndex()
-        global_state = self.global_states[idx]
-        path = self.line_edit.text()
-        file_hash = filehandler.footprint_of_file(path)
+        annotation = self.annotations[idx]
+        path = Path(self.line_edit.text())
+        file_hash = filehandler.checksum(path)
 
-        if file_hash == global_state.footprint:
-            global_state.path = self.line_edit.text()
+        if file_hash == annotation.checksum:
+            annotation.path = path
             self.close()
-            self.load_annotation.emit(global_state)
+            self.load_annotation.emit(annotation)
         else:
             self.line_edit.setText(
                 "The input_file is not compatible with the selected global_state, please select the correct file."  # noqa E501

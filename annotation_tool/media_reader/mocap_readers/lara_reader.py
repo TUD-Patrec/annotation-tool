@@ -1,21 +1,10 @@
 import logging
-import os
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 
-try:
-    from .cache import get_cache
-except ImportError:
-    from cache import get_cache
-except Exception:
-    get_cache = None
-
-try:
-    from .base import MocapReaderBase, register_mocap_reader
-except ImportError:
-    from base import MocapReaderBase, register_mocap_reader
+from .base import MocapReaderBase, register_mocap_reader
+from .cache import get_cache
 
 
 def load_lara_mocap(path: Path, data_type: np.dtype = float) -> np.ndarray:
@@ -23,7 +12,7 @@ def load_lara_mocap(path: Path, data_type: np.dtype = float) -> np.ndarray:
     Loads the LARa-mocap data from a file.
 
     Args:
-        path (os.PathLike): The path to the LARa-mocap file.
+        path (Path): The path to the LARa-mocap file.
         data_type (np.dtype): The data type of the returned data.
 
     Returns:
@@ -56,7 +45,7 @@ def load_lara_mocap(path: Path, data_type: np.dtype = float) -> np.ndarray:
             return mocap
 
 
-def __load_lara_mocap__(path: os.PathLike) -> np.ndarray:
+def __load_lara_mocap__(path: Path) -> np.ndarray:
     """
     Loads the LARa-mocap data from a file.
     Right now the LARa-file is expected to contain either 1 or 5 header lines.
@@ -64,7 +53,7 @@ def __load_lara_mocap__(path: os.PathLike) -> np.ndarray:
 
 
     Args:
-        path (os.PathLike): Path to motion-capture data.
+        path (Path): Path to motion-capture data.
 
     Raises:
         TypeError: If the path could not be parsed as a Motion-capture file.
@@ -153,7 +142,7 @@ class LARaMocapReader(MocapReaderBase):
         Initializes a new MocapReader object.
 
         Args:
-            path (os.PathLike): The path to the mocap file.
+            path (Path): The path to the mocap file.
             fps (float): The framerate of the mocap data.
 
         Raises:
@@ -162,7 +151,7 @@ class LARaMocapReader(MocapReaderBase):
 
         self.path = path
         self._dtype = kwargs.get("dtype", float)
-        self.mocap = load_lara_mocap(Path(self.path), self._dtype)
+        self.mocap = load_lara_mocap(self.path, self._dtype)
 
     def get_frame(self, frame_idx: int) -> np.ndarray:
         """
@@ -185,17 +174,17 @@ class LARaMocapReader(MocapReaderBase):
     def get_frame_count(self) -> int:
         return self.mocap.shape[0]
 
-    def get_fps(self) -> Optional[float]:
-        return None
+    def get_fps(self) -> float:
+        return 200.0
 
     def get_duration(self) -> float:
         return None
 
-    def get_path(self) -> os.PathLike:
+    def get_path(self) -> Path:
         return self.path
 
     @staticmethod
-    def is_supported(path: os.PathLike) -> bool:
+    def is_supported(path: Path) -> bool:
         # TODO: improve this
         try:
             load_lara_mocap(Path(path))

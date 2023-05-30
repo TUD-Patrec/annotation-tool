@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
@@ -140,7 +141,8 @@ class NewAnnotationDialog(qtw.QDialog):
         self.check_enabled()
         if self.open_button.isEnabled():
             try:
-                media_reader = mr(self.input_path)
+                print(f"{self.input_path = } \n {Path(self.input_path) = }")
+                media_reader = mr(Path(self.input_path))
                 if len(media_reader) < 1000:
                     msg = qtw.QMessageBox(self)
                     msg.setIcon(qtw.QMessageBox.Icon.Critical)

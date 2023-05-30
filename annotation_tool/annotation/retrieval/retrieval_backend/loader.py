@@ -8,7 +8,7 @@ from scipy import spatial
 from annotation_tool.annotation.retrieval.retrieval_backend.element import (
     RetrievalElement,
 )
-from annotation_tool.data_model import SingleAnnotation
+from annotation_tool.data_model.single_annotation import create_single_annotation
 import annotation_tool.network.controller as network
 
 
@@ -64,7 +64,7 @@ class RetrievalLoader(qtc.QThread):
             for i, interval in enumerate(intervals):
                 for j, attr_repr in enumerate(attribute_representations):
                     dist = dists[i, j]
-                    annotation = SingleAnnotation(
+                    annotation = create_single_annotation(
                         self.controller.scheme, np.copy(attr_repr)
                     )
 
@@ -79,7 +79,7 @@ class RetrievalLoader(qtc.QThread):
             for i, interval in enumerate(intervals):
                 attr_repr = np.round(classifications[i])
                 dist = spatial.distance.cosine(classifications[i], attr_repr)
-                annotation = SingleAnnotation(
+                annotation = create_single_annotation(
                     self.controller.scheme, np.copy(attr_repr)
                 )
                 elem = RetrievalElement(
