@@ -178,7 +178,7 @@ class NetworkWidget(qtw.QWidget):
     def on_update_clicked(self):
         # update model
         self.model.name = self.name_edit.text()
-        self.model.network_path = self.path_edit.text()
+        self.model.network_path = Path(self.path_edit.text())
         self.model.sampling_rate = self.sampling_rate_edit.value()
         self.model.media_type = MediaType[self.media_type_edit.currentText()]
         self.model.activated = self.activated_edit.isChecked()

@@ -8,7 +8,7 @@ import numpy as np
 
 from annotation_tool.file_cache import cached
 from annotation_tool.media_reader import MediaReader, media_reader
-from annotation_tool.utility.decorators import accepts
+from annotation_tool.utility.decorators import accepts, returns
 from annotation_tool.utility.filehandler import checksum, is_non_zero_file
 
 from .dataset import Dataset
@@ -149,6 +149,7 @@ class Annotation:
         return self._additional_media_paths
 
 
+@returns(Annotation)
 @accepts(int, Dataset, str, Path)
 def create_annotation(
     annotator_id: int, dataset: Dataset, name: str, file_path: Path

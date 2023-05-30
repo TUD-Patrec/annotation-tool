@@ -5,7 +5,7 @@ import numpy as np
 
 from annotation_tool.file_cache import cached
 
-from ..utility.decorators import accepts
+from ..utility.decorators import accepts, returns
 from .annotation_scheme import AnnotationScheme
 
 
@@ -29,6 +29,7 @@ class Dataset:
         return self._dependencies
 
 
+@returns(Dataset)
 @accepts(str, AnnotationScheme, (np.ndarray, type(None)))
 def create_dataset(
     name: str, scheme: AnnotationScheme, dependencies: Optional[np.ndarray] = None

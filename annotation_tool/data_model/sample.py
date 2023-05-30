@@ -13,6 +13,8 @@ __color_map__ = distinctipy.get_colors(50, n_attempts=250)
 __default_color__ = 105, 105, 105
 
 
+@returns(tuple)
+@accepts(SingleAnnotation)
 def __annotation_to_color__(annotation: SingleAnnotation) -> Tuple[int, int, int]:
     """
     Converts an annotation to a color.
@@ -102,6 +104,7 @@ class Sample:
         return Sample(self._start_pos, self._end_pos, deepcopy(self._annotation))
 
 
+@returns(Sample)
 @accepts(int, int, SingleAnnotation)
 def create_sample(start_pos: int, end_pos: int, annotation: SingleAnnotation) -> Sample:
     """

@@ -19,7 +19,9 @@ def accepts(*types) -> typing.Callable:
 
     def check_accepts(f):
         #  assert len(types) == f.func_code.co_argcount
-        assert len(types) == f.__code__.co_argcount, f"{f.__code__.co_argcount = }"
+        assert (
+            len(types) == f.__code__.co_argcount
+        ), f"{f.__code__.co_argcount = } != {len(types) = }"
 
         def new_f(*args, **kwds):
             for (a, t) in zip(args, types):
@@ -47,10 +49,9 @@ def returns(rtype: typing.Type) -> typing.Callable:
     def check_returns(f):
         def new_f(*args, **kwds):
             result = f(*args, **kwds)
-            assert isinstance(result, rtype), "return value %r does not match %s" % (
-                result,
-                rtype,
-            )
+            assert isinstance(
+                result, rtype
+            ), f'return value {result} does not match {rtype} in function "{f.__name__}"'
             return result
 
         # new_f.func_name = f.func_name
