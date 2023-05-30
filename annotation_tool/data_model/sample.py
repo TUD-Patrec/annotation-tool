@@ -13,7 +13,7 @@ __color_map__ = distinctipy.get_colors(50, n_attempts=250)
 __default_color__ = 105, 105, 105
 
 
-def __annotation_to_color__(annotation: SingleAnnotation) -> Tuple[int, int, int, int]:
+def __annotation_to_color__(annotation: SingleAnnotation) -> Tuple[int, int, int]:
     """
     Converts an annotation to a color.
 
