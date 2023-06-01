@@ -19,6 +19,7 @@ class AbstractMediaPlayer(qtw.QWidget):
     )  # Emit self to notify controller about failed loading
     cleaned_up = qtc.pyqtSignal(qtw.QWidget)
     finished = qtc.pyqtSignal(qtw.QWidget)
+    offset_changed = qtc.pyqtSignal(int)
 
     def __init__(self, is_main, *args, **kwargs):
         super(AbstractMediaPlayer, self).__init__(*args, **kwargs)
@@ -66,6 +67,7 @@ class AbstractMediaPlayer(qtw.QWidget):
     def change_offset(self, offs):
         self.offset = offs
         self.update_media_position()
+        self.offset_changed.emit(offs)
 
     @qtc.pyqtSlot()
     def adjust_offset(self):
