@@ -11,20 +11,17 @@ from annotation_tool.data_model.model import Model, get_models
 from annotation_tool.media_reader import MediaReader, media_reader
 from annotation_tool.utility.decorators import accepts, returns
 
-_state_ = {
-    "file": None,
-    "num_labels": None,
-}
+_state = {}
 
 
 @accepts(Path, int)
 def update_state(file: Path, num_labels: int):
-    _state_["file"] = file
-    _state_["num_labels"] = num_labels
+    _state["file"] = file
+    _state["num_labels"] = num_labels
 
 
-@accepts(int, int)
 @returns(np.ndarray)
+@accepts(int, int)
 def run_network(lower: int, upper: int) -> np.ndarray:
     """
     Runs the network on the current data file and returns the output.
@@ -37,8 +34,8 @@ def run_network(lower: int, upper: int) -> np.ndarray:
         np.ndarray: The output of the network.
 
     """
-    path = _state_["file"]
-    num_labels = _state_["num_labels"]
+    path = _state["file"]
+    num_labels = _state["num_labels"]
     assert path is not None, "Path must not be None."
     assert isinstance(num_labels, int), "num_labels must be of type int."
     return __run_network__(path, lower, upper, num_labels)
