@@ -114,14 +114,14 @@ class QMediaMainController(qtw.QWidget):
         self._open_loading_tasks = 1 + len(additional_media)
 
         self.add_replay_widget(file, is_main_widget=True, from_load=True)
-        for path in additional_media:
-            self.add_replay_widget(path, from_load=True)
+        for path, offset in additional_media:
+            self.add_replay_widget(path, from_load=True, offset=offset)
 
     def clear(self, notify=True):
         while self.replay_widgets:
             self.remove_replay_source(self.replay_widgets[0], notify)
 
-    def add_replay_widget(self, path, is_main_widget=False, from_load=False):
+    def add_replay_widget(self, path, is_main_widget=False, from_load=False, offset=0):
         if self.STATE == MediaState.LOADING and not from_load:
             logging.warning("Media is loading -> ignoring new replay widget")
             return
@@ -137,6 +137,8 @@ class QMediaMainController(qtw.QWidget):
                 widget = MocapPlayer(is_main_widget, self)
             else:
                 raise NotImplementedError(f"Media type {media_type} is not supported")
+
+            widget.offset = offset
 
             if widget.is_main_replay_widget:
                 self.grid.addWidget(widget, 0, 0)
@@ -165,19 +167,26 @@ class QMediaMainController(qtw.QWidget):
                 self._open_loading_tasks == 0
             ), f"Open loading tasks must be 0 but is {self._open_loading_tasks}"
 
+    @qtc.pyqtSlot()
+    def _update_additional_media(self):
+        widgets = [w for w in self.replay_widgets if not w.is_main_replay_widget]
+        additional_media = [(self._widget_2_path[id(w)], w.offset) for w in widgets]
+        self.additional_media_changed.emit(additional_media)
+
     @qtc.pyqtSlot(AbstractMediaPlayer)
     def widget_loaded(self, widget: AbstractMediaPlayer):
         # check if widget belongs to current loading process
 
         widget.new_input_wanted.connect(self.add_replay_widget)
         widget.finished.connect(self.widget_terminated)
+        widget.offset_changed.connect(lambda _: self._update_additional_media())
         self.replay_widgets.append(widget)
         proxy = MediaProxy(widget)
 
         self.subscribe.emit(proxy)
 
         if not widget.is_main_replay_widget and self.STATE != MediaState.LOADING:
-            self.additional_media_changed.emit(self._widget_2_path.values())
+            self._update_additional_media()
 
         self._check_loading_finished()  # check if loading is finished
 
@@ -219,7 +228,7 @@ class QMediaMainController(qtw.QWidget):
         if not widget.is_main_replay_widget:
             del self._widget_2_path[id(widget)]
             if notify:
-                self.additional_media_changed.emit(self._widget_2_path.values())
+                self._update_additional_media()
             logging.debug(f"self._widget_2_path {self._widget_2_path}")
 
     def widget_terminated(self, widget):
