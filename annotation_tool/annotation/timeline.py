@@ -142,13 +142,6 @@ class QTimeLine(qtw.QWidget):
         # Constants
         self.setMinimumSize(600, 200)
 
-        # for reducing computation
-        self._last_lower = self.lower
-        self._last_upper = self.upper
-        self._last_width = self.width()
-        self._samples_changed = True
-        self._precomputed_samples = None
-
     @property
     def font(self):
         return qtg.QFont("Decorative", settings.font_size)
@@ -213,7 +206,6 @@ class QTimeLine(qtw.QWidget):
     def set_samples(self, samples, selected_sample):
         self.samples = samples
         self.current_sample = selected_sample
-        self._samples_changed = True
         self.update()
 
     # mouse scroll event
@@ -390,11 +382,12 @@ class QTimeLine(qtw.QWidget):
         qp.drawPolygon(poly)
         qp.drawLine(line)
 
-    def _draw_samples_old(self, qp):
+    def _draw_samples(self, qp):
         qp.setPen(qtc.Qt.GlobalColor.white)
         qp.setBrush(qtc.Qt.BrushStyle.NoBrush)
 
-        _acc = 0
+        # Clear clip path
+        height = MARGIN_HORIZONTAL_LINES + MARGIN_SAMPLE
 
         # Draw samples
         for sample in self.samples_in_view:
@@ -408,100 +401,19 @@ class QTimeLine(qtw.QWidget):
             alpha = 255 if sample == self.current_sample else 127
             color = qtg.QColor(r, g, b, alpha)
 
-            # Clear clip path
-            height = MARGIN_HORIZONTAL_LINES + MARGIN_SAMPLE
-
-            _s = time.perf_counter()
-            path = qtg.QPainterPath()
-            path.addRoundedRect(
-                qtc.QRectF(sample_start, height, sample_length, HEIGHT_SAMPLE), 10, 10
-            )
-            qp.setClipPath(path)
-
-            path = qtg.QPainterPath()
-            qp.setPen(color)
-            path.addRoundedRect(
-                qtc.QRectF(sample_start, height, sample_length, HEIGHT_SAMPLE), 10, 10
-            )
-            qp.fillPath(path, color)
-            qp.drawPath(path)
-
-            _acc += time.perf_counter() - _s
-
-        print(f"Drawing took {_acc:.6f} seconds")
-
-    @property
-    def precomputed_samples(self):
-        recalc_necessary = (
-            self.lower != self._last_lower
-            or self.upper != self._last_upper
-            or self.width() != self._last_width
-            or self._samples_changed
-            or self._precomputed_samples is None
-        )
-
-        if recalc_necessary:
-            _start_recomputation = time.perf_counter()
-            prec_samples = []
-            in_view = self.samples_in_view  # already fast enough
-
-            for sample in in_view:
-                sample_start = self.scaler.frame_to_pixel(
-                    sample.start_position - self.lower
+            if settings.timeline_design == "rounded":
+                path = qtg.QPainterPath()
+                path.addRoundedRect(
+                    sample_start, height, sample_length, HEIGHT_SAMPLE, 10, 10
                 )
-                sample_end = self.scaler.frame_to_pixel(
-                    sample.end_position - self.lower
-                )
-                sample_length = sample_end - sample_start + 1
-
-                r, g, b = sample.color
-                alpha = 255 if sample == self.current_sample else 127
-                color = qtg.QColor(r, g, b, alpha)
-
-                height = MARGIN_HORIZONTAL_LINES + MARGIN_SAMPLE
-
-                tpl = (sample_start, sample_length, color, height)
-                prec_samples.append(tpl)
-
-            self._last_lower = self.lower
-            self._last_upper = self.upper
-            self._last_width = self.width()
-            self._samples_changed = False
-
-            self._precomputed_samples = prec_samples
-
-            _end_recomputation = time.perf_counter()
-
-            print(
-                f"Recomputation took {_end_recomputation - _start_recomputation: .6f} seconds"
-            )
-
-        return self._precomputed_samples
-
-    def _draw_samples(self, qp):
-        qp.setPen(qtc.Qt.GlobalColor.white)
-        qp.setBrush(qtc.Qt.BrushStyle.NoBrush)
-
-        _paths = []
-
-        # Draw samples
-        for sample_start, sample_length, color, height in self.precomputed_samples:
-            path = qtg.QPainterPath()
-            path.addRoundedRect(
-                qtc.QRectF(sample_start, height, sample_length, HEIGHT_SAMPLE), 10, 10
-            )
-            qp.setClipPath(path)
-
-            path = qtg.QPainterPath()
-            qp.setPen(color)
-            path.addRoundedRect(
-                qtc.QRectF(sample_start, height, sample_length, HEIGHT_SAMPLE), 10, 10
-            )
-
-            _paths.append((path, color))
-
-            qp.fillPath(path, color)
-            qp.drawPath(path)
+                qp.setClipPath(path)
+                qp.setPen(color)
+                qp.fillPath(path, color)
+                qp.drawPath(path)
+            elif settings.timeline_design == "rectangular":
+                qp.fillRect(sample_start, height, sample_length, HEIGHT_SAMPLE, color)
+            else:
+                raise ValueError(f"Unknown timeline design: {settings.timeline_design}")
 
     def paintEvent(self, event):
         # step_size between ticks
@@ -519,12 +431,10 @@ class QTimeLine(qtw.QWidget):
         self._draw_mouse_pos(qp)
 
         # This is the bottleneck for drawing the timeline
-        _s_draw = time.perf_counter()
-        if self._samples_changed:
-            self._samples_changed = False
-        self._draw_samples_old(qp)
-        _e_draw = time.perf_counter()
-        print(f"Drawing samples took {_e_draw - _s_draw: .4f} seconds")
+        _s_draw = time.perf_counter()  # noqa
+        self._draw_samples(qp)
+        _e_draw = time.perf_counter()  # noqa
+        # print(f"Drawing samples took {_e_draw - _s_draw: .4f} seconds")
 
         # Clear clip path
         path = qtg.QPainterPath()
@@ -534,8 +444,6 @@ class QTimeLine(qtw.QWidget):
         qp.setClipPath(path)
 
         self._draw_pointer(qp)
-        # Draw pointer
-        # self._draw_pointer(qp)
 
         qp.end()
 
