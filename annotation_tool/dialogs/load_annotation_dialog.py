@@ -17,7 +17,7 @@ class LoadAnnotationDialog(qtw.QDialog):
         super(LoadAnnotationDialog, self).__init__(*args, **kwargs)
 
         self.annotations = Annotation.get_all()
-        self.annotations.sort(key=lambda x: x.timestamp, reverse=True)
+        self.annotations.sort(key=lambda x: x.last_save, reverse=True)
 
         self.name_changed_msg = (
             "The name of the annotation has changed, please insert the new name."
