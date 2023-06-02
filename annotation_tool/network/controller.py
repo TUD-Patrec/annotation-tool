@@ -195,5 +195,5 @@ def __forward__(data_segment: np.ndarray, model: Model) -> np.ndarray:
     with torch.no_grad():
         output_tensor: torch.Tensor = network(input_tensor)
 
-    output_array: np.ndarray = output_tensor.detach().numpy()
+    output_array: np.ndarray = output_tensor.numpy(force=True)
     return output_array.flatten()
