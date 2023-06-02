@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 import filetype
 import numpy as np
@@ -29,17 +29,11 @@ class VideoReader(MediaReader):
     def __get_frame_count__(self) -> int:
         return self._video_reader.get_frame_count()
 
-    def __get_duration__(self) -> Optional[float]:
-        return self._video_reader.get_duration()
-
     def __get_fps__(self) -> Optional[float]:
         return self._video_reader.get_fps()
 
     def __get_path__(self) -> Path:
         return self._video_reader.get_path()
-
-    def __set_fps__(self, fps: Union[int, float]) -> None:
-        raise NotImplementedError("Setting the framerate of a video is not supported.")
 
 
 def __is_video__(path: Path) -> bool:
@@ -65,12 +59,5 @@ register_media_reader(
     selector_function=__is_video__,
     factory=__video_builder__,
 )
-
-
-# register_media_reader(
-#    media_type="video",
-#    selector_function=lambda path: filetype.is_video(path),
-#    factory=lambda path, **kwargs: VideoReader(path, **kwargs),
-# )
 
 logging.debug("VideoReader registered.")
