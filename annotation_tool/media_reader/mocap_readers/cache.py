@@ -14,7 +14,7 @@ class CompressedArray:
         if compress:
             compressed_data = io.BytesIO()
             np.savez_compressed(compressed_data, arr)
-            print(
+            logging.debug(
                 f"Compressed {arr.nbytes / 1024} KB to {compressed_data.getbuffer().nbytes / 1024} KB"
             )
             self._arr = compressed_data
