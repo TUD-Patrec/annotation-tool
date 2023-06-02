@@ -58,16 +58,6 @@ class MocapReaderBase(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_duration(self) -> Optional[float]:
-        """
-        Returns the duration of the video_readers in seconds.
-
-        Returns:
-            float: The duration of the video_readers in seconds. None if the video_readers has no duration.
-        """
-        pass
-
-    @abc.abstractmethod
     def get_path(self) -> Path:
         """
         Returns the path to the video_readers.

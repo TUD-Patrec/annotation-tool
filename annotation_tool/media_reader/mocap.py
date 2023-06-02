@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
 
@@ -27,11 +27,6 @@ class MocapReader(MediaReader):
     def __get_frame_count__(self) -> int:
         return self._mocap_reader.get_frame_count()
 
-    def __get_duration__(self) -> Optional[float]:
-        if self._duration is None:
-            self._duration = self._mocap_reader.get_duration()
-        return self._duration
-
     def __get_fps__(self) -> Optional[float]:
         if self._fps is None:
             self._fps = self._mocap_reader.get_fps()
@@ -39,13 +34,6 @@ class MocapReader(MediaReader):
 
     def __get_path__(self) -> Path:
         return self._mocap_reader.get_path()
-
-    def __set_fps__(self, fps: Union[int, float]) -> None:
-        if not isinstance(fps, (int, float)):
-            raise TypeError("Framerate must be a number.")
-        if fps <= 0:
-            raise ValueError("Framerate must be positive.")
-        self._fps = fps
 
 
 def __is_mocap__(path: Path) -> bool:

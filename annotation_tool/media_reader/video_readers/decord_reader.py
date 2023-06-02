@@ -1,13 +1,11 @@
 import logging
 import os
 from pathlib import Path
-from typing import Tuple
 
 try:
     import decord
 
-    # use decord only for windows
-    _use_decord = os.name == "nt"
+    _use_decord = os.name == "nt"  # use decord only for windows
 except ImportError:
     logging.debug("Decord not available, falling back to OpenCV")
     decord = None
@@ -67,48 +65,6 @@ class DecordReader(VideoReaderBase):
             float: The frames per second.
         """
         return self.video.get_avg_fps()
-
-    def get_height(self) -> int:
-        """
-        Returns the height of the video.
-
-        Returns:
-            int: The height of the video.
-        """
-        return self.video[0].shape[0]
-
-    def get_width(self) -> int:
-        """
-        Returns the width of the video.
-
-        Returns:
-            int: The width of the video.
-        """
-        return self.video[0].shape[1]
-
-    def get_size(self) -> Tuple[int, int]:
-        return self.get_width(), self.get_height()
-
-    def get_duration(self) -> float:
-        """
-        Returns the duration of the video in seconds.
-
-        Returns:
-            float: The duration of the video in seconds.
-        """
-        return self.get_frame_count() / self.get_fps()
-
-    def get_codec(self) -> str:
-        """
-        Returns the codec of the video.
-
-        Returns:
-            str: The codec of the video.
-        """
-        raise NotImplementedError
-
-    def get_fourcc(self) -> str:
-        raise NotImplementedError
 
     def get_path(self) -> Path:
         return self.path

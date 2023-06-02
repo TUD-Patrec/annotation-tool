@@ -1,6 +1,6 @@
 import abc
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
 
@@ -30,14 +30,7 @@ class MediaReader(abc.ABC):
         """
         Returns the duration of the media in milliseconds.
         """
-        try:
-            _duration = self.__get_duration__()
-        except NotImplementedError:
-            _duration = None
-        if _duration is not None:
-            return int(self.__get_duration__()) * 1000
-        else:
-            return int(len(self) / self.fps) * 1000
+        return int(len(self) / self.fps) * 1000
 
     @property
     def fps(self) -> float:
@@ -106,13 +99,6 @@ class MediaReader(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def __get_duration__(self) -> Optional[float]:
-        """
-        Returns the duration of the media in seconds.
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
     def __get_fps__(self) -> Optional[float]:
         """
         Detects the framerate of the media file.
@@ -129,16 +115,6 @@ class MediaReader(abc.ABC):
 
         Returns:
             The path to the media file.
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def __set_fps__(self, fps: Union[int, float]) -> None:
-        """
-        Sets the framerate of the media file.
-
-        Args:
-            fps: The framerate to set.
         """
         raise NotImplementedError
 

@@ -1,7 +1,6 @@
 import abc
 import dataclasses
 from pathlib import Path
-from typing import Tuple
 
 import numpy as np
 
@@ -54,66 +53,6 @@ class VideoReaderBase(abc.ABC):
 
         Returns:
             float: The frames per second.
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_height(self) -> int:
-        """
-        Returns the height of the video_readers.
-
-        Returns:
-            int: The height of the video_readers.
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_width(self) -> int:
-        """
-        Returns the width of the video_readers.
-
-        Returns:
-            int: The width of the video_readers.
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_size(self) -> Tuple[int, int]:
-        """
-        Returns the size of the video_readers.
-
-        Returns:
-            Tuple[int, int]: The size of the video_readers.
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_duration(self) -> float:
-        """
-        Returns the duration of the video_readers in seconds.
-
-        Returns:
-            float: The duration of the video_readers in seconds.
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_fourcc(self) -> str:
-        """
-        Returns the fourcc code of the video_readers.
-
-        Returns:
-            str: The fourcc code of the video_readers.
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_codec(self) -> str:
-        """
-        Returns the codec of the video_readers.
-
-        Returns:
-            str: The codec of the video_readers.
         """
         pass
 
