@@ -48,6 +48,10 @@ class Sample:
     _start_pos: int = field(init=True, hash=True, compare=True)
     _end_pos: int = field(init=True, hash=True, compare=True)
     _annotation: SingleAnnotation = field(init=True, hash=False, compare=False)
+    _color: Tuple[int, int, int] = field(init=False, hash=False, compare=False)
+
+    def __post_init__(self):
+        self._color = __annotation_to_color__(self._annotation)
 
     def __len__(self):
         return (self._end_pos - self._start_pos) + 1
@@ -92,10 +96,13 @@ class Sample:
         if self.annotation.scheme != value.scheme:
             raise ValueError("Incompatible schemes")
         self._annotation = value
+        self._color = __annotation_to_color__(
+            value
+        )  # update color, computing it is expensive
 
     @property
     def color(self):
-        return __annotation_to_color__(self._annotation)
+        return self._color
 
     def __copy__(self):
         return Sample(self._start_pos, self._end_pos, self._annotation)

@@ -1,4 +1,5 @@
 from collections import namedtuple
+import time
 from typing import Tuple
 
 import PyQt6.QtCore as qtc
@@ -11,6 +12,15 @@ from annotation_tool.utility import functions
 from annotation_tool.utility.functions import FrameTimeMapper, ms_to_time_string
 
 ScalingRatio = namedtuple("ScalingRatio", ["Frames", "Pixels"])
+
+# set some constants
+HEIGHT_SAMPLE = 70
+MARGIN_SAMPLE = 10
+WIDTH_TEXT = 100
+HEIGHT_TEXT = 25
+HEIGHT_LINE = 40
+HEIGHT_DASHED_LINE = 20
+MARGIN_HORIZONTAL_LINES = 40
 
 
 class Scaling:
@@ -132,6 +142,13 @@ class QTimeLine(qtw.QWidget):
         # Constants
         self.setMinimumSize(600, 200)
 
+        # for reducing computation
+        self._last_lower = self.lower
+        self._last_upper = self.upper
+        self._last_width = self.width()
+        self._samples_changed = True
+        self._precomputed_samples = None
+
     @property
     def font(self):
         return qtg.QFont("Decorative", settings.font_size)
@@ -196,6 +213,7 @@ class QTimeLine(qtw.QWidget):
     def set_samples(self, samples, selected_sample):
         self.samples = samples
         self.current_sample = selected_sample
+        self._samples_changed = True
         self.update()
 
     # mouse scroll event
@@ -264,25 +282,7 @@ class QTimeLine(qtw.QWidget):
         self.update_visible_range()
         super().update()
 
-    def paintEvent(self, event):
-        # set some constants
-        HEIGHT_SAMPLE = 70
-        MARGIN_SAMPLE = 10
-        WIDTH_TEXT = 100
-        HEIGHT_TEXT = 25
-        HEIGHT_LINE = 40
-        HEIGHT_DASHED_LINE = 20
-        MARGIN_HORIZONTAL_LINES = 40
-
-        # step_size between ticks
-        dist = 100
-
-        qp = qtg.QPainter()
-        qp.begin(self)
-        qp.setPen(self.textColor)
-        qp.setFont(self.font)
-        qp.setRenderHint(qtg.QPainter.RenderHint.Antialiasing)
-
+    def _draw_time(self, qp, dist):
         # Draw time
         pos = dist
         while pos < self.width():
@@ -321,8 +321,10 @@ class QTimeLine(qtw.QWidget):
 
             pos += dist
 
+    def _draw_lines(self, qp, dist):
         # Draw horizontal lines
         qp.setPen(qtg.QPen(qtc.Qt.GlobalColor.darkCyan, 5, qtc.Qt.PenStyle.SolidLine))
+
         qp.drawLine(0, MARGIN_HORIZONTAL_LINES, self.width(), 40)
         lower_horizontal_line_y = (
             MARGIN_HORIZONTAL_LINES + 2 * MARGIN_SAMPLE + HEIGHT_SAMPLE
@@ -345,11 +347,18 @@ class QTimeLine(qtw.QWidget):
             )
             pos += dist
 
+    def _draw_mouse_pos(self, qp):
+        qp.setPen(qtc.Qt.GlobalColor.darkCyan)
+        qp.setBrush(qtg.QBrush(qtc.Qt.GlobalColor.darkCyan))
         # Draw line of current mouse-position
         if self.pos is not None and self.is_in:
             # qp.drawLine(self.pos.x(), 0, self.pos.x(), HEIGHT_LINE)
             line_height = MARGIN_HORIZONTAL_LINES + 2 * MARGIN_SAMPLE + HEIGHT_SAMPLE
             qp.drawLine(self.pos.x(), 0, self.pos.x(), line_height + HEIGHT_LINE)
+
+    def _draw_pointer(self, qp):
+        qp.setPen(qtc.Qt.GlobalColor.darkCyan)
+        qp.setBrush(qtg.QBrush(qtc.Qt.GlobalColor.darkCyan))
 
         # Draw pos
         if self.frame_idx is not None:
@@ -378,11 +387,17 @@ class QTimeLine(qtw.QWidget):
                 ]
             )
 
-        # Draw samples
-        for sample in self.samples:
-            if sample.start_position > self.upper or sample.end_position < self.lower:
-                continue
+        qp.drawPolygon(poly)
+        qp.drawLine(line)
 
+    def _draw_samples_old(self, qp):
+        qp.setPen(qtc.Qt.GlobalColor.white)
+        qp.setBrush(qtc.Qt.BrushStyle.NoBrush)
+
+        _acc = 0
+
+        # Draw samples
+        for sample in self.samples_in_view:
             sample_start = self.scaler.frame_to_pixel(
                 sample.start_position - self.lower
             )
@@ -396,6 +411,7 @@ class QTimeLine(qtw.QWidget):
             # Clear clip path
             height = MARGIN_HORIZONTAL_LINES + MARGIN_SAMPLE
 
+            _s = time.perf_counter()
             path = qtg.QPainterPath()
             path.addRoundedRect(
                 qtc.QRectF(sample_start, height, sample_length, HEIGHT_SAMPLE), 10, 10
@@ -410,6 +426,106 @@ class QTimeLine(qtw.QWidget):
             qp.fillPath(path, color)
             qp.drawPath(path)
 
+            _acc += time.perf_counter() - _s
+
+        print(f"Drawing took {_acc:.6f} seconds")
+
+    @property
+    def precomputed_samples(self):
+        recalc_necessary = (
+            self.lower != self._last_lower
+            or self.upper != self._last_upper
+            or self.width() != self._last_width
+            or self._samples_changed
+            or self._precomputed_samples is None
+        )
+
+        if recalc_necessary:
+            _start_recomputation = time.perf_counter()
+            prec_samples = []
+            in_view = self.samples_in_view  # already fast enough
+
+            for sample in in_view:
+                sample_start = self.scaler.frame_to_pixel(
+                    sample.start_position - self.lower
+                )
+                sample_end = self.scaler.frame_to_pixel(
+                    sample.end_position - self.lower
+                )
+                sample_length = sample_end - sample_start + 1
+
+                r, g, b = sample.color
+                alpha = 255 if sample == self.current_sample else 127
+                color = qtg.QColor(r, g, b, alpha)
+
+                height = MARGIN_HORIZONTAL_LINES + MARGIN_SAMPLE
+
+                tpl = (sample_start, sample_length, color, height)
+                prec_samples.append(tpl)
+
+            self._last_lower = self.lower
+            self._last_upper = self.upper
+            self._last_width = self.width()
+            self._samples_changed = False
+
+            self._precomputed_samples = prec_samples
+
+            _end_recomputation = time.perf_counter()
+
+            print(
+                f"Recomputation took {_end_recomputation - _start_recomputation: .6f} seconds"
+            )
+
+        return self._precomputed_samples
+
+    def _draw_samples(self, qp):
+        qp.setPen(qtc.Qt.GlobalColor.white)
+        qp.setBrush(qtc.Qt.BrushStyle.NoBrush)
+
+        _paths = []
+
+        # Draw samples
+        for sample_start, sample_length, color, height in self.precomputed_samples:
+            path = qtg.QPainterPath()
+            path.addRoundedRect(
+                qtc.QRectF(sample_start, height, sample_length, HEIGHT_SAMPLE), 10, 10
+            )
+            qp.setClipPath(path)
+
+            path = qtg.QPainterPath()
+            qp.setPen(color)
+            path.addRoundedRect(
+                qtc.QRectF(sample_start, height, sample_length, HEIGHT_SAMPLE), 10, 10
+            )
+
+            _paths.append((path, color))
+
+            qp.fillPath(path, color)
+            qp.drawPath(path)
+
+    def paintEvent(self, event):
+        # step_size between ticks
+        dist = 100
+
+        # init painter
+        qp = qtg.QPainter()
+        qp.begin(self)
+        qp.setPen(self.textColor)
+        qp.setFont(self.font)
+        qp.setRenderHint(qtg.QPainter.RenderHint.Antialiasing)
+
+        self._draw_time(qp, dist)
+        self._draw_lines(qp, dist)
+        self._draw_mouse_pos(qp)
+
+        # This is the bottleneck for drawing the timeline
+        _s_draw = time.perf_counter()
+        if self._samples_changed:
+            self._samples_changed = False
+        self._draw_samples_old(qp)
+        _e_draw = time.perf_counter()
+        print(f"Drawing samples took {_e_draw - _s_draw: .4f} seconds")
+
         # Clear clip path
         path = qtg.QPainterPath()
         path.addRect(
@@ -417,12 +533,10 @@ class QTimeLine(qtw.QWidget):
         )
         qp.setClipPath(path)
 
+        self._draw_pointer(qp)
         # Draw pointer
-        qp.setPen(qtc.Qt.GlobalColor.darkCyan)
-        qp.setBrush(qtg.QBrush(qtc.Qt.GlobalColor.darkCyan))
+        # self._draw_pointer(qp)
 
-        qp.drawPolygon(poly)
-        qp.drawLine(line)
         qp.end()
 
     @property
@@ -444,3 +558,11 @@ class QTimeLine(qtw.QWidget):
     @property
     def scroll_right_interval(self):
         return self.upper - self.n_inner_frames // 10, self.upper
+
+    @property
+    def samples_in_view(self):
+        return (
+            sample
+            for sample in self.samples
+            if sample.start_position <= self.upper and sample.end_position >= self.lower
+        )
