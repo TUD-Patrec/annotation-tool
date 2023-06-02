@@ -6,6 +6,7 @@ from annotation_tool.annotation.manual.tool_widget import ManualAnnotationTools
 from annotation_tool.annotation.modes import AnnotationMode
 from annotation_tool.data_model import Sample
 from annotation_tool.dialogs.annotation_dialog import QAnnotationDialog
+from annotation_tool.settings import settings
 
 
 class ManualAnnotation(AnnotationBaseClass):
@@ -105,7 +106,14 @@ class ManualAnnotation(AnnotationBaseClass):
                 start = min(sample.start_position, other_sample.start_position)
                 end = max(sample.end_position, other_sample.end_position)
 
-                merged_sample = Sample(start, end, other_sample.annotation)
+                if settings.merging_mode == "from":
+                    annotation = sample.annotation
+                elif settings.merging_mode == "into":
+                    annotation = other_sample.annotation
+                else:
+                    raise ValueError(f"Invalid merging mode: {settings.merging_mode}")
+
+                merged_sample = Sample(start, end, annotation)
 
                 self.add_to_undo_stack()
 

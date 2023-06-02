@@ -49,6 +49,7 @@ class GUI(qtw.QMainWindow, DialogManager):
 
         self.current_mode = AnnotationMode.MANUAL
 
+        self.setMinimumSize(1200, 700)
         self.resize(settings.preferred_width, settings.preferred_height)
         self.setWindowTitle(
             "{} v{}".format(__application_name__.replace("_", " "), __version__)

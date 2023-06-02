@@ -296,14 +296,3 @@ class QMediaMainController(qtw.QWidget):
             w.kill()
 
         logging.info("Shut down MediaController successfully")
-
-    @qtc.pyqtSlot()
-    def settings_changed(self):
-        for widget in self.replay_widgets:
-            proxy = media_proxy_map.get(id(widget))
-            if proxy is None:
-                raise RuntimeError(f"Could not find proxy for widget {widget}")
-            if proxy.fps != widget.fps:
-                proxy._fps = widget.fps
-                self.unsubscribe.emit(proxy)
-                self.subscribe.emit(proxy)

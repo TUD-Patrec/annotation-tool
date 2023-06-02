@@ -95,7 +95,6 @@ class MainApplication(qtw.QApplication):
         self.gui.save_pressed.connect(self.save_annotation)
         self.gui.load_annotation.connect(self.load_state)
         self.gui.settings_changed.connect(self.settings_changed)
-        self.gui.settings_changed.connect(self.media_player.settings_changed)
         self.gui.exit_pressed.connect(self.shutdown)
         self.gui.annotation_mode_changed.connect(self.annotation_controller.change_mode)
 
@@ -111,8 +110,10 @@ class MainApplication(qtw.QApplication):
 
     @qtc.pyqtSlot(Annotation)
     def load_state(self, annotation: Annotation):
+        """
+        Core function to update the application state.
+        """
         if annotation is not None:
-            # store annotation
             self.current_annotation = annotation
 
             media = media_reader(path=annotation.path)
@@ -122,11 +123,9 @@ class MainApplication(qtw.QApplication):
             FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
 
             # load media
-            # self.media_player.additional_media_changed.disconnect()  # disconnect to filter out outdated signals
-            # self.media_player.load(media.path)
             self.load_media.emit(
                 annotation.path, annotation.get_additional_media_paths()
-            )  # noqa TODO: Make get_additional_media_paths() a property
+            )
 
             # update network module
             network.update_state(
@@ -156,7 +155,6 @@ class MainApplication(qtw.QApplication):
                 n_frames,
             )
 
-            # self.mediator.set_position(0, force_update=True)
             self.mediator.reset_position()
 
             self.save_annotation()
@@ -166,19 +164,19 @@ class MainApplication(qtw.QApplication):
 
     @qtc.pyqtSlot(list)
     def set_additional_media_paths(self, paths: list):
-        assert self.current_annotation is not None
-        self.current_annotation.set_additional_media_paths(paths)
+        if self.current_annotation is not None:
+            self.current_annotation.set_additional_media_paths(paths)
+        else:
+            raise RuntimeError("No current annotation set")
 
     @qtc.pyqtSlot()
     def media_player_loaded(self):
-        assert self.current_annotation is not None
-        self.media_player.additional_media_changed.connect(
-            self.set_additional_media_paths
-        )  # reconnect after loading
-
-        # additional_media = self.current_annotation.get_additional_media_paths()
-        # self.media_player.set_additional_media(additional_media)
-        logging.debug("media_player_loaded")
+        if self.current_annotation is not None:
+            self.media_player.additional_media_changed.connect(
+                self.set_additional_media_paths
+            )
+        else:
+            raise RuntimeError("No current annotation set")
 
     def save_annotation(self):
         if self.current_annotation is not None:
@@ -219,7 +217,7 @@ class MainApplication(qtw.QApplication):
     def update_theme(self):
         self.setStyle("Fusion")
 
-        if settings.darkmode:
+        if settings.color_theme == "dark":
             # # Now use a palette to switch to dark colors:
             dark_palette = QPalette(self.style().standardPalette())
             dark_palette.setColor(QPalette.ColorRole.Window, QColor(53, 53, 53))
@@ -263,9 +261,49 @@ class MainApplication(qtw.QApplication):
                 QColor(53, 53, 53),
             )
             self.setPalette(dark_palette)
+        elif settings.color_theme == "light":
+            light_palette = QPalette(self.style().standardPalette())
+            light_palette.setColor(QPalette.ColorRole.Window, Qt.GlobalColor.white)
+            light_palette.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.black)
+            light_palette.setColor(QPalette.ColorRole.Base, Qt.GlobalColor.white)
+            light_palette.setColor(
+                QPalette.ColorRole.AlternateBase, Qt.GlobalColor.white
+            )
+            light_palette.setColor(QPalette.ColorRole.ToolTipBase, Qt.GlobalColor.white)
+            light_palette.setColor(QPalette.ColorRole.ToolTipText, Qt.GlobalColor.black)
+            light_palette.setColor(QPalette.ColorRole.Text, Qt.GlobalColor.black)
+            light_palette.setColor(QPalette.ColorRole.Button, Qt.GlobalColor.white)
+            light_palette.setColor(QPalette.ColorRole.ButtonText, Qt.GlobalColor.black)
+            light_palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.red)
+            light_palette.setColor(QPalette.ColorRole.Link, QColor(42, 130, 218))
+            light_palette.setColor(QPalette.ColorRole.Highlight, QColor(42, 130, 218))
+            light_palette.setColor(
+                QPalette.ColorRole.HighlightedText, QColor(35, 35, 35)
+            )
+            light_palette.setColor(
+                QPalette.ColorGroup.Active,
+                QPalette.ColorRole.Button,
+                Qt.GlobalColor.white,
+            )
+            light_palette.setColor(
+                QPalette.ColorGroup.Disabled,
+                QPalette.ColorRole.ButtonText,
+                Qt.GlobalColor.darkGray,
+            )
+
+            self.setPalette(light_palette)
+
+        elif settings.color_theme == "system":
+            # This is disabled for now, since icons might not be visible
+            raise NotImplementedError(
+                "System theme is not implemented yet, please use light or dark theme"
+            )
+            # self.setPalette(QPalette())
+            # get background color from system
+            # background_color = self.palette().color(QPalette.ColorRole.Window)
+
         else:
-            self.setPalette(QPalette())
-            # self.setPalette(self.style().standardPalette())  # reset to system default
+            raise ValueError(f"Unknown color theme {settings.color_theme}")
 
         font = self.font()
         font.setPointSize(settings.font_size)
