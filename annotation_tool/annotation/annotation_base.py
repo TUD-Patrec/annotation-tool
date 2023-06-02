@@ -182,24 +182,37 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
             force_update: Force updating the selected sample.
         """
         if len(self.samples) > 0:
-            # binary search
-            lo = 0
-            hi = len(self.samples) - 1
+            if len(self.samples) > 50:
+                # binary search for large number of samples
+                lo = 0
+                hi = len(self.samples) - 1
 
-            while lo <= hi:
-                mid = (lo + hi) // 2
-                sample = self.samples[mid]
-                if sample.start_position <= self.position <= sample.end_position:
-                    break
-                elif self.position < sample.start_position:
-                    hi = mid - 1
+                while lo <= hi:
+                    mid = (lo + hi) // 2
+                    sample = self.samples[mid]
+                    if sample.start_position <= self.position <= sample.end_position:
+                        break
+                    elif self.position < sample.start_position:
+                        hi = mid - 1
+                    else:
+                        lo = mid + 1
                 else:
-                    lo = mid + 1
+                    raise RuntimeError(
+                        f"Could not find sample at position {self.position}"
+                    )
+                sample_idx = mid
             else:
-                raise RuntimeError(f"Could not find sample at position {self.position}")
+                # linear search for small number of samples
+                for sample_idx, sample in enumerate(self.samples):
+                    if sample.start_position <= self.position <= sample.end_position:
+                        break
+                else:
+                    raise RuntimeError(
+                        f"Could not find sample at position {self.position}"
+                    )
 
             if force_update or self.selected_sample is not sample:
-                self.selected_sample_idx = mid
+                self.selected_sample_idx = sample_idx
                 self.samples_changed.emit(self.samples, sample)
         else:
             assert self.position == 0
