@@ -37,7 +37,7 @@ def load_lara_mocap(path: Path, data_type: np.dtype = float) -> np.ndarray:
 
         if path in mocap_cache:
             logging.debug(f"Loaded mocap from cache: {path}")
-            return mocap_cache[path].astype(data_type)
+            return mocap_cache[path].copy().astype(data_type)
         else:
             logging.debug(f"Loaded mocap from file: {path}")
             mocap = __load_lara_mocap__(path).astype(data_type)

@@ -142,7 +142,7 @@ class MocapCache(object):
             self._compress = compress
 
 
-mocap_cache = MocapCache(compress=True)
+mocap_cache = MocapCache(compress=False)
 
 
 def get_cache() -> MocapCache:
