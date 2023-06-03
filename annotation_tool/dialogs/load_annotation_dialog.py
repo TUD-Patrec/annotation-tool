@@ -111,7 +111,6 @@ class LoadAnnotationDialog(qtw.QDialog):
             parent=self, directory="", filter="Video MoCap (*.mp4 *.avi *.csv)"
         )
         file_path = Path(file_path)
-        print(f"Selected file: {file_path}")
         if filehandler.is_non_zero_file(file_path):
             hash = filehandler.checksum(file_path)
             idx = self.combobox.currentIndex()

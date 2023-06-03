@@ -27,7 +27,7 @@ def get_unique_name() -> str:
 
 @lru_cache(maxsize=1)
 def load_network(path: Path, expected_hash: str, allow_cuda: bool):
-    computed_hash = checksum(path, fast_hash=True)
+    computed_hash = checksum(path)
     if computed_hash is None or computed_hash != expected_hash:
         raise RuntimeError(
             f"The file {path} has an unexpected hash. Expected {expected_hash} but got {computed_hash}."
@@ -59,7 +59,7 @@ class Model:
 
     def __post_init__(self):
         self._size_bytes = os.path.getsize(self.path)
-        self._checksum = checksum(self.path, fast_hash=True)
+        self._checksum = checksum(self.path)
         self._creation_time = time.localtime(os.path.getctime(self.path))
         if self._name is None:
             self._name = get_unique_name()

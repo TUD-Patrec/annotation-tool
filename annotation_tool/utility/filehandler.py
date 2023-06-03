@@ -1,5 +1,4 @@
 import csv
-import functools
 import hashlib
 import json
 import logging
@@ -10,7 +9,6 @@ import string
 from typing import List, Tuple, Union
 
 import numpy as np
-import xxhash
 
 
 def is_non_zero_file(path: Path) -> bool:
@@ -25,61 +23,61 @@ def is_non_zero_file(path: Path) -> bool:
     return path.is_file() and os.path.getsize(path) > 0
 
 
-def checksum(path: Path, fast_hash: bool = False) -> str:
-    """Return unique ID for the given path
+def __approx_md5__(path: Path, n_blocks=20, block_size=2**12) -> str:
+    m = hashlib.md5()
+
+    with open(path, "rb") as f:
+        f.seek(0, os.SEEK_END)
+        file_size = f.tell()
+
+        # np.linspace might overflow for large files, standard python int is safer
+        start_positions = [
+            int(file_size * i / (n_blocks - 1)) for i in range(n_blocks)
+        ]  # linearly spaced start positions
+        _last_pos = -1  # for early stopping
+
+        for start_pos in start_positions:
+            end_pos = start_pos + block_size
+            if end_pos > file_size:
+                start_pos = max(0, file_size - block_size)
+                end_pos = file_size
+
+            if start_pos == _last_pos:
+                break  # avoid reading the same block twice
+
+            f.seek(start_pos)  # seek to start position
+
+            _block_size = (
+                end_pos - start_pos
+            )  # actual block size (might be smaller than block_size)
+            buf = f.read(_block_size)  # read block
+
+            m.update(buf)  # update hash
+
+            _last_pos = start_pos
+
+    return m.hexdigest()
+
+
+def checksum(path: Path) -> str:
+    """Return unique ID for the given path. The ID is computed by
+    hashing some parts of the file and appending the file-size.
+    The runtime of this function is independent of the file-size and only depends on the number of blocks and the block-size.
+
+    Note: This is not a cryptographic hash-function and should not be used as such.
 
     Args:
         path (Path): Location of the file.
-        fast_hash (bool, optional): Fast-hash uses a more simple methode
-            to approximate the ID of the file. Defaults to False.
-
     Returns:
-        Union[str, None]: Hash-value computed for the specified file or None.
+        str: Hash-value computed for the specified file.
     """
     if is_non_zero_file(path):
-        return __checksum__(path, fast_hash)
+        _md5 = __approx_md5__(path)
+        _size = os.path.getsize(path)
+        res = f"{_md5}_{_size}B"
+        return res
     else:
         raise FileNotFoundError(f"File {path} does not exist or is empty.")
-
-
-@functools.lru_cache(maxsize=256)
-def __checksum__(path: Path, fast_hash: bool = True) -> str:
-    if fast_hash:
-        return __generate_file_xxhash__(path)
-    #        return __fast_footprint__(path)
-    else:
-        return __generate_file_md5__(path)
-
-
-def __fast_footprint__(path: Path) -> str:
-    with open(path, "rb") as f:
-        x = f.read(2**20)
-    x = int.from_bytes(x, byteorder="big", signed=True)
-    x %= 2**32
-    x ^= os.path.getsize(path)
-    return str(x)
-
-
-def __generate_file_md5__(path: Path, block_size: int = 4096) -> str:
-    m = hashlib.md5()
-    with open(path, "rb") as f:
-        while True:
-            buf = f.read(block_size)
-            if not buf:
-                break
-            m.update(buf)
-    return m.hexdigest()
-
-
-def __generate_file_xxhash__(path: Path, block_size: int = 4096) -> str:
-    m = xxhash.xxh32(seed=42)
-    with open(path, "rb") as f:
-        while True:
-            buf = f.read(block_size)
-            if not buf:
-                break
-            m.update(buf)
-    return m.hexdigest()
 
 
 def read_json(path: Path) -> dict:
