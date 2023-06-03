@@ -3,6 +3,7 @@ from pathlib import Path
 import shutil
 
 import PyQt6.QtCore as qtc
+from PyQt6.QtGui import QIntValidator
 import PyQt6.QtWidgets as qtw
 
 from annotation_tool.data_model.annotation import Annotation
@@ -42,6 +43,10 @@ class AnnotationManagerWidget(qtw.QWidget):
         self.annotator_id_edit = qtw.QLineEdit(
             str(self.current_annotation.annotator_id)
         )
+        onlyInt = QIntValidator()
+        onlyInt.setRange(0, 1000)
+        self.annotator_id_edit.setValidator(onlyInt)
+        self.annotator_id_edit.setMaxLength(3)
         self.annotator_id_edit.textChanged.connect(self.annotator_id_changed)
         self.grid.addWidget(self.annotator_id_label, 2, 0)
         self.grid.addWidget(self.annotator_id_edit, 2, 1)
@@ -80,11 +85,19 @@ class AnnotationManagerWidget(qtw.QWidget):
         self.button_layout.addWidget(self.delete_button)
         self.grid.addLayout(self.button_layout, 6, 0, 1, 2)
 
+        # set layout
+        self.setLayout(self.grid)
+
+        # use minimal height
+        height = self.minimumSizeHint().height()
+        self.setFixedHeight(height)
+
     def name_changed(self):
         self.current_annotation.name = self.name_edit.text()
 
     def annotator_id_changed(self):
-        self.current_annotation.annotator_id = self.annotator_id_edit.text()
+        if self.annotator_id_edit.text() != "":
+            self.current_annotation.annotator_id = int(self.annotator_id_edit.text())
 
     def export(self):
         # open export dialog
@@ -133,10 +146,9 @@ class GlobalStateList(qtw.QWidget):
             self.scroll_layout.itemAt(i).widget().setParent(None)
 
         # add global states
-        global_states = Annotation.get_all()
-        # global_states.sort(key=lambda x: x.creation_time, reverse=True)
-        for global_state in global_states:
-            widget = AnnotationManagerWidget(global_state)
+        annotations = Annotation.get_all()
+        for annotation in annotations:
+            widget = AnnotationManagerWidget(annotation)
             widget.deleted.connect(self.update)
 
             # make frame around the widget
@@ -145,6 +157,7 @@ class GlobalStateList(qtw.QWidget):
             frame.setFrameShadow(qtw.QFrame.Shadow.Raised)
             frame_layout = qtw.QVBoxLayout(frame)
             frame_layout.addWidget(widget)
+            frame.setFixedHeight(widget.size().height())
 
             self.scroll_layout.addWidget(frame)
 
@@ -161,10 +174,6 @@ class GlobalStatesDialog(qtw.QDialog):
 
         self.scroll_global_states = GlobalStateList()
         self.grid.addWidget(self.scroll_global_states)
-
-        self.button_box = qtw.QDialogButtonBox(qtw.QDialogButtonBox.StandardButton.Ok)
-        self.button_box.accepted.connect(self.accept)
-        self.grid.addWidget(self.button_box)
 
     def update(self):
         self.scroll_global_states.update()

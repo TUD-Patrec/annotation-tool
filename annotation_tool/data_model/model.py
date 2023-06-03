@@ -144,7 +144,10 @@ class Model:
     @network_path.setter
     @accepts_m(Path)
     def network_path(self, path: Path) -> None:
-        self._path = path
+        if path.is_file():
+            _hash = checksum(path)
+            if _hash is not None and _hash == self.checksum:
+                self._path = path
 
     @returns(torch.nn.Module)
     @accepts_m(bool)

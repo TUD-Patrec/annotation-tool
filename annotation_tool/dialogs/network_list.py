@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 import re
 
@@ -93,37 +92,36 @@ class NetworkWidget(qtw.QWidget):
         # name
         self.name_label = qtw.QLabel("Name:")
         self.name_edit = qtw.QLineEdit(self.model.name)
+        self.name_edit.setReadOnly(True)
         self.grid.addWidget(self.name_label, 0, 0)
         self.grid.addWidget(self.name_edit, 0, 1)
 
-        # path to network
+        # path
         self.path_label = qtw.QLabel("Path:")
-        # readonly -> open file dialog on click
         self.path_edit = qtw.QLineEdit(self.model.network_path.as_posix())
+        self.path_edit.setReadOnly(True)
+
         # make text red if path does not exist
-        if not os.path.exists(self.model.network_path):
+        if not self.model.path.is_file():
             self.path_edit.setStyleSheet("color: red")
             self.path_edit.setToolTip("File does not exist.")
-        self.path_edit.setReadOnly(True)
-        self.path_edit.mousePressEvent = self.on_path_clicked
+
         self.grid.addWidget(self.path_label, 1, 0)
         self.grid.addWidget(self.path_edit, 1, 1)
 
         # sampling rate spinbox
         self.sampling_rate_label = qtw.QLabel("Sampling rate:")
-        self.sampling_rate_edit = qtw.QSpinBox()
-        self.sampling_rate_edit.setRange(1, 1000)
-        self.sampling_rate_edit.wheelEvent = lambda event: None
-        self.sampling_rate_edit.setValue(self.model.sampling_rate)
+        self.sampling_rate_edit = qtw.QLineEdit()
+        self.sampling_rate_edit.setReadOnly(True)
+        self.sampling_rate_edit.setText(str(self.model.sampling_rate))
         self.grid.addWidget(self.sampling_rate_label, 2, 0)
         self.grid.addWidget(self.sampling_rate_edit, 2, 1)
 
         # media type dropdown
         self.media_type_label = qtw.QLabel("Media Type:")
-        self.media_type_edit = qtw.QComboBox()
-        self.media_type_edit.wheelEvent = lambda event: None
-        self.media_type_edit.addItems([media_type.name for media_type in MediaType])
-        self.media_type_edit.setCurrentText(self.model.media_type.name)
+        self.media_type_edit = qtw.QLineEdit()
+        self.media_type_edit.setReadOnly(True)
+        self.media_type_edit.setText(str(self.model.media_type))
         self.grid.addWidget(self.media_type_label, 5, 0)
         self.grid.addWidget(self.media_type_edit, 5, 1)
 
@@ -139,6 +137,8 @@ class NetworkWidget(qtw.QWidget):
         self.button_layout = qtw.QHBoxLayout(self.button_widget)
         self.update_button = qtw.QPushButton("Update")
         self.update_button.clicked.connect(self.on_update_clicked)
+        self.update_button.hide()  # TODO: implement update
+
         self.delete_button = qtw.QPushButton("Delete")
         self.delete_button.clicked.connect(self.on_delete_clicked)
         self.button_layout.addWidget(self.update_button)
@@ -148,20 +148,9 @@ class NetworkWidget(qtw.QWidget):
         # set layout
         self.setLayout(self.grid)
 
-    def on_path_clicked(self, event: qtg.QMouseEvent):
-        file_dialog = qtw.QFileDialog(self)
-        file_dialog.setFileMode(qtw.QFileDialog.FileMode.ExistingFile)
-        file_dialog.setNameFilter("Network (*.pt *.pth)")
-        if file_dialog.exec():
-            file_path = file_dialog.selectedFiles()[0]
-            self.path_edit.setText(file_path)
-            # make text red if path does not exist
-            if not os.path.exists(file_path):
-                self.path_edit.setStyleSheet("color: red")
-                self.path_edit.setToolTip("File does not exist.")
-            else:
-                self.path_edit.setStyleSheet("color: black")
-                self.path_edit.setToolTip("")
+        # use minimal height
+        height = self.minimumSizeHint().height()
+        self.setFixedHeight(height)
 
     def on_delete_clicked(self):
         # ask for confirmation
@@ -176,16 +165,7 @@ class NetworkWidget(qtw.QWidget):
             self.deleted.emit()
 
     def on_update_clicked(self):
-        # update model
-        self.model.name = self.name_edit.text()
-        self.model.network_path = Path(self.path_edit.text())
-        self.model.sampling_rate = self.sampling_rate_edit.value()
-        self.model.media_type = MediaType[self.media_type_edit.currentText()]
-        self.model.activated = self.activated_edit.isChecked()
-
-        # highlight widget for 1 second to indicate that the model was updated
-        self.setStyleSheet("background-color: lightgreen")
-        qtc.QTimer.singleShot(1000, lambda: self.setStyleSheet(""))
+        raise NotImplementedError
 
 
 class NetworkListWidget(qtw.QWidget):
@@ -224,6 +204,7 @@ class NetworkListWidget(qtw.QWidget):
             frame.setFrameShadow(qtw.QFrame.Shadow.Raised)
             frame_layout = qtw.QVBoxLayout(frame)
             frame_layout.addWidget(widget)
+            frame.setFixedHeight(widget.size().height())
 
             self.scroll_layout.addWidget(frame)
 

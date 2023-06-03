@@ -29,7 +29,7 @@ class ImportAnnotationDialog(qtw.QDialog):
         self.combobox = None
         self.input_path_edit = None
         self.annotation_name_edit = None
-        self.open_button = None
+        self.import_button = None
         self.cancel_button = None
         self.button_widget = None
 
@@ -66,10 +66,10 @@ class ImportAnnotationDialog(qtw.QDialog):
         self.combobox.currentIndexChanged.connect(self.dataset_changed)
         form.addRow("Dataset:", self.combobox)
 
-        self.open_button = qtw.QPushButton()
-        self.open_button.setText("Create")
-        self.open_button.setEnabled(False)
-        self.open_button.clicked.connect(lambda _: self.open_pressed())
+        self.import_button = qtw.QPushButton()
+        self.import_button.setText("Import")
+        self.import_button.setEnabled(False)
+        self.import_button.clicked.connect(lambda _: self.open_pressed())
 
         self.cancel_button = qtw.QPushButton()
         self.cancel_button.setText("Cancel")
@@ -77,7 +77,7 @@ class ImportAnnotationDialog(qtw.QDialog):
 
         self.button_widget = qtw.QWidget()
         self.button_widget.setLayout(qtw.QHBoxLayout())
-        self.button_widget.layout().addWidget(self.open_button)
+        self.button_widget.layout().addWidget(self.import_button)
         self.button_widget.layout().addWidget(self.cancel_button)
 
         form.addRow(self.button_widget)
@@ -147,14 +147,14 @@ class ImportAnnotationDialog(qtw.QDialog):
             and self.annotation_name is not None
             and self.dataset is not None
         )
-        self.open_button.setEnabled(enabled)
+        self.import_button.setEnabled(enabled)
 
     def cancel_pressed(self):
         self.close()
 
     def open_pressed(self):
         self.check_enabled()
-        if self.open_button.isEnabled():
+        if self.import_button.isEnabled():
             from ..data_model import create_annotation, create_sample
             from ..utility.filehandler import read_csv
 

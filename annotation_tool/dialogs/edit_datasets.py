@@ -47,11 +47,11 @@ class QEditDatasets(qtw.QDialog):
         self._dependencies.mousePressed.connect(self.get_dependencies_path)
         self.bottom_widget.layout().addRow("Dependencies:", self._dependencies)
 
-        self.add_button = qtw.QPushButton("Add")
-        self.add_button.setFixedWidth(100)
-        self.add_button.setEnabled(False)
-        self.add_button.clicked.connect(lambda _: self.add_pressed())
-        self.bottom_widget.layout().addRow(self.add_button)
+        self.create_button = qtw.QPushButton("Create")
+        self.create_button.setFixedWidth(100)
+        self.create_button.setEnabled(False)
+        self.create_button.clicked.connect(lambda _: self.add_pressed())
+        self.bottom_widget.layout().addRow(self.create_button)
 
         vbox.addWidget(self.bottom_widget)
 
@@ -68,10 +68,10 @@ class QEditDatasets(qtw.QDialog):
         if filehandler.is_non_zero_file(Path(file_path)):
             # TODO check scheme valid
 
-            self.add_button.setEnabled(True)
+            self.create_button.setEnabled(True)
             self._scheme.setText(file_path)
         else:
-            self.add_button.setEnabled(False)
+            self.create_button.setEnabled(False)
             self._scheme.setText("")
 
     def get_dependencies_path(self):
@@ -186,7 +186,7 @@ class QEditDatasets(qtw.QDialog):
         self._name.setText("")
         self._scheme.setText("")
         self._dependencies.setText("")
-        self.add_button.setEnabled(False)
+        self.create_button.setEnabled(False)
 
     def remove_pressed(self, idx):
         dataset = Dataset.get_all()[idx]
