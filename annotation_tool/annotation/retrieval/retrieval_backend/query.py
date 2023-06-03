@@ -268,7 +268,7 @@ class Query:
         Returns:
             The distance distribution of the query.
         """
-        start = time.perf_counter()
+        start = time.perf_counter()  # noqa
 
         accepted_similarities = np.array(
             [elem._similarity for elem in self.accepted_elements]
@@ -284,10 +284,10 @@ class Query:
             (accepted_similarities, open_similarities)
         )
 
-        end = time.perf_counter()
-        logging.debug(
-            f"Computing the similarity_distribution took {(end - start):.3f} seconds in total."
-        )
+        end = time.perf_counter()  # noqa
+        # logging.debug(
+        #    f"Computing the similarity_distribution took {(end - start):.3f} seconds in total."
+        # )
 
         return similarity_distribution
 

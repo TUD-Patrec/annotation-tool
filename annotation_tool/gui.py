@@ -267,11 +267,11 @@ class GUI(qtw.QMainWindow, DialogManager):
         self._exit()
 
     def keyPressEvent(self, a0: qtg.QKeyEvent) -> None:
-        print(a0.key())
-
+        # print(a0.key())
         # minimze
         # print("minimizing")
         # self.showMinimized()
+        pass
 
     def _exit(self):
         self.close_dialog()

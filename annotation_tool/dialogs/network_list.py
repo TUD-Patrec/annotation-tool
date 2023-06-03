@@ -129,6 +129,7 @@ class NetworkWidget(qtw.QWidget):
         self.activated_label = qtw.QLabel("Activated:")
         self.activated_edit = qtw.QCheckBox()
         self.activated_edit.setChecked(self.model.activated)
+        self.activated_edit.clicked.connect(self.on_activated_clicked)
         self.grid.addWidget(self.activated_label, 6, 0)
         self.grid.addWidget(self.activated_edit, 6, 1)
 
@@ -166,6 +167,9 @@ class NetworkWidget(qtw.QWidget):
 
     def on_update_clicked(self):
         raise NotImplementedError
+
+    def on_activated_clicked(self):
+        self.model.activated = self.activated_edit.isChecked()
 
 
 class NetworkListWidget(qtw.QWidget):

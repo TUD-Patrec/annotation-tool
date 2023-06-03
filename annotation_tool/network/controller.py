@@ -46,7 +46,6 @@ def __get_media_reader__(file: Path) -> MediaReader:
     return media_reader(file)
 
 
-@lru_cache(maxsize=1)
 def __get_model__(mr: MediaReader, num_labels: int) -> Model:
     # find best fitting network
     media_type: str = mr.media_type
