@@ -68,6 +68,13 @@ def get_shortcut(action):
     return ActionToShortcut[action] if action in ActionToShortcut else None
 
 
+def get_action(shortcut):
+    for action, shortcut_ in ActionToShortcut.items():
+        if shortcut == shortcut_:
+            return action
+    return None
+
+
 def get_annotation_actions(mode: AnnotationMode):
     if mode == AnnotationMode.MANUAL:
         return [

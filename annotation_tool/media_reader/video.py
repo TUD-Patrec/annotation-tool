@@ -43,7 +43,6 @@ def __is_video__(path: Path) -> bool:
         except TypeError:
             return False
     else:
-        print(f"File does not exist: {path}")
         raise FileNotFoundError(f"File {path} does not exist.")
 
 

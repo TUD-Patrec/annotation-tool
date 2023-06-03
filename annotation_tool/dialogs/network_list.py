@@ -363,15 +363,13 @@ class NetworksDialog(qtw.QDialog):
                 )
                 return
             try:
-                print(f"Parsed: {input_shape = }")
-                m = create_model(
+                create_model(
                     network_path=Path(path),
                     media_type=media_type,
                     sampling_rate=sampling_rate,
                     input_shape=input_shape,
                     name=name,
                 )
-                print(f"Created model {m}")
             except RuntimeError as e:
                 qtw.QMessageBox.critical(
                     self,
