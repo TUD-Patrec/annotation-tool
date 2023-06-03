@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
@@ -155,7 +156,11 @@ class ImportAnnotationDialog(qtw.QDialog):
     def open_pressed(self):
         self.check_enabled()
         if self.import_button.isEnabled():
-            from ..data_model import create_annotation, create_sample
+            from ..data_model import (
+                create_annotation,
+                create_sample,
+                create_single_annotation,
+            )
             from ..utility.filehandler import read_csv
 
             try:
@@ -190,7 +195,8 @@ class ImportAnnotationDialog(qtw.QDialog):
                 return
 
             try:
-                media_reader = mr(self.input_path)
+                input_path = Path(self.input_path)
+                media_reader = mr(input_path)
             except ValueError:
                 msg = qtw.QMessageBox(self)
                 msg.setIcon(qtw.QMessageBox.Icon.Critical)
@@ -245,7 +251,7 @@ class ImportAnnotationDialog(qtw.QDialog):
                     annotation[idx], annotation[idx + 1]
                 ):
                     try:
-                        _anno = create_annotation(scheme, annotation[idx])
+                        _anno = create_single_annotation(scheme, annotation[idx])
                     except ValueError:
                         msg = qtw.QMessageBox(self)
                         msg.setIcon(qtw.QMessageBox.Icon.Critical)
