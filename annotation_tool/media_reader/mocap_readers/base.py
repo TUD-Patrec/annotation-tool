@@ -104,8 +104,8 @@ def register_mocap_reader(reader: MocapReaderBase, priority: int = 0):
     __registered_mocap_readers.sort(key=lambda x: x.priority, reverse=True)
 
 
-def get_mocap_reader(path: Path) -> MocapReaderBase:
+def get_mocap_reader(path: Path, **kwargs) -> MocapReaderBase:
     for reader in __registered_mocap_readers:
         if reader.reader.is_supported(path):
-            return reader.reader(path)
-    raise ValueError(f"No video_readers reader found for {path}.")
+            return reader.reader(path, **kwargs)
+    raise ValueError(f"No mocap_reader found for {path}.")
