@@ -64,7 +64,10 @@ class ArrayCache(object):
         with self._lock:
             for k, data in self._cache:
                 if k == _key:
-                    return data.data
+                    _data = data.data
+                    self._cache.remove((k, data))
+                    self._cache.append((k, data))  # move to end
+                    return _data
         raise KeyError(f"Key {_key} not found in cache.")
 
     def __setitem__(self, _key, _value):
