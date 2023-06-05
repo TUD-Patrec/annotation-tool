@@ -76,7 +76,7 @@ class SingleAnnotation:
 
     def _make_vector(self, a):
         if isinstance(a, np.ndarray):
-            a = a.astype(dtype=np.int8)
+            a = np.array(a, copy=True, dtype=np.int8)
             return a
         if isinstance(a, dict):
             ls = []

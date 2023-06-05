@@ -12,7 +12,6 @@ from annotation_tool.file_cache._file_cache import (
     get_size_in_bytes,
     path_of,
 )
-from annotation_tool.qt_helper_widgets.lines import QHLine
 
 
 class LocalFilesDialog(qtw.QDialog):
@@ -46,7 +45,6 @@ class LocalFilesDialog(qtw.QDialog):
         # show directory path and button to copy it
         self.path_label = qtw.QLabel("Path to local files:")
         self.path_value_label = qtw.QLabel(f"{get_dir()}")
-        self.path_value_label.setWordWrap(True)
         self.path_value_label.setTextInteractionFlags(
             qtc.Qt.TextInteractionFlag.TextSelectableByMouse
         )
@@ -64,14 +62,6 @@ class LocalFilesDialog(qtw.QDialog):
         self.button_box_layout.addWidget(self.copy_path_button)
         self.button_box_layout.addWidget(self.open_dir_button)
         self.layout().addLayout(self.button_box_layout, 4, 0, 1, 2)
-
-        # add horizontal line
-        self.layout().addWidget(QHLine(), 5, 0, 1, 2)
-
-        # add close button
-        self.close_button = qtw.QPushButton("Close")
-        self.close_button.clicked.connect(self.accept)
-        self.layout().addWidget(self.close_button, 6, 0, 1, 2)
 
     def copy_path(self):
         qtw.QApplication.clipboard().setText(get_dir())

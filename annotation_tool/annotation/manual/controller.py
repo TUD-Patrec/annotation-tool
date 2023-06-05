@@ -61,7 +61,7 @@ class ManualAnnotation(AnnotationBaseClass):
                 self.selected_sample, self.scheme, self.dependencies
             )
             self.pause_replay.emit()
-            dialog.finished.connect(lambda _: self.check_for_selected_sample(True))
+            dialog.annotation_changed.connect(self.update_sample_annotation)
             self.open_dialog(dialog)
 
     def cut(self):
