@@ -29,13 +29,12 @@ def load_lara_mocap(path: Path, normalize: bool) -> np.ndarray:
     _key = (_hash, normalize)
 
     if get_cache is None:
-        logging.warning("Cache not available. Loading mocap from file.")
         return __load_lara_mocap__(path, normalize)
     else:
         _cache = get_cache()
 
         if _key in _cache:
-            return _cache[_key].copy()
+            return _cache[_key]
         else:
             mocap = __load_lara_mocap__(path, normalize)
             _cache[_key] = mocap
@@ -138,7 +137,6 @@ class LARaMocapReader(MocapReaderBase):
         self.path = path
         _normalize = kwargs.get("normalize", True)
         self.mocap = load_lara_mocap(self.path, _normalize)
-        print(f"{self.mocap.shape = }, {self.mocap.dtype = }")
 
     def get_frame(self, frame_idx: int) -> np.ndarray:
         """

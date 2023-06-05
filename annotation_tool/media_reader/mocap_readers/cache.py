@@ -67,7 +67,7 @@ class ArrayCache(object):
                     _data = data.data
                     self._cache.remove((k, data))
                     self._cache.append((k, data))  # move to end
-                    return _data
+                    return _data.copy()
         raise KeyError(f"Key {_key} not found in cache.")
 
     def __setitem__(self, _key, _value):
