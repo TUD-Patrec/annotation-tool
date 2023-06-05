@@ -22,7 +22,6 @@ from .media.media import QMediaWidget  # This raises all the debug-messages on s
 from .mediator import Mediator
 from .playback import QPlaybackWidget
 from .utility import filehandler
-from .utility.functions import FrameTimeMapper
 
 
 class MainApplication(qtw.QApplication):
@@ -117,10 +116,8 @@ class MainApplication(qtw.QApplication):
             self.current_annotation = annotation
 
             meta_data_dict = meta_data(annotation.path)
-            duration = meta_data_dict["duration"]
             n_frames = meta_data_dict["n_frames"]
-
-            FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
+            fps = meta_data_dict["fps"]
 
             # load media
             self.load_media.emit(
@@ -145,7 +142,7 @@ class MainApplication(qtw.QApplication):
             self.playback.n_frames = n_frames
 
             # adjust timeline
-            self.timeline.set_range(n_frames)
+            self.timeline.set_range(n_frames, fps)
 
             # update annotation controller
             self.annotation_controller.load(
@@ -204,15 +201,6 @@ class MainApplication(qtw.QApplication):
     @qtc.pyqtSlot()
     def settings_changed(self):
         filehandler.set_logging_level(settings.logging_level)
-
-        if self.current_annotation is not None:
-            meta_data_dict = meta_data(self.current_annotation.path)
-            duration = meta_data_dict["duration"]
-            n_frames = meta_data_dict["n_frames"]
-
-            FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
-
-        self.timeline.update()
 
     def update_theme(self):
         self.setStyle("Fusion")

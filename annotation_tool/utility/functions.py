@@ -1,8 +1,6 @@
 import functools
 from typing import Tuple
 
-from .decorators import Singleton, accepts_m
-
 
 def scale(N: int, M: int, x: int) -> Tuple[int, int]:
     """
@@ -78,60 +76,3 @@ def ms_to_time_string(ms: int) -> str:
     secs = ms // 1000
     ms %= 1000
     return "{:02d}:{:02d}:{:03d}".format(mins, secs, ms)
-
-
-@Singleton
-class FrameTimeMapper:
-    """
-    Simple helper class to ease the use of the scaling functions for
-    the specific case of mapping between frame-positions within some media
-    and the corresponding timestamp.
-    """
-
-    def __init__(self) -> None:
-        self.n_frames = 1
-        self.millisecs = 1
-        self._frame_to_ms, self._ms_to_frame = scale_functions(1, 1, True)
-
-    @accepts_m(int, int)
-    def update(self, n_frames: int, millis: int) -> None:
-        """
-        Update the state of the Mapper. Changes the two ranges and updates
-        the mapping functions.
-
-        Args:
-            n_frames (int, optional): Number of frames inside the media.
-            Defaults to None.
-            millisecs (int, optional): Duration of the media in milliseconds.
-            Defaults to None.
-        """
-        self.n_frames = n_frames
-        self.millisecs = millis
-
-        self._frame_to_ms, self._ms_to_frame = scale_functions(
-            self.n_frames, self.millisecs, True
-        )
-
-    def frame_to_ms(self, frame: int) -> int:
-        """
-        Map frame-position to time-position.
-
-        Args:
-            frame (int): Index to current frame.
-
-        Returns:
-            int: Timestamp corresponding to current frame
-        """
-        return self._frame_to_ms(frame)[0]
-
-    def ms_to_frame(self, ms: int) -> int:
-        """
-        Map time-position to frame-position.
-
-        Args:
-            ms (int): Timestamp corresponding to current frame
-
-        Returns:
-            int: Index to current frame.
-        """
-        return self._ms_to_frame(ms)[0]
