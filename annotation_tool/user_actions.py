@@ -116,7 +116,6 @@ def get_replay_actions(mode: AnnotationMode):
     if mode == AnnotationMode.MANUAL:
         return [
             ReplayActions.PLAY_OR_PAUSE,
-            # ReplayActions.TOGGLE_FORWARD_BACKWARD,  # TODO: implement
             ReplayActions.SKIP_FRAMES,
             ReplayActions.SKIP_FRAMES_BACK,
             ReplayActions.SKIP_FRAMES_FAR,

@@ -318,7 +318,6 @@ class MainApplication(qtw.QApplication):
             self.annotation_controller.controller.main_widget.histogram.plot_data()
 
     def closeEvent(self, event):
-        logging.info("Closing application via closeEvent")
         self.shutdown()
         event.accept()
 
@@ -328,15 +327,11 @@ class MainApplication(qtw.QApplication):
         This method is called when the application is closed.
         It saves the current annotation and closes the main window.
         """
-        logging.info("Closing application")
         self.save_timer.stop()
         self.save_annotation()
         self.media_player.shutdown()
         self.gui.close()  # close main window
         logging.info("Successfully stopped application!")
-
-    def refocus(self):
-        self.gui.setFocus()
 
 
 def except_hook(cls, exception, traceback):

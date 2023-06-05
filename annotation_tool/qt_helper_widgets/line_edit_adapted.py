@@ -14,3 +14,5 @@ class QLineEditAdapted(qtw.QLineEdit):
     def keyPressEvent(self, event):
         if event.key() in [qtc.Qt.Key.Key_Enter, qtc.Qt.Key.Key_Space]:
             self.mousePressed.emit()
+        else:
+            super(QLineEditAdapted, self).keyPressEvent(event)

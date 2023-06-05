@@ -126,8 +126,6 @@ class QMediaMainController(qtw.QWidget):
             logging.warning("Media is loading -> ignoring new replay widget")
             return
         if len(self.replay_widgets) < self.MAX_WIDGETS:
-            # is_main_widget = len(self.replay_widgets) == 0
-
             # select correct media_player
 
             media_type = media_type_of(path)
@@ -189,10 +187,6 @@ class QMediaMainController(qtw.QWidget):
             self._update_additional_media()
 
         self._check_loading_finished()  # check if loading is finished
-
-        # Refocus main window
-        app = qtw.QApplication.instance()
-        app.refocus()
 
     @qtc.pyqtSlot(AbstractMediaPlayer)
     def widget_failed(self, widget):
