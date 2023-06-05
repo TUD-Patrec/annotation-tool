@@ -35,7 +35,7 @@ pyqtgraph = "^0.12.4"
 scipy = "^1.10.0"
 torch = "^2.0.0"
 sortedcontainers = "^2.4.0"
-fcache = "^0.4.7"
+fcache = "^0.5.0"
 appdirs = "^1.4.4"
 decord = { version = "^0.6.0", platform = "win32"}
 
