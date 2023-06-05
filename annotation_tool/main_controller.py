@@ -41,9 +41,9 @@ class MainApplication(qtw.QApplication):
         # timer for automatic saving
         self.save_timer = qtc.QTimer()
         self.save_timer.timeout.connect(self.autosave)
-        self.save_interval = 5  # 1 minute
+        self.save_interval = 120  # 2 minutes
         self.last_save = time.time()
-        self.save_timer.start(30 * 1000)  # check every 10 seconds
+        self.save_timer.start(30 * 1000)  # check every 30 seconds
 
         # Widgets
         self.gui = GUI()
