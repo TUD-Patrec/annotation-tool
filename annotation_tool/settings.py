@@ -33,3 +33,5 @@ class Settings:
 settings = Settings.get_all()
 if len(settings) == 0:
     settings = Settings()
+else:
+    settings = settings[0]
