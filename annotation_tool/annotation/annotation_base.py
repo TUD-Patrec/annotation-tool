@@ -65,6 +65,7 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
         self.dependencies = dependencies
         self.n_frames = n_frames
         self.position = 0
+        self.selected_sample_idx = None  # reset selected sample
         self.clear_undo_redo()
         self.check_for_selected_sample(force_update=True)
         self.load_subclass()
@@ -176,13 +177,23 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
 
     def check_for_selected_sample(self, force_update=False) -> None:
         """
-        Check if the current position is in a sample and if so, select it.
+        Find the selected sample and emit the samples_changed signal if the selected sample changed.
 
         Args:
-            force_update: Force updating the selected sample.
+            force_update: Force the update of the selected sample.
         """
+        _current_sample = self.selected_sample
+
+        if _current_sample is not None:
+            lo, hi = _current_sample.start_position, _current_sample.end_position
+
+            if lo <= self.position <= hi:
+                if force_update:
+                    self.samples_changed.emit(self.samples, _current_sample)
+                return
+
         if len(self.samples) > 0:
-            if len(self.samples) > 50:
+            if len(self.samples) > 75:
                 # binary search for large number of samples
                 lo = 0
                 hi = len(self.samples) - 1

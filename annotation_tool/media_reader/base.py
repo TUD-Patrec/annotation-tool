@@ -1,6 +1,10 @@
 import abc
+import functools
+import logging
+import os
 from pathlib import Path
-from typing import Optional
+import time
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -250,8 +254,14 @@ def media_reader(path: Path, **kwargs) -> MediaReader:
     if not isinstance(path, Path):
         raise TypeError(f"Invalid argument type {type(path) = }")
 
+    start = time.perf_counter()
     media_type = __media_selector__.select(path)
     mr = __media_factory__.create(media_type, path=path, **kwargs)
+    end = time.perf_counter()
+
+    logging.debug(
+        f"Created {media_type} reader for {path} in {end - start:.4f} seconds."
+    )
 
     return mr
 
@@ -267,3 +277,44 @@ def media_type_of(path: Path) -> str:
         The media type of the given path.
     """
     return __media_selector__.select(path)
+
+
+@functools.lru_cache(maxsize=None)
+def _meta_data(file: Path, identifier: Tuple) -> dict:
+    """
+    The identifier-arg is only used for caching.
+    """
+    mr = media_reader(file)
+    return {
+        "fps": mr.fps,
+        "n_frames": len(mr),
+        "duration": mr.duration,
+        "media_type": mr.media_type,
+    }
+
+
+def meta_data(file: Path) -> dict:
+    """
+    Returns the metadata of the media file. The metadata is a dictionary with the following keys:
+        - fps: (float) The framerate of the media.
+        - n_frames: (int) The number of frames in the media.
+        - duration: (int) The duration of the media in milliseconds.
+        - media_type: (str) The type of the media (e.g. video, mocap, etc.).
+
+    The values are cached, so this function can be called multiple times without performance loss.
+    This is the preferred way to get information about the media file.
+    Use this if you don't need the actual media data.
+
+    Args:
+        file: The path to the media file.
+
+    Returns:
+        dict: The metadata. If the file does not exist, an empty dictionary is returned.
+    """
+    try:
+        last_change = int(os.path.getmtime(file))
+        size = os.path.getsize(file)
+        identifier = (last_change, size)
+        return _meta_data(file, identifier)
+    except FileNotFoundError:
+        return {}

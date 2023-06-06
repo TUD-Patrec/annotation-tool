@@ -10,7 +10,7 @@ from PyQt6.QtGui import QColor, QPalette
 import PyQt6.QtWidgets as qtw
 
 from annotation_tool.annotation.timeline import QTimeLine
-from annotation_tool.media_reader import media_reader
+from annotation_tool.media_reader import meta_data
 import annotation_tool.network.controller as network
 from annotation_tool.settings import settings
 
@@ -116,9 +116,9 @@ class MainApplication(qtw.QApplication):
         if annotation is not None:
             self.current_annotation = annotation
 
-            media = media_reader(path=annotation.path)
-            duration = media.duration
-            n_frames = len(media)
+            meta_data_dict = meta_data(annotation.path)
+            duration = meta_data_dict["duration"]
+            n_frames = meta_data_dict["n_frames"]
 
             FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
 
@@ -206,9 +206,9 @@ class MainApplication(qtw.QApplication):
         filehandler.set_logging_level(settings.logging_level)
 
         if self.current_annotation is not None:
-            media = media_reader(path=self.current_annotation.path)
-            duration = media.duration
-            n_frames = len(media)
+            meta_data_dict = meta_data(self.current_annotation.path)
+            duration = meta_data_dict["duration"]
+            n_frames = meta_data_dict["n_frames"]
 
             FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
 

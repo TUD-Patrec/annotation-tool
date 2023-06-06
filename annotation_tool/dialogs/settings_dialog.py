@@ -189,6 +189,22 @@ class AppearanceSettingsDialog(qtw.QDialog):
             "Changing this will only take effect after a restart."
         )
 
+        # timeline design
+        self.timeline_design_layout = qtw.QHBoxLayout()
+        self.timeline_design_label = qtw.QLabel("Timeline Design:")
+        self.timeline_design_combobox = qtw.QComboBox()
+        self.timeline_design_combobox.addItems(["Rounded", "Rectangular"])
+        idx = self.timeline_design_combobox.findText(
+            settings.timeline_design.capitalize()
+        )
+        self.timeline_design_combobox.setCurrentIndex(idx)
+        self.timeline_design_combobox.currentTextChanged.connect(
+            self.change_timeline_design
+        )
+        self.timeline_design_layout.addWidget(self.timeline_design_label)
+        self.timeline_design_layout.addWidget(self.timeline_design_combobox)
+        self.layout.addLayout(self.timeline_design_layout)
+
         # Accept, Reset buttons
         self.button_layout = qtw.QHBoxLayout()
         self.accept_button = qtw.QPushButton("Accept")
@@ -202,12 +218,17 @@ class AppearanceSettingsDialog(qtw.QDialog):
         self.setLayout(self.layout)
 
     def reset_settings(self):
-        default_color_scheme = settings.get_default("color_scheme")
+        default_color_scheme = settings.get_default("color_theme")
         _idx = self.theme_combobox.findText(default_color_scheme.capitalize())
         self.theme_combobox.setCurrentIndex(_idx)
         self.font_size_spinbox.setValue(settings.get_default("font_size"))
         self.preferred_width_spinbox.setValue(settings.get_default("preferred_width"))
         self.preferred_height_spinbox.setValue(settings.get_default("preferred_height"))
+        self.timeline_design_combobox.setCurrentIndex(
+            self.timeline_design_combobox.findText(
+                settings.get_default("timeline_design").capitalize()
+            )
+        )
 
     def change_theme(self):
         mode = self.theme_combobox.currentText().lower()
@@ -226,6 +247,10 @@ class AppearanceSettingsDialog(qtw.QDialog):
     def change_font_size(self, value):
         settings.font_size = value
         qtw.QApplication.instance().update_theme()
+
+    def change_timeline_design(self, value):
+        settings.timeline_design = value.lower()
+        qtw.QApplication.instance().timeline.update()
 
 
 class NavigationSettingsDialog(qtw.QDialog):

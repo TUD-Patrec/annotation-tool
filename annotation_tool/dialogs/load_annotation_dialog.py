@@ -17,7 +17,7 @@ class LoadAnnotationDialog(qtw.QDialog):
         super(LoadAnnotationDialog, self).__init__(*args, **kwargs)
 
         self.annotations = Annotation.get_all()
-        self.annotations.sort(key=lambda x: x.timestamp, reverse=True)
+        self.annotations.sort(key=lambda x: x.last_save, reverse=True)
 
         self.name_changed_msg = (
             "The name of the annotation has changed, please insert the new name."
@@ -111,7 +111,6 @@ class LoadAnnotationDialog(qtw.QDialog):
             parent=self, directory="", filter="Video MoCap (*.mp4 *.avi *.csv)"
         )
         file_path = Path(file_path)
-        print(f"Selected file: {file_path}")
         if filehandler.is_non_zero_file(file_path):
             hash = filehandler.checksum(file_path)
             idx = self.combobox.currentIndex()

@@ -15,6 +15,7 @@ class Settings:
     merging_mode: str = field(init=False, default="into")
     preferred_width: int = field(init=False, default=1200)
     preferred_height: int = field(init=False, default=700)
+    timeline_design: str = field(init=False, default="rounded")
     retrieval_segment_overlap: float = field(init=False, default=0)
     retrieval_segment_size: int = field(init=False, default=200)
     small_skip: int = field(init=False, default=1)

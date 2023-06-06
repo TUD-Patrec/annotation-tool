@@ -7,7 +7,7 @@ from typing import List, Tuple
 import numpy as np
 
 from annotation_tool.file_cache import cached
-from annotation_tool.media_reader import MediaReader, media_reader
+from annotation_tool.media_reader import meta_data as get_meta_data
 from annotation_tool.utility.decorators import accepts, returns
 from annotation_tool.utility.filehandler import checksum, is_non_zero_file
 
@@ -25,19 +25,20 @@ class Annotation:
     _annotated_file: Path
     _checksum: str = field(init=False)
     _samples: list = field(init=False, default_factory=list)
-    _timestamp: time.struct_time = field(init=False, default_factory=time.localtime)
+    _creation_time: time.time = field(init=False, default_factory=time.time)
     _additional_media_paths: List[Tuple[Path, int]] = field(
         init=False, default_factory=list
     )
+    _last_save: float = field(init=False, default_factory=time.time)
 
     def __post_init__(self):
         self._checksum = checksum(self.path)
         self.__init_samples__()
 
     def __init_samples__(self):
-        media: MediaReader = media_reader(self.path)
+        n_frames = get_meta_data(self.path)["n_frames"]
         a = empty_annotation(self.dataset.scheme)
-        s = Sample(0, len(media) - 1, a)
+        s = Sample(0, n_frames - 1, a)
         self._samples.append(s)
 
     @property
@@ -63,6 +64,7 @@ class Annotation:
                 last = sample.end_position
 
             self._samples = list_of_samples
+            self._last_save = time.time()
 
     def to_numpy(self) -> np.ndarray:
         """
@@ -100,7 +102,7 @@ class Annotation:
 
     @property
     def creation_time(self) -> time.struct_time:
-        return self._timestamp
+        return time.localtime(self._creation_time)
 
     @property
     def timestamp(self) -> str:
@@ -136,6 +138,10 @@ class Annotation:
     @property
     def checksum(self) -> str:
         return self._checksum
+
+    @property
+    def last_save(self) -> float:
+        return self._last_save
 
     def set_additional_media_paths(self, paths_with_offsets: List[Tuple[Path, int]]):
         additional_paths = []
