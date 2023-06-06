@@ -22,7 +22,6 @@ from .media.media import QMediaWidget  # This raises all the debug-messages on s
 from .mediator import Mediator
 from .playback import QPlaybackWidget
 from .utility import filehandler
-from .utility.functions import FrameTimeMapper
 
 
 class MainApplication(qtw.QApplication):
@@ -41,9 +40,9 @@ class MainApplication(qtw.QApplication):
         # timer for automatic saving
         self.save_timer = qtc.QTimer()
         self.save_timer.timeout.connect(self.autosave)
-        self.save_interval = 5  # 1 minute
+        self.save_interval = 120  # 2 minutes
         self.last_save = time.time()
-        self.save_timer.start(30 * 1000)  # check every 10 seconds
+        self.save_timer.start(30 * 1000)  # check every 30 seconds
 
         # Widgets
         self.gui = GUI()
@@ -117,10 +116,8 @@ class MainApplication(qtw.QApplication):
             self.current_annotation = annotation
 
             meta_data_dict = meta_data(annotation.path)
-            duration = meta_data_dict["duration"]
             n_frames = meta_data_dict["n_frames"]
-
-            FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
+            fps = meta_data_dict["fps"]
 
             # load media
             self.load_media.emit(
@@ -145,7 +142,7 @@ class MainApplication(qtw.QApplication):
             self.playback.n_frames = n_frames
 
             # adjust timeline
-            self.timeline.set_range(n_frames)
+            self.timeline.set_range(n_frames, fps)
 
             # update annotation controller
             self.annotation_controller.load(
@@ -204,15 +201,6 @@ class MainApplication(qtw.QApplication):
     @qtc.pyqtSlot()
     def settings_changed(self):
         filehandler.set_logging_level(settings.logging_level)
-
-        if self.current_annotation is not None:
-            meta_data_dict = meta_data(self.current_annotation.path)
-            duration = meta_data_dict["duration"]
-            n_frames = meta_data_dict["n_frames"]
-
-            FrameTimeMapper.instance().update(n_frames=n_frames, millis=duration)
-
-        self.timeline.update()
 
     def update_theme(self):
         self.setStyle("Fusion")
@@ -318,7 +306,6 @@ class MainApplication(qtw.QApplication):
             self.annotation_controller.controller.main_widget.histogram.plot_data()
 
     def closeEvent(self, event):
-        logging.info("Closing application via closeEvent")
         self.shutdown()
         event.accept()
 
@@ -328,15 +315,11 @@ class MainApplication(qtw.QApplication):
         This method is called when the application is closed.
         It saves the current annotation and closes the main window.
         """
-        logging.info("Closing application")
         self.save_timer.stop()
         self.save_annotation()
         self.media_player.shutdown()
         self.gui.close()  # close main window
         logging.info("Successfully stopped application!")
-
-    def refocus(self):
-        self.gui.setFocus()
 
 
 def except_hook(cls, exception, traceback):

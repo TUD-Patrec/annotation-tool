@@ -9,7 +9,6 @@ import PyQt6.QtWidgets as qtw
 from annotation_tool.data_model.sample import Sample
 from annotation_tool.settings import settings
 from annotation_tool.utility import functions
-from annotation_tool.utility.functions import FrameTimeMapper, ms_to_time_string
 
 ScalingRatio = namedtuple("ScalingRatio", ["Frames", "Pixels"])
 
@@ -125,12 +124,12 @@ class QTimeLine(qtw.QWidget):
         self.pos = None  # Don't remove
         self.scaler = Scaling(self)
         self.n_frames = self.width()
+        self.fps = 30
         self.lower = 0
 
         self.samples = []
         self.current_sample = None
 
-        # Set variables
         self.backgroundColor = qtg.QColor(60, 63, 65)
         self.textColor = qtg.QColor(187, 187, 187)
         self.clicking = False  # Check if mouse left button is being pressed
@@ -146,10 +145,11 @@ class QTimeLine(qtw.QWidget):
     def font(self):
         return qtg.QFont("Decorative", settings.font_size)
 
-    @qtc.pyqtSlot(int)
-    def set_range(self, n):
-        assert 0 < n
+    @qtc.pyqtSlot(int, float)
+    def set_range(self, n: int, fps: float):
+        assert 0 < n and 0 < fps
         self.n_frames = n
+        self.fps = fps
         self.update()
 
     def update_visible_range(self):
@@ -280,8 +280,8 @@ class QTimeLine(qtw.QWidget):
         while pos < self.width():
             frame_idx = self.scaler.pixel_to_frame(int(pos)) + self.lower
 
-            time_stamp = FrameTimeMapper.instance().frame_to_ms(frame_idx)
-            time_stamp = ms_to_time_string(time_stamp)
+            time_stamp = int(frame_idx * 1000 / self.fps)
+            time_stamp = functions.ms_to_time_string(time_stamp)
             time_stamp = time_stamp.split(":")
             time_stamp = ":".join(time_stamp[:-1])
 

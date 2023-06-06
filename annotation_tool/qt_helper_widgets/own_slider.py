@@ -7,12 +7,14 @@ class OwnSlider(qtw.QSlider):
         super(OwnSlider, self).__init__(qtc.Qt.Orientation.Horizontal)
 
     def keyPressEvent(self, event) -> None:
-        if event.key() == qtc.Qt.Key.Key_Right:
+        if event.key() == qtc.Qt.Key.Key_Plus:
             self.plus_step()
-        elif event.key() == qtc.Qt.Key.Key_Left:
+            event.accept()
+        elif event.key() == qtc.Qt.Key.Key_Minus:
             self.minus_step()
+            event.accept()
         else:
-            super(OwnSlider, self).keyPressEvent(event)
+            self.parent().keyPressEvent(event)
 
     def plus_step(self):
         """Increase slider to next multiple of single step."""

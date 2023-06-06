@@ -267,12 +267,15 @@ class GUI(qtw.QMainWindow, DialogManager):
     def closeEvent(self, a0: qtg.QCloseEvent) -> None:
         self._exit()
 
+    @qtc.pyqtSlot(qtg.QKeyEvent)
     def keyPressEvent(self, a0: qtg.QKeyEvent) -> None:
-        key = a0.key()
-        key_event = qtg.QKeySequence(key)
-        action = get_action(key_event)
+        # print("GUI", a0.key())
+        action = get_action(a0.key())
+
         if action is not None:
-            self.emit_action(action)
+            self.user_action.emit(action)
+        else:
+            super().keyPressEvent(a0)
 
     def _exit(self):
         self.close_dialog()
