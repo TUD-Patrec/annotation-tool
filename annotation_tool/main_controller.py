@@ -338,7 +338,6 @@ def main():
     font.setPointSize(settings.font_size)
     app.setFont(font)
 
-    # styles: 'Breeze', 'Oxygen', 'QtCurve', 'Windows', 'Fusion'
     app.setStyle("Fusion")
 
     app.update_theme()

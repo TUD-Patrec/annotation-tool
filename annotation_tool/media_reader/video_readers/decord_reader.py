@@ -98,6 +98,6 @@ class DecordReader(VideoReaderBase):
 
 
 if _use_decord:
-    register_video_reader(DecordReader, 1)
+    register_video_reader(DecordReader, -1)  # too heavy on RAM
 
 logging.info("Registered DecordReader.")

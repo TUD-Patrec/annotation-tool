@@ -30,8 +30,8 @@ class Settings:
                 return fld.default
 
 
-settings = Settings.get_all()
-if len(settings) == 0:
+_cached_settings = Settings.get_all()
+if len(_cached_settings) == 0:
     settings = Settings()
 else:
-    settings = settings[0]
+    settings = _cached_settings[0]
