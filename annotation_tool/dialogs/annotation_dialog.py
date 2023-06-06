@@ -3,12 +3,18 @@ import PyQt6.QtWidgets as qtw
 import numpy as np
 
 from annotation_tool.data_model import AnnotationScheme, Sample
-from annotation_tool.data_model.single_annotation import SingleAnnotation
+from annotation_tool.data_model.single_annotation import (
+    SingleAnnotation,
+    create_single_annotation,
+    empty_annotation,
+)
 
 preferred_size = None
 
 
 class QAnnotationDialog(qtw.QDialog):
+    annotation_changed = qtc.pyqtSignal(Sample, SingleAnnotation)
+
     def __init__(
         self,
         sample: Sample,
@@ -210,7 +216,7 @@ class QAnnotationDialog(qtw.QDialog):
             self.accept_button.setEnabled(x)
 
     def __reset_annotation__(self):
-        self.sample.annotation = SingleAnnotation(self.scheme)
+        self.annotation_changed.emit(self.sample, empty_annotation(self.scheme))
         self.close()
 
     def __save_annotation__(self):
@@ -225,10 +231,9 @@ class QAnnotationDialog(qtw.QDialog):
             else:
                 attr_vec = self.get_current_vector()
 
-        anno = self.sample.annotation
-        anno.annotation = attr_vec
+        new_annotation = create_single_annotation(self.scheme, attr_vec)
+        self.annotation_changed.emit(self.sample, new_annotation)
 
-        self.sample.annotation = anno
         self.close()
 
     def __cancel_annotation__(self):

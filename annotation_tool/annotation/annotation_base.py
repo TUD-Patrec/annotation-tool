@@ -231,7 +231,10 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
     @property
     def selected_sample(self) -> Optional[Sample]:
         if self.selected_sample_idx is not None:
-            return self.samples[self.selected_sample_idx]
+            try:
+                return self.samples[self.selected_sample_idx]
+            except IndexError:
+                return None
         else:
             return None
 
@@ -332,9 +335,10 @@ class AnnotationBaseClass(qtc.QObject, DialogManager):
             sample: Sample to update.
             new_annotation: New annotation.
         """
-        self.add_to_undo_stack()
-        sample.annotation = new_annotation
-        self.samples_changed.emit(self.samples, self.selected_sample)
+        if sample.annotation != new_annotation:
+            self.add_to_undo_stack()
+            sample.annotation = new_annotation
+            self.samples_changed.emit(self.samples, self.selected_sample)
 
     @abstractmethod
     def load_subclass(self) -> None:
