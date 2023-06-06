@@ -131,7 +131,9 @@ class MainApplication(qtw.QApplication):
             )  # noqa TODO: Make get_additional_media_paths() a property
 
             # update network module
-            network.update_file(media.path)
+            network.update_state(
+                file=annotation.path, num_labels=len(annotation.dataset.scheme)
+            )
 
             # save for later reuse
             self.n_frames = n_frames
@@ -298,6 +300,9 @@ class MainApplication(qtw.QApplication):
         self.media_player.shutdown()
         self.gui.close()  # close main window
         logging.info("Successfully stopped application!")
+
+    def refocus(self):
+        self.gui.setFocus()
 
 
 def except_hook(cls, exception, traceback):

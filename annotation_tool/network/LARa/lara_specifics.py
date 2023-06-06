@@ -325,6 +325,7 @@ def __attr_to_class__(attr_vec: np.ndarray, combinations: np.ndarray) -> np.ndar
 
 
 def get_annotation_vector(attr_vector: np.ndarray) -> np.ndarray:
+    return attr_vector  # testing
     combinations = __get_combinations__()
     label_one_hot = __attr_to_class__(attr_vector, combinations)
     x = np.append(label_one_hot, attr_vector).astype(dtype=np.int8)

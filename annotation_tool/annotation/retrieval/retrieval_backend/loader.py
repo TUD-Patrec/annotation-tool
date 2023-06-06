@@ -1,3 +1,4 @@
+import logging
 from typing import List, Tuple
 
 import PyQt6.QtCore as qtc
@@ -21,13 +22,11 @@ class RetrievalLoader(qtc.QThread):
         self.controller = controller
 
     def run(self):
-        # intervals, classifications, retrieval_elements = self.load()
-        # self.success.emit(intervals, classifications, retrieval_elements)
-        # return
         try:
             intervals, classifications, retrieval_elements = self.load()
             self.success.emit(intervals, classifications, retrieval_elements)
         except Exception as e:
+            logging.debug(str(e))
             self.error.emit(e)
 
     def load(
@@ -57,16 +56,10 @@ class RetrievalLoader(qtc.QThread):
             )  # cast to numpy array
 
             # Compute the distance between each attribute-representation and each classification.
-            if attribute_representations.shape[1] == 27:
-                # TODO: LAra specific -> remove later
-                # Attributes begin at the 8th index of the attribute representation
-                dists = spatial.distance.cdist(
-                    classifications, attribute_representations[:, 8:], metric="cosine"
-                )
-            else:
-                dists = spatial.distance.cdist(
-                    classifications, attribute_representations, metric="cosine"
-                )
+
+            dists = spatial.distance.cdist(
+                classifications, attribute_representations, metric="cosine"
+            )
 
             for i, interval in enumerate(intervals):
                 for j, attr_repr in enumerate(attribute_representations):

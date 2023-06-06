@@ -1,4 +1,5 @@
 import os
+import re
 
 import PyQt6.QtCore as qtc
 import PyQt6.QtGui as qtg
@@ -6,6 +7,75 @@ import PyQt6.QtWidgets as qtw
 
 from annotation_tool.data_model import Model, create_model, get_unique_name
 from annotation_tool.data_model.media_type import MediaType
+
+
+def parse_input_shape(input_str: str):
+    """
+    Parse a string in the form of "(x, y, z)" or "((x_min, x_max), (y_min, *), (z_min, z_max))" to a tuple of ints.
+    """
+    _magical_number = 78173827
+
+    # Remove all spaces and parentheses and split by comma
+    shapes = input_str
+    shapes = shapes.replace(" ", "")
+
+    # basic regex
+    pos_number = r"[1-9]\d*"
+    min_max_tuple = r"\({},{}\)|\({},\*\)".format(*([pos_number] * 3))
+
+    # Check if the string is empty
+    if not shapes:
+        raise ValueError("Empty input shape")
+
+    # Check string starts with "(" and ends with ")"
+    if not shapes.startswith("(") or not shapes.endswith(")"):
+        raise ValueError("Input shape must start with '(' and end with ')'")
+
+    # check if the paranthes contain anything
+    if len(shapes) == 2:
+        raise ValueError("Input shape must contain at least one element")
+
+    # Remove outer parentheses
+    shapes = shapes[1:-1]
+
+    tuples = re.findall(min_max_tuple, shapes)  # inner tuples
+    placeholder = "_tpl_"
+    shapes = re.sub(
+        min_max_tuple, placeholder, shapes
+    )  # replace inner tuples with _tpl_ for later parsing
+
+    # split by comma
+    shapes = shapes.split(",")
+
+    res = []
+
+    # print(tuples, shapes)
+
+    for shape in shapes:
+        if shape == placeholder:
+            inner_tuple = tuples.pop(0)
+            min_, max_ = inner_tuple.replace("(", "").replace(")", "").split(",")
+            min_ = int(min_)
+            max_ = int(max_) if max_ != "*" else _magical_number
+            if min_ > max_:
+                raise ValueError(
+                    f"The first value must be smaller the second one, got {min_} and {max_}"
+                )
+            if min_ <= 0 or max_ <= 0:
+                raise ValueError(f"Values must be positive, got {min_} and {max_}")
+            max_ = -1 if max_ == _magical_number else max_
+            res.append((min_, max_))
+
+        else:
+            if re.match(pos_number, shape) is None:
+                raise ValueError(f"Expected positive integer, got {shape}")
+            val = int(shape)
+            if val <= 0:
+                raise ValueError(f"Value must be positive, got {val}")
+            res.append(val)
+
+    res = tuple(res)
+    return res
 
 
 class NetworkWidget(qtw.QWidget):
@@ -193,6 +263,23 @@ class CreateNetworkDialog(qtw.QDialog):
         self.layout.addWidget(self.sampling_rate_label)
         self.layout.addWidget(self.sampling_rate_edit)
 
+        self.input_shape_label = qtw.QLabel("Input Shape:")
+        self.input_shape_edit = qtw.QLineEdit()
+        self.input_shape_edit.setPlaceholderText("e.g. (100, (100, *), 1000)")
+        _example_1 = (
+            "(100, 200, 200) -> A single number means that the dimension is fixed"
+        )
+        _example_2 = "(100, (150, 200)) -> If a tuple is given for a dimension any value x with lower <= x <= upper is valid"
+        _example_3 = "((50, 100), (100, *), 1000) -> * is a wildcard for the upper bound (any value >= lower is valid)"
+        _tool_tip = "The input shape of the network. Batch-size is not included. \n Examples: \n {} \n {} \n {}".format(
+            _example_1, _example_2, _example_3
+        )
+        self.input_shape_label.setToolTip(_tool_tip)
+        self.input_shape_edit.setToolTip(_tool_tip)
+
+        self.layout.addWidget(self.input_shape_label)
+        self.layout.addWidget(self.input_shape_edit)
+
         # media type - combo box
         self.media_type_label = qtw.QLabel("Media Type:")
         self.media_type_edit = qtw.QComboBox()
@@ -240,6 +327,9 @@ class CreateNetworkDialog(qtw.QDialog):
     def get_media_type(self) -> MediaType:
         return MediaType[self.media_type_edit.currentText()]
 
+    def get_input_shape(self) -> tuple:
+        return parse_input_shape(self.input_shape_edit.text())
+
 
 class NetworksDialog(qtw.QDialog):
     def __init__(self, *args, **kwargs):
@@ -277,5 +367,38 @@ class NetworksDialog(qtw.QDialog):
             path = create_dialog.get_path()
             sampling_rate = create_dialog.get_sampling_rate()
             media_type = create_dialog.get_media_type()
-            create_model(path, sampling_rate, media_type, name)
+            try:
+                input_shape = create_dialog.get_input_shape()
+            except ValueError:
+                qtw.QMessageBox.critical(
+                    self,
+                    "Error",
+                    "Input shape could not be parsed. Please check your input shape.",
+                )
+                return
+            try:
+                print(f"Parsed: {input_shape = }")
+                m = create_model(
+                    network_path=path,
+                    media_type=media_type,
+                    sampling_rate=sampling_rate,
+                    input_shape=input_shape,
+                    name=name,
+                )
+                print(f"Created model {m}")
+            except RuntimeError as e:
+                qtw.QMessageBox.critical(
+                    self,
+                    "Error",
+                    f"Could not create model. Error: {e}",
+                )
+                return
+            except ValueError as e:
+                qtw.QMessageBox.critical(
+                    self,
+                    "Error",
+                    f"Could not create model. Error: {e}",
+                )
+                return
+
             self.update()
