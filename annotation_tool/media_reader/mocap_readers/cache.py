@@ -38,12 +38,12 @@ class CompressedArray:
 
 
 class ArrayCache(object):
-    def __init__(self, max_size_kb: int = 2**18, compress=False):
+    def __init__(self, max_size_mb: int = 256, compress=False):
         self._cache = []
         self._lock = threading.Lock()
         self._compress = compress
 
-        self._max_size_bytes = max_size_kb * 1024
+        self._max_size_bytes = max_size_mb * 2 ** 20
         self._current_size_bytes = 0
 
         logging.debug(f"Initialized {self}")
@@ -53,9 +53,9 @@ class ArrayCache(object):
 
     def __repr__(self):
         _len = len(self._cache)
-        _size_kb = math.ceil(self._current_size_bytes / 1024)
-        _max_size_kb = math.ceil(self._max_size_bytes / 1024)
-        return f"{self.__class__.__name__}(N={_len}, max_size={_max_size_kb}KB, filled={_size_kb / _max_size_kb * 100:.2f}%, compress={self._compress})"
+        _size_mb = math.ceil(self._current_size_bytes / 2 ** 20)
+        _max_size_mb = math.ceil(self._max_size_bytes / 2 ** 20)
+        return f"{self.__class__.__name__}(N={_len}, max_size={_max_size_mb}MB, filled={_size_mb / _max_size_mb * 100:.2f}%, compress={self._compress})"
 
     def __contains__(self, _key):
         return _key in [k for k, _ in self._cache]
