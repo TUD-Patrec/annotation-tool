@@ -32,8 +32,6 @@ class QMediaWidget(qtw.QWidget):
             Pauses the media
         set_replay_speed
             Updates how fast the media is played
-        settings_changed
-            Needed for updating FPS of Media
         shutdown
             Cleans up all threads and subwidgets
     """
@@ -78,10 +76,6 @@ class QMediaWidget(qtw.QWidget):
     @qtc.pyqtSlot(float)
     def set_replay_speed(self, x):
         self.controller.set_replay_speed(x)
-
-    @qtc.pyqtSlot()
-    def settings_changed(self):
-        self.controller.settings_changed()
 
     @qtc.pyqtSlot()
     def shutdown(self):

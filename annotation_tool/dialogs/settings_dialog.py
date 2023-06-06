@@ -39,15 +39,6 @@ class SettingsDialog(qtw.QDialog):
         self.appearance_layout.addWidget(self.appearance_button)
         self.layout.addLayout(self.appearance_layout)
 
-        # media sub-menu
-        self.media_layout = qtw.QHBoxLayout()
-        self.media_label = qtw.QLabel("Media:")
-        self.media_button = qtw.QPushButton("Change")
-        self.media_button.clicked.connect(self.change_media)
-        self.media_layout.addWidget(self.media_label)
-        self.media_layout.addWidget(self.media_button)
-        self.layout.addLayout(self.media_layout)
-
         # navigation sub-menu
         self.navigation_layout = qtw.QHBoxLayout()
         self.navigation_label = qtw.QLabel("Navigation:")
@@ -106,12 +97,6 @@ class SettingsDialog(qtw.QDialog):
         dlg.exec()
         dlg.deleteLater()
 
-    def change_media(self):
-        dlg = MediaSettingsDialog(self)
-        dlg.settings_changed.connect(self.settings_changed.emit)
-        dlg.exec()
-        dlg.deleteLater()
-
     def change_navigation(self):
         dlg = NavigationSettingsDialog(self)
         dlg.exec()
@@ -152,8 +137,9 @@ class AppearanceSettingsDialog(qtw.QDialog):
         self.theme_layout = qtw.QHBoxLayout()
         self.theme_label = qtw.QLabel("Theme:")
         self.theme_combobox = qtw.QComboBox()
-        self.theme_combobox.addItems(["Light", "Dark"])
-        self.theme_combobox.setCurrentIndex(1 if settings.darkmode else 0)
+        self.theme_combobox.addItems(["Light", "Dark"])  # for now disable System theme
+        idx = self.theme_combobox.findText(settings.color_theme.capitalize())
+        self.theme_combobox.setCurrentIndex(idx)
         self.theme_combobox.currentIndexChanged.connect(self.change_theme)
         self.theme_layout.addWidget(self.theme_label)
         self.theme_layout.addWidget(self.theme_combobox)
@@ -174,7 +160,7 @@ class AppearanceSettingsDialog(qtw.QDialog):
         self.preferred_width_layout = qtw.QHBoxLayout()
         self.preferred_width_label = qtw.QLabel("Preferred Width:")
         self.preferred_width_spinbox = qtw.QSpinBox()
-        self.preferred_width_spinbox.setRange(600, 4000)
+        self.preferred_width_spinbox.setRange(1200, 4000)
         self.preferred_width_spinbox.setSingleStep(100)
         self.preferred_width_spinbox.setValue(settings.preferred_width)
         self.preferred_width_spinbox.valueChanged.connect(self.preferred_width_changed)
@@ -186,7 +172,7 @@ class AppearanceSettingsDialog(qtw.QDialog):
         self.preferred_height_layout = qtw.QHBoxLayout()
         self.preferred_height_label = qtw.QLabel("Preferred Height:")
         self.preferred_height_spinbox = qtw.QSpinBox()
-        self.preferred_height_spinbox.setRange(400, 2000)
+        self.preferred_height_spinbox.setRange(700, 2000)
         self.preferred_height_spinbox.setSingleStep(100)
         self.preferred_height_spinbox.setValue(settings.preferred_height)
         self.preferred_height_spinbox.valueChanged.connect(
@@ -216,16 +202,16 @@ class AppearanceSettingsDialog(qtw.QDialog):
         self.setLayout(self.layout)
 
     def reset_settings(self):
-        self.theme_combobox.setCurrentIndex(
-            1 if settings.get_default("darkmode") else 0
-        )
+        default_color_scheme = settings.get_default("color_scheme")
+        _idx = self.theme_combobox.findText(default_color_scheme.capitalize())
+        self.theme_combobox.setCurrentIndex(_idx)
         self.font_size_spinbox.setValue(settings.get_default("font_size"))
         self.preferred_width_spinbox.setValue(settings.get_default("preferred_width"))
         self.preferred_height_spinbox.setValue(settings.get_default("preferred_height"))
 
     def change_theme(self):
-        is_darkmode = bool(self.theme_combobox.currentIndex())
-        settings.darkmode = is_darkmode
+        mode = self.theme_combobox.currentText().lower()
+        settings.color_theme = mode
         qtw.QApplication.instance().update_theme()
 
     def preferred_width_changed(self, value):
@@ -242,58 +228,6 @@ class AppearanceSettingsDialog(qtw.QDialog):
         qtw.QApplication.instance().update_theme()
 
 
-class MediaSettingsDialog(qtw.QDialog):
-    settings_changed = qtc.pyqtSignal()
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.init_ui()
-
-    def init_ui(self):
-        # set window title
-        self.setWindowTitle("Media Settings")
-        self.setFixedSize(400, 300)
-
-        # layout
-        self.layout = qtw.QVBoxLayout()
-
-        # fallback FPS if no FPS is detected
-        self.fallback_fps_layout = qtw.QHBoxLayout()
-        self.fallback_fps_label = qtw.QLabel("Fallback FPS:")
-        # slider for fallback FPS
-        self.fallback_fps_slider = qtw.QSlider(qtc.Qt.Orientation.Horizontal)
-        self.fallback_fps_slider.setRange(1, 250)
-        # display the current value of the slider
-        self.fallback_fps_edit = qtw.QLabel(str(settings.refresh_rate))
-        self.fallback_fps_slider.valueChanged.connect(self.change_fallback_fps)
-
-        self.fallback_fps_layout.addWidget(self.fallback_fps_label)
-        self.fallback_fps_slider.setValue(settings.refresh_rate)
-        self.fallback_fps_layout.addWidget(self.fallback_fps_slider)
-        self.fallback_fps_layout.addWidget(self.fallback_fps_edit)
-        self.layout.addLayout(self.fallback_fps_layout)
-
-        # Accept, Reset buttons
-        self.button_layout = qtw.QHBoxLayout()
-        self.accept_button = qtw.QPushButton("Accept")
-        self.accept_button.clicked.connect(self.accept)
-        self.reset_button = qtw.QPushButton("Reset")
-        self.reset_button.clicked.connect(self.reset_settings)
-        self.button_layout.addWidget(self.accept_button)
-        self.button_layout.addWidget(self.reset_button)
-        self.layout.addLayout(self.button_layout)
-
-        self.setLayout(self.layout)
-
-    def change_fallback_fps(self, value) -> None:
-        self.fallback_fps_edit.setText(str(value))
-        settings.refresh_rate = value
-        self.settings_changed.emit()
-
-    def reset_settings(self):
-        self.fallback_fps_slider.setValue(settings.get_default("refresh_rate"))
-
-
 class NavigationSettingsDialog(qtw.QDialog):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -306,6 +240,20 @@ class NavigationSettingsDialog(qtw.QDialog):
 
         # layout
         self.layout = qtw.QVBoxLayout()
+
+        # Merging mode
+        self.merge_mode_layout = qtw.QHBoxLayout()
+        self.merge_mode_label = qtw.QLabel("Merging behavior:")
+        self.merge_mode_combobox = qtw.QComboBox()
+        self.merge_mode_combobox.addItems(
+            ["Use own annotation", "Use annotation from neighbor"]
+        )
+        idx = 1 if settings.merging_mode == "into" else 0
+        self.merge_mode_combobox.setCurrentIndex(idx)
+        self.merge_mode_combobox.currentIndexChanged.connect(self.change_merge_mode)
+        self.merge_mode_layout.addWidget(self.merge_mode_label)
+        self.merge_mode_layout.addWidget(self.merge_mode_combobox)
+        self.layout.addLayout(self.merge_mode_layout)
 
         # Small skip
         self.small_skip_layout = qtw.QHBoxLayout()
@@ -348,9 +296,15 @@ class NavigationSettingsDialog(qtw.QDialog):
     def change_big_skip(self, value: int) -> None:
         settings.big_skip = value
 
+    def change_merge_mode(self, idx: int) -> None:
+        settings.merging_mode = "into" if idx == 1 else "from"
+
     def reset_settings(self):
         self.small_skip_spinbox.setValue(settings.get_default("small_skip"))
         self.big_skip_spinbox.setValue(settings.get_default("big_skip"))
+        self.merge_mode_combobox.setCurrentIndex(
+            1 if settings.get_default("merging_mode") == "into" else 0
+        )
 
 
 class RetrievalSettingsDialog(qtw.QDialog):

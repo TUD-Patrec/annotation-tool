@@ -177,9 +177,6 @@ class LARaMocapReader(MocapReaderBase):
     def get_fps(self) -> float:
         return 200.0
 
-    def get_duration(self) -> float:
-        return None
-
     def get_path(self) -> Path:
         return self.path
 
