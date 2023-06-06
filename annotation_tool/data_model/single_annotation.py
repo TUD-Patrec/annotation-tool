@@ -4,11 +4,13 @@ from typing import Union
 
 import numpy as np
 
-from annotation_tool.utility.decorators import returns
+from annotation_tool.utility.decorators import accepts, returns
 
 from .annotation_scheme import AnnotationScheme
 
 
+@returns(type(True))
+@accepts((np.ndarray, dict), AnnotationScheme)
 def is_compatible(raw_annotation: Union[np.ndarray, dict], scheme: AnnotationScheme):
     if len(scheme) <= 0:
         return False
@@ -27,13 +29,9 @@ def is_compatible(raw_annotation: Union[np.ndarray, dict], scheme: AnnotationSch
             return False
         if len(raw_annotation.shape) > 1:
             return False
-        return np.all((raw_annotation == 0) | (raw_annotation == 1))
+        return bool(np.all((raw_annotation == 0) | (raw_annotation == 1)))
 
     return False
-
-
-def empty_annotation(scheme: AnnotationScheme):
-    return SingleAnnotation(scheme)
 
 
 class SingleAnnotation:
@@ -152,12 +150,12 @@ class SingleAnnotation:
             return False
 
     def __copy__(self):
-        new_anno = SingleAnnotation(self.scheme, self.annotation_vector)
+        new_anno = create_single_annotation(self.scheme, self.annotation_vector)
         assert self == new_anno and new_anno is not self
         return new_anno
 
     def __deepcopy__(self, memo):
-        new_anno = SingleAnnotation(
+        new_anno = create_single_annotation(
             deepcopy(self.scheme), deepcopy(self.annotation_vector)
         )
         assert self == new_anno
@@ -183,7 +181,9 @@ class SingleAnnotation:
         return hash((self.scheme, self.binary_str))
 
 
-def create_annotation(
+@returns(SingleAnnotation)
+@accepts(AnnotationScheme, (np.ndarray, dict, type(None)))
+def create_single_annotation(
     scheme: AnnotationScheme, annotation: Union[np.ndarray, dict, None] = None
 ) -> SingleAnnotation:
     """
@@ -201,7 +201,13 @@ def create_annotation(
     """
     try:
         return SingleAnnotation(scheme, annotation)
-    except AssertionError:
+    except AssertionError as e:
+        print(str(e))
         raise ValueError(
             "Cannot create annotation from {} and {}".format(scheme, annotation)
         )
+
+
+@returns(SingleAnnotation)
+def empty_annotation(scheme: AnnotationScheme):
+    return SingleAnnotation(scheme)

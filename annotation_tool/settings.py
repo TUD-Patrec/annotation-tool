@@ -28,13 +28,6 @@ class Settings:
             if fld.name == name:
                 return fld.default
 
-    def as_dict(self):
-        return {fld.name: getattr(self, fld.name) for fld in fields(self)}
-
-    def from_dict(self, dct):
-        for fld in fields(self):
-            setattr(self, fld.name, dct.get(fld.name, fld.default))
-
 
 settings = Settings.get_all()
 if len(settings) == 0:

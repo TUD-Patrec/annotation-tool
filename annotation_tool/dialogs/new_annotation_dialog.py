@@ -1,9 +1,10 @@
 import os
+from pathlib import Path
 
 import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
 
-from annotation_tool.data_model import Annotation, Dataset, create_global_state
+from annotation_tool.data_model import Annotation, Dataset, create_annotation
 from annotation_tool.media_reader import media_reader as mr
 from annotation_tool.qt_helper_widgets.line_edit_adapted import QLineEditAdapted
 from annotation_tool.settings import settings
@@ -140,7 +141,8 @@ class NewAnnotationDialog(qtw.QDialog):
         self.check_enabled()
         if self.open_button.isEnabled():
             try:
-                media_reader = mr(self.input_path)
+                print(f"{self.input_path = } \n {Path(self.input_path) = }")
+                media_reader = mr(Path(self.input_path))
                 if len(media_reader) < 1000:
                     msg = qtw.QMessageBox(self)
                     msg.setIcon(qtw.QMessageBox.Icon.Critical)
@@ -174,7 +176,7 @@ class NewAnnotationDialog(qtw.QDialog):
             dataset = self._datasets[idx]
 
             annotator_id = settings.annotator_id
-            annotation = create_global_state(
+            annotation = create_annotation(
                 annotator_id,
                 dataset,
                 self.annotation_name_edit.text(),

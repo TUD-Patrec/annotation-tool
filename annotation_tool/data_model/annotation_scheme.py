@@ -2,9 +2,14 @@ from collections import namedtuple
 from copy import deepcopy
 from dataclasses import dataclass, field
 import logging
+from typing import List
+
+from annotation_tool.utility.decorators import accepts, returns
 
 
-def scheme_is_valid(scheme):
+@returns(bool)
+@accepts(List)
+def _scheme_is_valid(scheme: List) -> bool:
     try:
         valid = True
         valid &= scheme is not None
@@ -42,13 +47,14 @@ class AnnotationScheme:
                 yield scheme_element(group_name, elem, row, col)
 
     def __copy__(self):
-
         return AnnotationScheme(self.scheme, self._scheme_str, self._n)
 
     def __deepcopy__(self, memo):
         return AnnotationScheme(deepcopy(self.scheme), self._scheme_str, self._n)
 
 
+@returns(AnnotationScheme)
+@accepts(list)
 def create_annotation_scheme(scheme: list) -> AnnotationScheme:
     """
     Creates a new annotation scheme from the given scheme.
@@ -62,7 +68,7 @@ def create_annotation_scheme(scheme: list) -> AnnotationScheme:
     Raises:
         ValueError: If the scheme is invalid.
     """
-    if scheme_is_valid(scheme):
+    if _scheme_is_valid(scheme):
         n = 0
         for _, gr in scheme:
             n += len(gr)

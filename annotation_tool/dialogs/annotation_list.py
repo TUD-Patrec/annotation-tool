@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import shutil
 
 import PyQt6.QtCore as qtc
@@ -8,12 +9,12 @@ from annotation_tool.data_model.annotation import Annotation
 from annotation_tool.utility import filehandler
 
 
-class GlobalStateWidget(qtw.QWidget):
+class AnnotationManagerWidget(qtw.QWidget):
     deleted = qtc.pyqtSignal()
 
     def __init__(self, global_state: Annotation, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.global_state = global_state
+        self.current_annotation = global_state
         self.init_ui()
         self._delete = False
 
@@ -22,37 +23,39 @@ class GlobalStateWidget(qtw.QWidget):
 
         # name
         self.name_label = qtw.QLabel("Name")
-        self.name_edit = qtw.QLineEdit(self.global_state.name)
+        self.name_edit = qtw.QLineEdit(self.current_annotation.name)
         self.name_edit.textChanged.connect(self.name_changed)
         self.grid.addWidget(self.name_label, 0, 0)
         self.grid.addWidget(self.name_edit, 0, 1)
 
         # file
         self.file_label = qtw.QLabel("File")
-        file_name = os.path.basename(self.global_state.path)
+        file_name = os.path.basename(self.current_annotation.path)
         self.file_edit = qtw.QLineEdit(file_name)
         self.file_edit.setReadOnly(True)
-        self.file_edit.setToolTip(self.global_state.path)
+        self.file_edit.setToolTip(self.current_annotation.path.as_posix())
         self.grid.addWidget(self.file_label, 1, 0)
         self.grid.addWidget(self.file_edit, 1, 1)
 
         # annotator id
         self.annotator_id_label = qtw.QLabel("Annotator ID")
-        self.annotator_id_edit = qtw.QLineEdit(str(self.global_state.annotator_id))
+        self.annotator_id_edit = qtw.QLineEdit(
+            str(self.current_annotation.annotator_id)
+        )
         self.annotator_id_edit.textChanged.connect(self.annotator_id_changed)
         self.grid.addWidget(self.annotator_id_label, 2, 0)
         self.grid.addWidget(self.annotator_id_edit, 2, 1)
 
         # timestamp
         self.timestamp_label = qtw.QLabel("Created")
-        self.timestamp_edit = qtw.QLineEdit(self.global_state.timestamp)
+        self.timestamp_edit = qtw.QLineEdit(self.current_annotation.timestamp)
         self.timestamp_edit.setReadOnly(True)
         self.grid.addWidget(self.timestamp_label, 3, 0)
         self.grid.addWidget(self.timestamp_edit, 3, 1)
 
         # dataset
         self.dataset_label = qtw.QLabel("Dataset")
-        self.dataset_edit = qtw.QLineEdit(self.global_state.dataset.name)
+        self.dataset_edit = qtw.QLineEdit(self.current_annotation.dataset.name)
         self.dataset_edit.setReadOnly(True)
         self.grid.addWidget(self.dataset_label, 4, 0)
         self.grid.addWidget(self.dataset_edit, 4, 1)
@@ -61,7 +64,7 @@ class GlobalStateWidget(qtw.QWidget):
         self.progress_label = qtw.QLabel("Progress")
         self.progress_bar = qtw.QProgressBar()
         self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(self.global_state.progress)
+        self.progress_bar.setValue(self.current_annotation.progress)
         self.progress_bar.setTextVisible(True)
         self.progress_bar.setFormat("%p%")
         self.grid.addWidget(self.progress_label, 5, 0)
@@ -78,14 +81,14 @@ class GlobalStateWidget(qtw.QWidget):
         self.grid.addLayout(self.button_layout, 6, 0, 1, 2)
 
     def name_changed(self):
-        self.global_state.name = self.name_edit.text()
+        self.current_annotation.name = self.name_edit.text()
 
     def annotator_id_changed(self):
-        self.global_state.annotator_id = self.annotator_id_edit.text()
+        self.current_annotation.annotator_id = self.annotator_id_edit.text()
 
     def export(self):
         # open export dialog
-        dlg = ExportAnnotationDialog(self.global_state, self)
+        dlg = ExportAnnotationDialog(self.current_annotation, self)
         dlg.exec()
         dlg.deleteLater()
 
@@ -101,7 +104,7 @@ class GlobalStateWidget(qtw.QWidget):
         )
         msg.setDefaultButton(qtw.QMessageBox.StandardButton.No)
         if msg.exec() == qtw.QMessageBox.StandardButton.Yes:
-            self.global_state.delete()
+            self.current_annotation.delete()
             self.deleted.emit()
 
 
@@ -133,7 +136,7 @@ class GlobalStateList(qtw.QWidget):
         global_states = Annotation.get_all()
         # global_states.sort(key=lambda x: x.creation_time, reverse=True)
         for global_state in global_states:
-            widget = GlobalStateWidget(global_state)
+            widget = AnnotationManagerWidget(global_state)
             widget.deleted.connect(self.update)
 
             # make frame around the widget
@@ -168,13 +171,13 @@ class GlobalStatesDialog(qtw.QDialog):
 
 
 class ExportAnnotationDialog(qtw.QDialog):
-    def __init__(self, global_state: Annotation, *args, **kwargs):
+    def __init__(self, annotation: Annotation, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.global_state = global_state
+        self.current_annotation = annotation
         self.init_ui()
 
     def init_ui(self):
-        self.setWindowTitle("Export Annotation {}".format(self.global_state.name))
+        self.setWindowTitle("Export Annotation {}".format(self.current_annotation.name))
         self.setMinimumSize(500, 500)
         self.grid = qtw.QGridLayout(self)
 
@@ -232,7 +235,7 @@ class ExportAnnotationDialog(qtw.QDialog):
 
         # annotation name
         annotation_name = "annotation_{}_by_{}".format(
-            self.global_state.name, self.global_state.annotator_id
+            self.current_annotation.name, self.current_annotation.annotator_id
         )
 
         # create export directory
@@ -240,27 +243,29 @@ class ExportAnnotationDialog(qtw.QDialog):
         os.makedirs(export_dir, exist_ok=True)
 
         # Export main annotation-file
-        array = self.global_state.to_numpy()
-        scheme = self.global_state.dataset.scheme
+        array = self.current_annotation.to_numpy()
+        scheme = self.current_annotation.dataset.scheme
         header = [x.element_name for x in scheme]
-        filehandler.write_csv(os.path.join(export_dir, "annotation.csv"), array, header)
+        filehandler.write_csv(
+            Path(os.path.join(export_dir, "annotation.csv")), array, header
+        )
 
         # add copy of annotated file
         if self.add_copy_checkbox.isChecked():
-            shutil.copy2(self.global_state.path, export_dir)
+            shutil.copy2(self.current_annotation.path, export_dir)
 
         # export dataset-scheme
         if self.export_dataset_scheme_checkbox.isChecked():
             filehandler.write_json(
-                os.path.join(export_dir, "dataset_scheme.json"),
-                self.global_state.dataset.scheme.scheme,
+                Path(os.path.join(export_dir, "dataset_scheme.json")),
+                self.current_annotation.dataset.scheme.scheme,
             )
 
         # export meta informations
         if self.export_meta_informations_checkbox.isChecked():
             filehandler.write_json(
-                os.path.join(export_dir, "meta_informations.json"),
-                self.global_state.meta_data,
+                Path(os.path.join(export_dir, "meta_informations.json")),
+                self.current_annotation.meta_data,
             )
 
         # compress to zip file

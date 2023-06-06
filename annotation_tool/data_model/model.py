@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from functools import lru_cache
 import os
+from pathlib import Path
 import time
 from typing import List, Optional, Tuple
 
@@ -8,7 +9,8 @@ import torch
 
 from annotation_tool.data_model.media_type import MediaType
 from annotation_tool.file_cache import cached
-from annotation_tool.utility.filehandler import footprint_of_file
+from annotation_tool.utility.decorators import accepts, accepts_m, returns
+from annotation_tool.utility.filehandler import checksum
 
 
 def get_unique_name() -> str:
@@ -24,8 +26,8 @@ def get_unique_name() -> str:
 
 
 @lru_cache(maxsize=1)
-def load_network(path, expected_hash, allow_cuda):
-    computed_hash = footprint_of_file(path, fast_hash=True)
+def load_network(path: Path, expected_hash: str, allow_cuda: bool):
+    computed_hash = checksum(path, fast_hash=True)
     if computed_hash is None or computed_hash != expected_hash:
         raise RuntimeError(
             f"The file {path} has an unexpected hash. Expected {expected_hash} but got {computed_hash}."
@@ -44,54 +46,108 @@ def load_network(path, expected_hash, allow_cuda):
 @cached
 @dataclass
 class Model:
-    """
-    Wrapper for storing metadata about neural network models.
-    """
-
-    network_path: os.PathLike
-    media_type: MediaType
-    sampling_rate: int
-    input_shape: Tuple[int, ...]
-    output_size: int
-    name: str = field(init=True, default=None)
-    activated: bool = field(init=False, default=True)
-    footprint: str = field(init=False)
-    basename: str = field(init=False)
-    size_bytes: int = field(init=False, default=0)
-    creation_time: time.struct_time = field(init=False, default=None)
-    correct_classifications: int = field(init=False, default=0)
-    incorrect_classifications: int = field(init=False, default=0)
+    _path: Path
+    _media_type: MediaType
+    _sampling_rate: int
+    _input_shape: Tuple[int, ...]
+    _output_size: int
+    _name: str = field(init=True, default=None)
+    _activated: bool = field(init=False, default=True)
+    _checksum: str = field(init=False)
+    _size_bytes: int = field(init=False, default=0)
+    _creation_time: time.struct_time = field(init=False, default=None)
 
     def __post_init__(self):
-        self.size_bytes = 0  # placeholder for now -> later something like: os.path.getsize(self.network_path)
-        self.basename = os.path.basename(self.network_path)
-        self.footprint = footprint_of_file(self.network_path, fast_hash=True)
-        self.creation_time = time.localtime(os.path.getctime(self.network_path))
-        if self.name is None:
-            self.name = get_unique_name()
+        self._size_bytes = os.path.getsize(self.path)
+        self._checksum = checksum(self.path, fast_hash=True)
+        self._creation_time = time.localtime(os.path.getctime(self.path))
+        if self._name is None:
+            self._name = get_unique_name()
 
     @property
-    def path(self):
-        return self.network_path
+    @returns(Path)
+    def path(self) -> Path:
+        return self._path
+
+    @path.setter
+    @accepts_m(Path)
+    def path(self, path: Path):
+        self._path = path
 
     @property
+    @returns(MediaType)
+    def media_type(self) -> MediaType:
+        return self._media_type
+
+    @media_type.setter
+    @accepts_m(MediaType)
+    def media_type(self, media_type: MediaType) -> None:
+        self._media_type = media_type
+
+    @property
+    def sampling_rate(self) -> int:
+        return self._sampling_rate
+
+    @sampling_rate.setter
+    @accepts_m(int)
+    def sampling_rate(self, sampling_rate: int) -> None:
+        self._sampling_rate = sampling_rate
+
+    @property
+    def input_shape(self) -> Tuple[int, ...]:
+        return self._input_shape
+
+    @property
+    def output_size(self) -> int:
+        return self._output_size
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def activated(self) -> bool:
+        return self._activated
+
+    @activated.setter
+    @accepts_m(bool)
+    def activated(self, activated: bool) -> None:
+        self._activated = activated
+
+    @name.setter
+    @accepts_m(str)
+    def name(self, name: str) -> None:
+        self._name = name
+
+    @property
+    @returns(str)
     def timestamp(self) -> str:
-        return time.strftime("%Y-%m-%d_%H-%M-%S", self.creation_time)
+        return time.strftime("%Y-%m-%d_%H-%M-%S", self._creation_time)
 
     @property
-    def accuracy(self) -> float:
-        return self.correct_classifications / (
-            self.correct_classifications + self.incorrect_classifications
-        )
+    @returns(str)
+    def checksum(self) -> str:
+        return self._checksum
 
     @property
-    def n_predictions(self) -> int:
-        return self.correct_classifications + self.incorrect_classifications
+    def size_bytes(self) -> int:
+        return self._size_bytes
 
-    def reset(self):
-        self.correct_classifications = 0
-        self.incorrect_classifications = 0
+    @property
+    def creation_time(self) -> time.struct_time:
+        return self._creation_time
 
+    @property
+    def network_path(self) -> Path:
+        return self._path
+
+    @network_path.setter
+    @accepts_m(Path)
+    def network_path(self, path: Path) -> None:
+        self._path = path
+
+    @returns(torch.nn.Module)
+    @accepts_m(bool)
     def load(self, allow_cuda: bool = False) -> torch.nn.Module:
         """
         Loads the network from disk.
@@ -101,11 +157,13 @@ class Model:
         Returns:
             The loaded network.
         """
-        return load_network(self.network_path, self.footprint, allow_cuda)
+        return load_network(self.network_path, self.checksum, allow_cuda)
 
 
+@returns(Model)
+@accepts(Path, MediaType, int, Tuple, (int, type(None)), (str, type(None)))
 def create_model(
-    network_path: os.PathLike,
+    network_path: Path,
     media_type: MediaType,
     sampling_rate: int,
     input_shape: Tuple[int, ...],
@@ -162,6 +220,8 @@ def create_model(
     )
 
 
+@returns(List)
+@accepts(MediaType, bool)
 def get_models(media_type: MediaType, get_deactivated=False) -> List[Model]:
     """
     Returns all models of a certain media type.
@@ -179,6 +239,8 @@ def get_models(media_type: MediaType, get_deactivated=False) -> List[Model]:
     ]
 
 
+@returns((Model, type(None)))
+@accepts(MediaType)
 def get_model_by_mediatype(media_type: MediaType) -> Optional[Model]:
     """
     Returns the first model of a certain media type.

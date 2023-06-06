@@ -1,5 +1,5 @@
 import logging
-import os
+from pathlib import Path
 from typing import Optional, Union
 
 import numpy as np
@@ -8,7 +8,7 @@ from .base import MediaReader, register_media_reader
 
 
 class MocapReader(MediaReader):
-    def __init__(self, path: os.PathLike, **kwargs) -> None:
+    def __init__(self, path: Path, **kwargs) -> None:
         super().__init__(path, **kwargs)
 
         from .mocap_readers import get_mocap_reader
@@ -37,7 +37,7 @@ class MocapReader(MediaReader):
             self._fps = self._mocap_reader.get_fps()
         return self._fps
 
-    def __get_path__(self) -> os.PathLike:
+    def __get_path__(self) -> Path:
         return self._mocap_reader.get_path()
 
     def __set_fps__(self, fps: Union[int, float]) -> None:
@@ -48,18 +48,18 @@ class MocapReader(MediaReader):
         self._fps = fps
 
 
-def __is_mocap__(path: os.PathLike) -> bool:
+def __is_mocap__(path: Path) -> bool:
     # TODO improve
     file_extensions = [".c3d", ".bvh", ".csv"]
-    return os.path.splitext(path)[1] in file_extensions
+    return path.suffix.lower() in file_extensions
 
 
-def __mocap_builder__(path: os.PathLike, **kwargs) -> MocapReader:
+def __mocap_builder__(path: Path, **kwargs) -> MocapReader:
     """
     Builds a MocapReader object from the given path.
 
     Args:
-        path (os.PathLike): The path to the mocap file.
+        path (Path): The path to the mocap file.
         fps (float): The framerate of the mocap data.
 
     Returns:

@@ -1,3 +1,6 @@
+from pathlib import Path
+from typing import List
+
 import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
 
@@ -13,6 +16,10 @@ class QMediaWidget(qtw.QWidget):
         position_changed
             Transports the current position of the main replay source
             (always the leftmost on the screen)
+        loaded
+            Emitted when the media is loaded
+        additional_media_changed
+            Emitted when the additional media is changed (added or removed)
 
     Slots:
         load
@@ -45,8 +52,10 @@ class QMediaWidget(qtw.QWidget):
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.addWidget(self.controller)
 
-    @qtc.pyqtSlot(str, list)
-    def load(self, file, additional_media=[]):
+    @qtc.pyqtSlot(Path, list)
+    def load(self, file: Path, additional_media: List = None):
+        if additional_media is None:
+            additional_media = []
         self.controller.load(file, additional_media)
 
     @qtc.pyqtSlot(list)
@@ -55,8 +64,8 @@ class QMediaWidget(qtw.QWidget):
             self.controller.add_replay_widget(f)
 
     @qtc.pyqtSlot(int)
-    def set_position(self, p):
-        self.controller.set_position(p)
+    def set_position(self, x):
+        self.controller.set_position(x)
 
     @qtc.pyqtSlot()
     def play(self):

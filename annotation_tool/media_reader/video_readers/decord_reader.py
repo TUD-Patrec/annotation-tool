@@ -1,5 +1,6 @@
 import logging
 import os
+from pathlib import Path
 from typing import Tuple
 
 try:
@@ -14,10 +15,7 @@ except ImportError:
 
 import numpy as np
 
-try:
-    from .base import VideoReaderBase, register_video_reader
-except ImportError:
-    from base import VideoReaderBase, register_video_reader
+from .base import VideoReaderBase, register_video_reader
 
 
 class DecordReader(VideoReaderBase):
@@ -25,15 +23,15 @@ class DecordReader(VideoReaderBase):
     Video reader using decord.
     """
 
-    def __init__(self, path: os.PathLike, **kwargs):
+    def __init__(self, path: Path, **kwargs):
         """
         Initializes the video reader.
 
         Args:
-            path (os.PathLike): The path to the video file.
+            path (Path): The path to the video file.
         """
         self.path = path
-        self.video = decord.VideoReader(path, ctx=decord.cpu(0))
+        self.video = decord.VideoReader(path.as_posix(), ctx=decord.cpu(0))
 
         logging.info(f"Using decord for video {path}.")
 
@@ -112,25 +110,25 @@ class DecordReader(VideoReaderBase):
     def get_fourcc(self) -> str:
         raise NotImplementedError
 
-    def get_path(self) -> os.PathLike:
+    def get_path(self) -> Path:
         return self.path
 
     @staticmethod
-    def is_supported(path: str) -> bool:
+    def is_supported(path: Path) -> bool:
         """
         Returns whether the video format is supported by the reader.
 
         Args:
-            path (os.PathLike): The path to the video file.
+            path (Path): The path to the video file.
 
         Returns:
             bool: True if the video format is supported, False otherwise.
         """
         # dont accept .avi
-        if path.endswith(".avi"):
+        if path.suffix == ".avi":
             return False
         try:
-            decord_reader = decord.VideoReader(path)
+            decord_reader = decord.VideoReader(path.as_posix())
             if len(decord_reader) <= 10:
                 return False
             _ = [decord_reader[i] for i in range(10)]
