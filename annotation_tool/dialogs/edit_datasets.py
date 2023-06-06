@@ -1,5 +1,6 @@
 from functools import partial
 import logging
+from pathlib import Path
 
 import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
@@ -63,7 +64,8 @@ class QEditDatasets(qtw.QDialog):
         file_path, _ = qtw.QFileDialog.getOpenFileName(
             parent=self, directory="", filter="(*.json)"
         )
-        if filehandler.is_non_zero_file(file_path):
+
+        if filehandler.is_non_zero_file(Path(file_path)):
             # TODO check scheme valid
 
             self.add_button.setEnabled(True)
@@ -76,7 +78,7 @@ class QEditDatasets(qtw.QDialog):
         file_path, _ = qtw.QFileDialog.getOpenFileName(
             parent=self, directory="", filter="(*.csv)"
         )
-        if filehandler.is_non_zero_file(file_path):
+        if filehandler.is_non_zero_file(Path(file_path)):
             # TODO check dependencies valid
             self._dependencies.setText(file_path)
         else:
@@ -151,7 +153,7 @@ class QEditDatasets(qtw.QDialog):
         if name == "":
             name = "nameless"
 
-        scheme = filehandler.read_json(self._scheme.text())
+        scheme = filehandler.read_json(Path(self._scheme.text()))
         try:
             scheme = create_annotation_scheme(scheme)
         except ValueError:
@@ -168,7 +170,7 @@ class QEditDatasets(qtw.QDialog):
             if dependency_txt != dependency_error_str:
                 try:
                     dependencies = filehandler.read_csv(
-                        self._dependencies.text(), data_type=np.int8
+                        Path(self._dependencies.text()), data_type=np.int8
                     )
                 except FileNotFoundError:
                     self._dependencies.setText(dependency_error_str)

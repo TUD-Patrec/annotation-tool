@@ -1,6 +1,6 @@
 import abc
 import dataclasses
-import os
+from pathlib import Path
 from typing import Tuple
 
 import numpy as np
@@ -12,12 +12,12 @@ class VideoReaderBase(abc.ABC):
     """
 
     @abc.abstractmethod
-    def __init__(self, path: os.PathLike, **kwargs):
+    def __init__(self, path: Path, **kwargs):
         """
         Initializes the video_readers reader.
 
         Args:
-            path (os.PathLike): The path to the video_readers file.
+            path (Path): The path to the video_readers file.
         """
         pass
 
@@ -118,7 +118,7 @@ class VideoReaderBase(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_path(self) -> os.PathLike:
+    def get_path(self) -> Path:
         """
         Returns the path to the video_readers.
         """
@@ -126,12 +126,12 @@ class VideoReaderBase(abc.ABC):
 
     @staticmethod
     @abc.abstractmethod
-    def is_supported(path: os.PathLike) -> bool:
+    def is_supported(path: Path) -> bool:
         """
         Returns whether the video_readers format is supported by the reader.
 
         Args:
-            path (os.PathLike): The path to the video_readers file.
+            path (Path): The path to the video_readers file.
 
         Returns:
             bool: Whether the video_readers format is supported by the reader.
@@ -164,7 +164,7 @@ def register_video_reader(reader: VideoReaderBase, priority: int = 0):
     __registered_video_readers.sort(key=lambda x: x.priority, reverse=True)
 
 
-def get_video_reader(path: os.PathLike) -> VideoReaderBase:
+def get_video_reader(path: Path) -> VideoReaderBase:
     for reader in __registered_video_readers:
         if reader.reader.is_supported(path):
             return reader.reader(path)

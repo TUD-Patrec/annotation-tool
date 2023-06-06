@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from threading import Thread
 from time import sleep
 
@@ -28,7 +29,7 @@ def check_resize(vp):
 class VideoPlayer(AbstractMediaPlayer):
     get_update = qtc.pyqtSignal()
     media_loaded = qtc.pyqtSignal(object)
-    load_worker = qtc.pyqtSignal(str)
+    load_worker = qtc.pyqtSignal(Path)
     stop_worker = qtc.pyqtSignal()
 
     def __init__(self, *args, **kwargs) -> None:
@@ -141,8 +142,8 @@ class VideoHelper(qtc.QObject):
         self._last_w = -1
         self._last_h = -1
 
-    @qtc.pyqtSlot(str)
-    def load(self, path):
+    @qtc.pyqtSlot(Path)
+    def load(self, path: Path):
         self.media = mr(path)
         self.loaded.emit(self.fps, self.n_frames)
 

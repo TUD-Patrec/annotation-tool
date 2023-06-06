@@ -1,6 +1,6 @@
 from functools import lru_cache
 import os
-import time
+from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
@@ -9,19 +9,19 @@ import torch
 from annotation_tool.data_model.media_type import MediaType, from_str
 from annotation_tool.data_model.model import Model, get_models
 from annotation_tool.media_reader import MediaReader, media_reader
+from annotation_tool.utility.decorators import accepts, returns
 
-_state_ = {
-    "file": None,
-    "num_labels": None,
-}
+_state = {}
 
 
-def update_state(file: os.PathLike, num_labels: int):
-    _state_["file"] = file
-    _state_["num_labels"] = num_labels
-    print(f"Updated state: {_state_}")
+@accepts(Path, int)
+def update_state(file: Path, num_labels: int):
+    _state["file"] = file
+    _state["num_labels"] = num_labels
 
 
+@returns(np.ndarray)
+@accepts(int, int)
 def run_network(lower: int, upper: int) -> np.ndarray:
     """
     Runs the network on the current data file and returns the output.
@@ -34,15 +34,15 @@ def run_network(lower: int, upper: int) -> np.ndarray:
         np.ndarray: The output of the network.
 
     """
-    path = _state_["file"]
-    num_labels = _state_["num_labels"]
+    path = _state["file"]
+    num_labels = _state["num_labels"]
     assert path is not None, "Path must not be None."
     assert isinstance(num_labels, int), "num_labels must be of type int."
     return __run_network__(path, lower, upper, num_labels)
 
 
 @lru_cache(maxsize=1)
-def __get_media_reader__(file: os.PathLike) -> MediaReader:
+def __get_media_reader__(file: Path) -> MediaReader:
     return media_reader(file)
 
 
@@ -53,10 +53,6 @@ def __get_model__(mr: MediaReader, num_labels: int) -> Model:
     media_type: MediaType = from_str(media_type)
     compatible_networks: List[Model] = get_models(media_type)
 
-    print(
-        f"Found {len(compatible_networks)}networks with same media-type: {compatible_networks}"
-    )
-
     media_duration: float = mr.duration / 1000  # in seconds
     media_dim = mr[0].shape
 
@@ -66,17 +62,11 @@ def __get_model__(mr: MediaReader, num_labels: int) -> Model:
         model_duration = model.input_shape[0] / model.sampling_rate  # in seconds
         model_dim = model.input_shape[1:]
 
-        print(
-            f"{media_duration = } | {media_dim = } | {model_duration = } | {model_dim = }"
-        )
-
         output_matches = model.output_size == num_labels
-        print(f"Output matches: {output_matches}")
 
         input_matches = model_duration < media_duration and len(media_dim) == len(
             model_dim
         )
-        print(f"Input matches: {input_matches} (before loop)")
 
         for i, s in enumerate(model_dim):
             s_other = media_dim[i]
@@ -90,30 +80,20 @@ def __get_model__(mr: MediaReader, num_labels: int) -> Model:
             else:
                 raise TypeError(f"Unknown type: {type(s)}")
 
-        print(f"Input matches: {input_matches} (after loop)")
         if input_matches and output_matches:
             res.append(model)
-
-    print(f"Found {len(res)} compatible networks:", *res, sep="\n\t")
 
     return res[0] if len(res) > 0 else None
 
 
-def __run_network__(
-    file: os.PathLike, start: int, end: int, num_labels: int
-) -> np.ndarray:
-    start_time = time.perf_counter()
-
+def __run_network__(file: Path, start: int, end: int, num_labels: int) -> np.ndarray:
     assert os.path.isfile(file), f"{file = } is not a file"
     assert start >= 0, f"{start = } must be >= 0"
     assert end >= 0, f"{end = } must be >= 0"
     assert start <= end, f"{start = } must be <= {end = }"
 
     # load data
-    _mr_start_time = time.perf_counter()
     mr = __get_media_reader__(file)
-    _mr_end_time = time.perf_counter()
-    _mr_delta_time = _mr_end_time - _mr_start_time
 
     assert len(mr) > 0, f"{len(mr) = } must be > 0"
     assert end <= len(mr), f"{end = } must be <= {len(mr) = }"
@@ -124,7 +104,6 @@ def __run_network__(
     if model is None:
         raise RuntimeError("No compatible network found.")
 
-    _seg_start_time = time.perf_counter()
     # for segmentation
     window_size = model.input_shape[0]
     assert isinstance(window_size, int) and window_size > 0
@@ -134,7 +113,6 @@ def __run_network__(
     mr_fps: float = mr.fps
     model_fps: int = model.sampling_rate
     step_size: float = mr_fps / model_fps
-    # print(f"{mr_fps = } | {model_fps = } | {step_size = }")
 
     # compute middle frame
     middle_frame: int = (start + end) // 2
@@ -142,12 +120,6 @@ def __run_network__(
     # find good starting frame
     start_frame: float = middle_frame - (step_size * window_size / 2)
     start_frame: int = int(start_frame)
-    # print(f"{start_frame = }")
-
-    # compute end frame
-    end_frame: float = start_frame + (step_size * window_size)
-    end_frame: int = int(end_frame)
-    # print(f"{end_frame = }")
 
     indices = []
     for i in range(window_size):
@@ -155,8 +127,6 @@ def __run_network__(
         indices.append(idx)
 
     indices = np.array(indices).astype(int)
-    # print(f"{indices = }")
-    # print(f"{indices.shape = }")
     min_idx, max_idx = indices.min(), indices.max()
 
     # check bounds
@@ -174,39 +144,15 @@ def __run_network__(
     assert (
         0 <= indices.min() <= middle_frame <= indices.max() < len(mr)
     ), f"{indices.min() = } | {middle_frame = } | {indices.max() = } | {len(mr) = }"
-    # print(f"After boundary-checking: {indices = }")
 
-    start_frame = indices.min()
-    end_frame = indices.max() + 1
-    print(
-        f"{mr.fps = } | {model.sampling_rate = } | {start_frame = } | {middle_frame = } | {end_frame = } | {step_size = :.2f} | {window_size = } | {len(mr) = }"
-    )
-
-    _seg_end_time = time.perf_counter()
-    _seg_delta_time = _seg_end_time - _seg_start_time
-
-    # read data
-    # print(f"{indices.shape = }")
-    # indices = indices.flatten().tolist()
-    # print(f"{indices = }")
-    _data_load_start_time = time.perf_counter()
     data = [mr[idx.item()] for idx in indices]
     data = np.array(data)
-    # print(f"{data.shape = }")
-    _data_load_end_time = time.perf_counter()
-    _data_load_delta_time = _data_load_end_time - _data_load_start_time
 
-    _network_start_time = time.perf_counter()
     y = __forward__(data, model)
-    _network_end_time = time.perf_counter()
-    _network_delta_time = _network_end_time - _network_start_time
 
-    end_time = time.perf_counter()
-    delta_time = end_time - start_time
-
-    print(
-        f"{delta_time = :.2f} -> {_mr_delta_time = :.2f} | {_seg_delta_time = :.2f} | {_data_load_delta_time = :.2f} | {_network_delta_time = :.2f}"
-    )
+    # print(
+    #    f"{delta_time = :.2f} -> {_mr_delta_time = :.2f} | {_seg_delta_time = :.2f} | {_data_load_delta_time = :.2f} | {_network_delta_time = :.2f}"
+    # )
     return y
 
 
