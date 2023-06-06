@@ -83,6 +83,10 @@ class MediaReader(abc.ABC):
     def path(self) -> os.PathLike:
         return self.__get_path__()
 
+    @property
+    def media_type(self) -> str:
+        return media_type_of(self.path)
+
     def __len__(self):
         return self.__get_frame_count__()
 
@@ -173,6 +177,19 @@ class MediaReader(abc.ABC):
             fps: The framerate to set.
         """
         raise NotImplementedError
+
+    def numpy(self, lo: int, hi: int, step: int = 1):
+        """
+        Returns a numpy array of the frames between lo and hi.
+
+        Args:
+            lo: The lower bound of the frame indices.
+            hi: The upper bound of the frame indices.
+            step: The step size between frames.
+        Returns:
+            A numpy array of the frames between lo and hi with step size step.
+        """
+        return np.array([self[i] for i in range(lo, hi, step)])
 
 
 class __MediaSelector:

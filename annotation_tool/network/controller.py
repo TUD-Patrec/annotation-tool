@@ -1,224 +1,213 @@
-import enum
 from functools import lru_cache
 import os
+import time
 from typing import List, Tuple
 
 import numpy as np
 import torch
 
 from annotation_tool.data_model.media_type import MediaType, from_str
-from annotation_tool.media_reader import media_reader, media_type_of
-from annotation_tool.network.LARa import lara_specifics
-from annotation_tool.network.network import Network
+from annotation_tool.data_model.model import Model, get_models
+from annotation_tool.media_reader import MediaReader, media_reader
 
-__network_dict__ = {}
-
-
-class NetworkType(enum.Enum):
-    LARA_ATTR = 0
-    LARA_ATTR_CNN_IMU = 1
+_state_ = {
+    "file": None,
+    "num_labels": None,
+}
 
 
-def to_tensor(data: np.ndarray) -> torch.Tensor:
-    # if cuda available, use it
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # logging.info(f"{device = }")
-    return torch.from_numpy(data).to(device)
+def update_state(file: os.PathLike, num_labels: int):
+    _state_["file"] = file
+    _state_["num_labels"] = num_labels
+    print(f"Updated state: {_state_}")
 
 
-__data_file__ = None
+def run_network(lower: int, upper: int) -> np.ndarray:
+    """
+    Runs the network on the current data file and returns the output.
 
+    Args:
+        lower (int): The lower bound of the data to be processed.
+        upper (int): The upper bound of the data to be processed.
 
-def update_file(file: os.PathLike) -> None:
-    global __data_file__
-    __data_file__ = file
+    Returns:
+        np.ndarray: The output of the network.
 
-
-def __current_data_path__() -> os.PathLike:
-    global __data_file__
-    return __data_file__
-
-
-def run_network(lower, upper) -> np.ndarray:
-    path = __current_data_path__()
-    return __run_network__(path, lower, upper)
+    """
+    path = _state_["file"]
+    num_labels = _state_["num_labels"]
+    assert path is not None, "Path must not be None."
+    assert isinstance(num_labels, int), "num_labels must be of type int."
+    return __run_network__(path, lower, upper, num_labels)
 
 
 @lru_cache(maxsize=1)
-def __get_data__(file: os.PathLike) -> Tuple[np.ndarray, MediaType]:
-    media_type = from_str(media_type_of(file))
-
-    # load from disk
-    data = __load_raw_data__(file, media_type)
-
-    # preprocess
-    data = __preprocess__(data, media_type)
-
-    return data, media_type
+def __get_media_reader__(file: os.PathLike) -> MediaReader:
+    return media_reader(file)
 
 
-def __run_network__(file: os.PathLike, start: int = 0, end: int = -1) -> np.ndarray:
+@lru_cache(maxsize=1)
+def __get_model__(mr: MediaReader, num_labels: int) -> Model:
+    # find best fitting network
+    media_type: str = mr.media_type
+    media_type: MediaType = from_str(media_type)
+    compatible_networks: List[Model] = get_models(media_type)
+
+    print(
+        f"Found {len(compatible_networks)}networks with same media-type: {compatible_networks}"
+    )
+
+    media_duration: float = mr.duration / 1000  # in seconds
+    media_dim = mr[0].shape
+
+    res = []
+
+    for model in compatible_networks:
+        model_duration = model.input_shape[0] / model.sampling_rate  # in seconds
+        model_dim = model.input_shape[1:]
+
+        print(
+            f"{media_duration = } | {media_dim = } | {model_duration = } | {model_dim = }"
+        )
+
+        output_matches = model.output_size == num_labels
+        print(f"Output matches: {output_matches}")
+
+        input_matches = model_duration < media_duration and len(media_dim) == len(
+            model_dim
+        )
+        print(f"Input matches: {input_matches} (before loop)")
+
+        for i, s in enumerate(model_dim):
+            s_other = media_dim[i]
+            if isinstance(s, tuple):
+                s_min, s_max = s
+                s_max = np.inf if s_max == -1 else s_max
+
+                input_matches = input_matches and s_min <= s_other <= s_max
+            elif isinstance(s, int):
+                input_matches = input_matches and s == s_other
+            else:
+                raise TypeError(f"Unknown type: {type(s)}")
+
+        print(f"Input matches: {input_matches} (after loop)")
+        if input_matches and output_matches:
+            res.append(model)
+
+    print(f"Found {len(res)} compatible networks:", *res, sep="\n\t")
+
+    return res[0] if len(res) > 0 else None
+
+
+def __run_network__(
+    file: os.PathLike, start: int, end: int, num_labels: int
+) -> np.ndarray:
+    start_time = time.perf_counter()
+
+    assert os.path.isfile(file), f"{file = } is not a file"
+    assert start >= 0, f"{start = } must be >= 0"
+    assert end >= 0, f"{end = } must be >= 0"
+    assert start <= end, f"{start = } must be <= {end = }"
+
     # load data
-    data, media_type = __get_data__(file)
+    _mr_start_time = time.perf_counter()
+    mr = __get_media_reader__(file)
+    _mr_end_time = time.perf_counter()
+    _mr_delta_time = _mr_end_time - _mr_start_time
 
-    # logging.info(f"{media_type = }, {data.shape = }")
+    assert len(mr) > 0, f"{len(mr) = } must be > 0"
+    assert end <= len(mr), f"{end = } must be <= {len(mr) = }"
 
     # select compatible networks
-    network, config = __load_network__(media_type)
-    # logging.info(f"{config = }")
+    model = __get_model__(mr, num_labels)
 
+    if model is None:
+        raise RuntimeError("No compatible network found.")
+
+    _seg_start_time = time.perf_counter()
     # for segmentation
-    segment_size = config.get("sliding_window_length")
-    assert isinstance(segment_size, int) and segment_size > 0
-    # logging.info(f"{segment_size = }")
+    window_size = model.input_shape[0]
+    assert isinstance(window_size, int) and window_size > 0
+    assert window_size <= len(mr), f"{window_size = } is bigger than {len(mr) = }"
+
+    # collect relevant information
+    mr_fps: float = mr.fps
+    model_fps: int = model.sampling_rate
+    step_size: float = mr_fps / model_fps
+    # print(f"{mr_fps = } | {model_fps = } | {step_size = }")
+
+    # compute middle frame
+    middle_frame: int = (start + end) // 2
+
+    # find good starting frame
+    start_frame: float = middle_frame - (step_size * window_size / 2)
+    start_frame: int = int(start_frame)
+    # print(f"{start_frame = }")
+
+    # compute end frame
+    end_frame: float = start_frame + (step_size * window_size)
+    end_frame: int = int(end_frame)
+    # print(f"{end_frame = }")
+
+    indices = []
+    for i in range(window_size):
+        idx = int(start_frame + i * step_size)
+        indices.append(idx)
+
+    indices = np.array(indices).astype(int)
+    # print(f"{indices = }")
+    # print(f"{indices.shape = }")
+    min_idx, max_idx = indices.min(), indices.max()
+
+    # check bounds
+    if min_idx < 0:
+        indices -= min_idx
+        assert indices.min() == 0 and indices.max() < len(
+            mr
+        ), f"{indices.min() = } | {indices.max() = } | {len(mr) = }"
+    elif max_idx >= len(mr):
+        indices -= max_idx - len(mr) + 1
+        assert (
+            indices.min() >= 0 and indices.max() == len(mr) - 1
+        ), f"{indices.min() = } | {indices.max() = } | {len(mr) = }"
 
     assert (
-        segment_size <= data.shape[0]
-    ), f"{segment_size = } is bigger than {data.shape[0] = }"
+        0 <= indices.min() <= middle_frame <= indices.max() < len(mr)
+    ), f"{indices.min() = } | {middle_frame = } | {indices.max() = } | {len(mr) = }"
+    # print(f"After boundary-checking: {indices = }")
 
-    # filter element if specified
-    if end >= 0:
-        assert start <= end
+    start_frame = indices.min()
+    end_frame = indices.max() + 1
+    print(
+        f"{mr.fps = } | {model.sampling_rate = } | {start_frame = } | {middle_frame = } | {end_frame = } | {step_size = :.2f} | {window_size = } | {len(mr) = }"
+    )
 
-        # additional treatment needed if the given range is too small for the network
-        if end - start < segment_size:
-            # how many elements need to be added to have the correct array size
-            delta = segment_size - (end - start)
-            left_delta = delta // 2
-            right_delta = delta - left_delta
+    _seg_end_time = time.perf_counter()
+    _seg_delta_time = _seg_end_time - _seg_start_time
 
-            # lower bound
-            if start - left_delta < 0:
-                left_delta = start  # start - 0 == start
-                right_delta = delta - left_delta
-            # upper bound
-            elif end + right_delta >= data.shape[0]:
-                right_delta = (data.shape[0] - 1) - end
-                left_delta = delta - right_delta
-            start -= left_delta
-            end += right_delta
+    # read data
+    # print(f"{indices.shape = }")
+    # indices = indices.flatten().tolist()
+    # print(f"{indices = }")
+    _data_load_start_time = time.perf_counter()
+    data = [mr[idx.item()] for idx in indices]
+    data = np.array(data)
+    # print(f"{data.shape = }")
+    _data_load_end_time = time.perf_counter()
+    _data_load_delta_time = _data_load_end_time - _data_load_start_time
 
-        # some consistency checks
-        assert (
-            0 <= start <= end <= data.shape[0]
-        ), f"{start = }, {end = }, {data.shape[0] = }"
-        assert end - start >= segment_size
+    _network_start_time = time.perf_counter()
+    y = __forward__(data, model)
+    _network_end_time = time.perf_counter()
+    _network_delta_time = _network_end_time - _network_start_time
 
-        data = data[start:end]
+    end_time = time.perf_counter()
+    delta_time = end_time - start_time
 
-        # select data in the specified element
-        # logging.info(f"After data filter {start = }, {end = }: {data.shape = }")
-
-    # input-frame is too large
-    # -> pick the most middle segment as a representation of the whole frame
-    if data.shape[0] > segment_size:
-        # logging.info(
-        #     f"{data.shape = } is too large for the network -> reduction needed"
-        # )
-        mid = data.shape[0] // 2
-        lo = mid - segment_size // 2
-        data = data[lo : lo + segment_size]
-
-    assert data.shape[0] == segment_size, f"{data.shape = }, {segment_size = }"
-
-    y = __forward__(data, network)
-
+    print(
+        f"{delta_time = :.2f} -> {_mr_delta_time = :.2f} | {_seg_delta_time = :.2f} | {_data_load_delta_time = :.2f} | {_network_delta_time = :.2f}"
+    )
     return y
-
-
-def __load_raw_data__(file: os.PathLike, media_type: MediaType = None) -> np.ndarray:
-    if media_type is None:
-        media_type = from_str(media_type_of(file))
-
-    if media_type == MediaType.MOCAP:
-        data = media_reader(file)  # TODO remove hard coded fps
-    elif media_type == MediaType.VIDEO:
-        raise NotImplementedError
-    else:
-        data = None
-
-    return data
-
-
-@lru_cache(maxsize=1)
-def __load_network__(media_type: MediaType) -> Tuple[Network, dict]:
-    # find best fitting network
-
-    if media_type == MediaType.MOCAP:
-        from annotation_tool.data_model import get_model_by_mediatype
-
-        # path to desktop
-        model = get_model_by_mediatype(MediaType.MOCAP)
-        if model:
-            network_path = model.path
-        else:
-            raise FileNotFoundError("No model found for mocap")
-        if not os.path.isfile(network_path):
-            raise FileNotFoundError("Could not find any LARa-Network")
-
-        network, config = __load_lara_network__(network_path)
-
-    elif media_type == MediaType.VIDEO:
-        raise NotImplementedError
-    else:
-        raise ValueError(f"{media_type = } is not supported")
-
-    # to cuda
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    network.to(device)
-
-    return network, config
-
-
-def __load_lara_network__(network_path: os.PathLike) -> Tuple[Network, dict]:
-    try:
-        print(f"Loading network from {network_path}")
-        checkpoint = torch.load(network_path, map_location=torch.device("cpu"))
-
-        state_dict = checkpoint["state_dict"]
-        config = checkpoint["network_config"]
-
-        # TODO Remove this hack
-        config["fully_convolutional"] = "FC"
-
-        network = Network(config)
-        network.load_state_dict(state_dict)
-        network.eval()
-
-        return network, config
-    except Exception:
-        raise
-
-
-def __load_video_network(network_path: os.PathLike) -> Tuple[Network, dict]:
-    try:
-        pass
-    except Exception:
-        raise
-
-
-def __preprocess__(data, media_type: MediaType) -> np.ndarray:
-    if media_type == MediaType.MOCAP:
-        data = __preprocess_lara__(data)
-    elif media_type == MediaType.VIDEO:
-        data = __preprocess_video__(data)
-    else:
-        raise ValueError(f"{media_type} cannot be used for network prediction.")
-    return data
-
-
-def __preprocess_lara__(data) -> np.ndarray:
-    data = np.delete(data, range(66, 72), 1)
-    data = lara_specifics.normalize(data)
-    return data
-
-
-def __preprocess_video__(data) -> np.ndarray:
-    raise NotImplementedError
-
-
-def __postprocess__(data: np.ndarray, media_type: MediaType) -> np.ndarray:
-    return data
 
 
 def __segment_data__(
@@ -250,8 +239,15 @@ def __segment_data__(
     return segments, intervals
 
 
-def __forward__(data_segment: np.ndarray, network: Network) -> np.ndarray:
-    input_tensor = torch.from_numpy(data_segment[np.newaxis, np.newaxis, :, :]).float()
-    output_tensor: torch.Tensor = network(input_tensor)
-    output_array = output_tensor.detach().numpy()
+def __forward__(data_segment: np.ndarray, model: Model) -> np.ndarray:
+    network: torch.nn.Module = model.load()
+    network.eval()
+
+    input_tensor: torch.Tensor = torch.from_numpy(data_segment).float()
+    input_tensor = input_tensor.unsqueeze(0)  # add batch dimension
+
+    with torch.no_grad():
+        output_tensor: torch.Tensor = network(input_tensor)
+
+    output_array: np.ndarray = output_tensor.detach().numpy()
     return output_array.flatten()
