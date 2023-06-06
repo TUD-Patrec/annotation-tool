@@ -120,18 +120,6 @@ class OpenCvReader(VideoReaderBase):
     def get_size(self) -> Tuple[int, int]:
         return self.get_width(), self.get_height()
 
-    @lru_cache(maxsize=1)
-    def get_duration(self) -> float:
-        return self.get_frame_count() / self.get_fps()
-
-    @lru_cache(maxsize=1)
-    def get_fourcc(self) -> str:
-        return self.media.get(cv2.CAP_PROP_FOURCC)
-
-    @lru_cache(maxsize=1)
-    def get_codec(self) -> str:
-        return self.media.get(cv2.CAP_PROP_FOURCC)
-
     def get_path(self) -> Path:
         return self.path
 

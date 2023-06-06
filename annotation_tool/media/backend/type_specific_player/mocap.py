@@ -38,7 +38,7 @@ class MocapPlayer(AbstractMediaPlayer):
         return skeleton
 
     def load(self, path):
-        self.media = mr(path)
+        self.media = mr(path, normalize=True)
         self.n_frames = len(self.media)
         self.fps = self.media.fps
         self.update_media_position()

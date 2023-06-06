@@ -3,17 +3,21 @@ from pathlib import Path
 
 import numpy as np
 
+from annotation_tool.utility.filehandler import checksum
+
 from .base import MocapReaderBase, register_mocap_reader
 from .cache import get_cache
 
+_mocap_cache = {}
 
-def load_lara_mocap(path: Path, data_type: np.dtype = float) -> np.ndarray:
+
+def load_lara_mocap(path: Path, normalize: bool) -> np.ndarray:
     """
     Loads the LARa-mocap data from a file.
 
     Args:
         path (Path): The path to the LARa-mocap file.
-        data_type (np.dtype): The data type of the returned data.
+        normalize (bool): Whether to normalize the data to the center of the coordinate system.
 
     Returns:
         np.ndarray: The mocap data.
@@ -21,44 +25,23 @@ def load_lara_mocap(path: Path, data_type: np.dtype = float) -> np.ndarray:
     Raises:
         AssertionError: If the data type is not supported.
     """
-    assert data_type in [
-        np.float16,
-        np.float32,
-        np.float64,
-        float,
-    ], f"Invalid dtype {data_type} for mocap data."
-    assert isinstance(path, Path), "Path must be a pathlib.Path object."
+    _hash = checksum(path)
+    _key = (_hash, normalize)
 
     if get_cache is None:
-        logging.warning("Cache not available. Loading mocap from file.")
-        return __load_lara_mocap__(path).astype(data_type)
+        return __load_lara_mocap__(path, normalize)
     else:
-        mocap_cache = get_cache()
+        _cache = get_cache()
 
-        if path in mocap_cache:
-            logging.debug(f"Loaded mocap from cache: {path}")
-            return mocap_cache[path].copy().astype(data_type)
+        if _key in _cache:
+            return _cache[_key]
         else:
-            logging.debug(f"Loaded mocap from file: {path}")
-            mocap = __load_lara_mocap__(path).astype(data_type)
-            mocap_cache[path] = mocap
+            mocap = __load_lara_mocap__(path, normalize)
+            _cache[_key] = mocap
             return mocap
 
 
-def __load_lara_mocap__(path: Path) -> np.ndarray:
-    """
-    Loads the LARa-mocap data from a file.
-    Right now the LARa-file is expected to contain either 1 or 5 header lines.
-    There should be 132 columns of data + 2 columns for the frame number and the subject.
-
-
-    Args:
-        path (Path): Path to motion-capture data.
-
-    Raises:
-        TypeError: If the path could not be parsed as a Motion-capture file.
-    """
-
+def __load_lara_mocap__(path: Path, normalize: bool) -> np.ndarray:
     def is_data_row(line2check: str) -> bool:
         """
         Checks if a line is a data row.
@@ -89,12 +72,16 @@ def __load_lara_mocap__(path: Path) -> np.ndarray:
                     raise TypeError("Too many header lines in mocap file.")
 
         if header_lines in [1, 5]:
-            array = np.loadtxt(path, delimiter=",", skiprows=header_lines)
+            array = np.loadtxt(
+                path, delimiter=",", skiprows=header_lines, dtype=np.float64
+            )
 
             if array.shape[1] == 134:
                 array = array[:, 2:]
 
-            array = __normalize_lara_mocap__(array)
+            if normalize:
+                array = __normalize_lara_mocap__(array)
+
             return array
         else:
             raise TypeError("The number of header lines is not supported.")
@@ -143,15 +130,13 @@ class LARaMocapReader(MocapReaderBase):
 
         Args:
             path (Path): The path to the mocap file.
-            fps (float): The framerate of the mocap data.
 
         Raises:
             FileNotFoundError: If the file does not exist.
         """
-
         self.path = path
-        self._dtype = kwargs.get("dtype", float)
-        self.mocap = load_lara_mocap(self.path, self._dtype)
+        _normalize = kwargs.get("normalize", True)
+        self.mocap = load_lara_mocap(self.path, _normalize)
 
     def get_frame(self, frame_idx: int) -> np.ndarray:
         """
@@ -184,7 +169,7 @@ class LARaMocapReader(MocapReaderBase):
     def is_supported(path: Path) -> bool:
         # TODO: improve this
         try:
-            load_lara_mocap(Path(path))
+            load_lara_mocap(Path(path), True)
             return True
         except:  # noqa E722
             return False

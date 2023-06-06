@@ -14,7 +14,7 @@ class MocapReader(MediaReader):
         from .mocap_readers import get_mocap_reader
 
         try:
-            self._mocap_reader = get_mocap_reader(path)
+            self._mocap_reader = get_mocap_reader(path, **kwargs)
         except ValueError as e:
             raise ValueError(f"Could not load mocap data {path}.") from e
 
