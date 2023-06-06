@@ -4,6 +4,53 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). See also [RELEASE.md](RELEASE.md) for additional explanation.
 
+## 0.9.0 (2023-06-06)
+
+### ❗️ Breaking Changes
+
+- Update network selector and loader (#41)
+- Improve data-model and path-handling (#42)
+- Add option to select the behaviour of the merge button (#44)
+- Improve tools performance in multiple locations, allow user to select a timeline-design (#45)
+
+### 🚀 Features
+
+- Update network selector and loader (#41)
+- Store offsets for later reloading of media (#43)
+- Add option to select the behaviour of the merge button (#44)
+- Improve tools performance in multiple locations, allow user to select a timeline-design (#45)
+- Improve design of several dialogs  (#46)
+
+### 🐛 Fixes
+
+- refactor(filehandler): Remove # from header of exported csv-files (#35)
+- fix(timer): restarting the loop now also works for the first segment (#36)
+- fix undo/redo for annotation updates (#48)
+- Refactor some PyQt-Widgets (#50)
+
+### 🧹 Refactoring
+
+- refactor(filehandler): Remove # from header of exported csv-files (#35)
+- Update network selector and loader (#41)
+- Improve data-model and path-handling (#42)
+- Add option to select the behaviour of the merge button (#44)
+- Improve tools performance in multiple locations, allow user to select a timeline-design (#45)
+- Improve design of several dialogs  (#46)
+- Increase mocap reading speed (#47)
+- Refactor some PyQt-Widgets (#50)
+- Disable decord for now (#51)
+
+### 🏎️ Performance
+
+- Update network selector and loader (#41)
+- Improve tools performance in multiple locations, allow user to select a timeline-design (#45)
+- Increase mocap reading speed (#47)
+- Disable decord for now (#51)
+
+### Other
+
+- Upgrade fcache to version 5.0.0 (#49)
+
 ## 0.8.3 (2023-05-04)
 
 ### 🐛 Fixes
