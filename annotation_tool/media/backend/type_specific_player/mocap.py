@@ -1,6 +1,5 @@
 import logging
 
-import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
 import numpy as np
 import pyqtgraph.opengl as gl
@@ -12,61 +11,25 @@ from annotation_tool.media_reader import media_reader as mr
 class MocapPlayer(AbstractMediaPlayer):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.media_backend = MocapBackend(self)  # setting parent to self
-
-    def load(self, path):
-        media = mr(path)
-        self.media_backend.media = media
-        self.layout().addWidget(self.media_backend)
-        self.n_frames = len(media)
-        self.update_media_position()
-        self.loaded.emit(self)
-
-    def update_media_position(self):
-        pos = self.position + self.offset
-        pos_adjusted = max(0, min(pos, self.n_frames - 1))
-        self.media_backend.set_position(pos_adjusted)
-
-    def shutdown(self):
-        self.setFixedSize(0, 0)
-        self.hide()
-        self.media_backend.shutdown()
-        self.media_backend = None
-        self.terminated = True
-        self.finished.emit(self)
-        logging.debug("MocapPlayer shutdown")
-
-    @property
-    def fps(self):
-        return self.media_backend.media.fps
-
-
-class MocapBackend(gl.GLViewWidget):
-    right_mouse_btn_clicked = qtc.pyqtSignal()
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        self.setLayout(qtw.QHBoxLayout())
         self.media = None
-        self.position = None
+
+        self.graph = gl.GLViewWidget()
+        # allow only mouse events
+        self.graph.keyPressEvent = lambda event: None
+        self.graph.keyReleaseEvent = lambda event: None
 
         self.zgrid = gl.GLGridItem()
-        self.addItem(self.zgrid)
+
+        self.graph.addItem(self.zgrid)
 
         self.current_skeleton = gl.GLLinePlotItem(
             pos=np.array([[0, 0, 0], [0, 0, 0]]),
             color=np.array([[0, 0, 0, 0], [0, 0, 0, 0]]),
             mode="lines",
         )
-        self.addItem(self.current_skeleton)
-
-    @qtc.pyqtSlot(int)
-    def set_position(self, new_pos):
-        self.position = new_pos  # update position
-        if self.media is not None:
-            skeleton = self.get_skeleton(self.position)
-            self.current_skeleton.setData(
-                pos=skeleton, color=np.array(_skeleton_colors), width=4, mode="lines"
-            )
+        self.graph.addItem(self.current_skeleton)
+        self.layout().addWidget(self.graph)
 
     def get_skeleton(self, idx):
         array = self.media[idx]
@@ -74,19 +37,29 @@ class MocapBackend(gl.GLViewWidget):
         skeleton = _fix_skeleton_height(skeleton)
         return skeleton
 
-    def devicePixelRatio(self):
-        """
-        Overwriting this method to prevent the GLViewWidget from using the devicePixelRatio
-        returned by the QOpenGLWidget. This is necessary because QtOpenGL.QGLWidget.devicePixelRatio(self)
-        returns 1 a.t.m., even if the application uses scaling != 1.0.
-        """
-        return qtw.QApplication.primaryScreen().devicePixelRatio()
+    def load(self, path):
+        self.media = mr(path)
+        self.n_frames = len(self.media)
+        self.fps = self.media.fps
+        self.update_media_position()
+        self.loaded.emit(self)
+
+    def update_media_position(self):
+        pos = self.position + self.offset
+        pos_adjusted = max(0, min(pos, self.n_frames - 1))
+        if self.media is not None:
+            skeleton = self.get_skeleton(pos_adjusted)
+            self.current_skeleton.setData(
+                pos=skeleton, color=np.array(_skeleton_colors), width=4, mode="lines"
+            )
 
     def shutdown(self):
+        self.setFixedSize(0, 0)
+        self.hide()
         self.media = None
-        self.position = None
-        self.current_skeleton = None
-        self.zgrid = None
+        self.terminated = True
+        self.finished.emit(self)
+        logging.debug("MocapPlayer shutdown")
 
 
 def _fix_skeleton_height(skeleton: np.ndarray) -> np.ndarray:

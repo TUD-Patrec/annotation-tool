@@ -9,6 +9,7 @@ from annotation_tool.annotation.modes import AnnotationMode
 from annotation_tool.dialogs.annotation_list import GlobalStatesDialog
 from annotation_tool.settings import settings
 from annotation_tool.user_actions import (
+    get_action,
     get_annotation_actions,
     get_edit_actions,
     get_replay_actions,
@@ -267,11 +268,11 @@ class GUI(qtw.QMainWindow, DialogManager):
         self._exit()
 
     def keyPressEvent(self, a0: qtg.QKeyEvent) -> None:
-        print(a0.key())
-
-        # minimze
-        # print("minimizing")
-        # self.showMinimized()
+        key = a0.key()
+        key_event = qtg.QKeySequence(key)
+        action = get_action(key_event)
+        if action is not None:
+            self.emit_action(action)
 
     def _exit(self):
         self.close_dialog()

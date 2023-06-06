@@ -141,7 +141,6 @@ class NewAnnotationDialog(qtw.QDialog):
         self.check_enabled()
         if self.open_button.isEnabled():
             try:
-                print(f"{self.input_path = } \n {Path(self.input_path) = }")
                 media_reader = mr(Path(self.input_path))
                 if len(media_reader) < 1000:
                     msg = qtw.QMessageBox(self)

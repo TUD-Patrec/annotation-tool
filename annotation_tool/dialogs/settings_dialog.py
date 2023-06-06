@@ -1,6 +1,7 @@
 import logging
 
 import PyQt6.QtCore as qtc
+import PyQt6.QtGui as qtg
 import PyQt6.QtWidgets as qtw
 
 from annotation_tool.settings import settings
@@ -25,7 +26,11 @@ class SettingsDialog(qtw.QDialog):
         self.annotator_id_layout = qtw.QHBoxLayout()
         self.annotator_id_label = qtw.QLabel("Annotator ID:")
         self.annotator_id_edit = qtw.QLineEdit()
+        only_int = qtg.QIntValidator()
         self.annotator_id_edit.setText(str(self.settings.annotator_id))
+        self.annotator_id_edit.setValidator(only_int)
+        self.annotator_id_edit.setMaxLength(3)
+        self.annotator_id_edit.textChanged.connect(self.annotator_id_changed)
         self.annotator_id_layout.addWidget(self.annotator_id_label)
         self.annotator_id_layout.addWidget(self.annotator_id_edit)
         self.layout.addLayout(self.annotator_id_layout)
@@ -109,6 +114,10 @@ class SettingsDialog(qtw.QDialog):
 
     def reset_settings(self):
         self.annotator_id_edit.setText(str(self.settings.get_default("annotator_id")))
+
+    def annotator_id_changed(self):
+        if self.annotator_id_edit.text() != "":
+            self.settings.annotator_id = int(self.annotator_id_edit.text())
 
     def accept(self):
         # only allow numbers in annotator ID field
