@@ -28,7 +28,7 @@ format:
 
 clean:
 	rm -rf build dist __pycache__ *.spec
-	find annotation_tool -type d -name '__pycache__' -delete -print
+	find annotation_tool -type d -name '__pycache__' -print -prune -exec rm -r {} \;
 
 build-linux:
 	docker run --rm -e "PLATFORMS=linux" -v $(CURDIR):/src --entrypoint="/bin/sh" fydeinc/pyinstaller -c "pip install --upgrade pip && pip install poetry && poetry config virtualenvs.create false && poetry install --without=dev --with=build && /entrypoint.sh --onefile --name annotation-tool /src/main.py"
