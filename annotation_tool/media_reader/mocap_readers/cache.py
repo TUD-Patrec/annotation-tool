@@ -43,7 +43,7 @@ class ArrayCache(object):
         self._lock = threading.Lock()
         self._compress = compress
 
-        self._max_size_bytes = max_size_mb * 2 ** 20
+        self._max_size_bytes = max_size_mb * 2**20
         self._current_size_bytes = 0
 
         logging.debug(f"Initialized {self}")
@@ -53,8 +53,8 @@ class ArrayCache(object):
 
     def __repr__(self):
         _len = len(self._cache)
-        _size_mb = math.ceil(self._current_size_bytes / 2 ** 20)
-        _max_size_mb = math.ceil(self._max_size_bytes / 2 ** 20)
+        _size_mb = math.ceil(self._current_size_bytes / 2**20)
+        _max_size_mb = math.ceil(self._max_size_bytes / 2**20)
         return f"{self.__class__.__name__}(N={_len}, max_size={_max_size_mb}MB, filled={_size_mb / _max_size_mb * 100:.2f}%, compress={self._compress})"
 
     def __contains__(self, _key):

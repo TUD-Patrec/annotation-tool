@@ -8,8 +8,6 @@ from annotation_tool.utility.filehandler import checksum
 from .base import MocapReaderBase, register_mocap_reader
 from .cache import get_cache
 
-_mocap_cache = {}
-
 
 def load_lara_mocap(path: Path, normalize: bool) -> np.ndarray:
     """
@@ -55,7 +53,7 @@ def __load_lara_mocap__(path: Path, normalize: bool) -> np.ndarray:
         """
         try:
             tst_array = np.fromstring(line2check, dtype=np.float64, sep=",")
-            return tst_array.shape[0] in [132, 134]
+            return tst_array.shape[0] in [132, 133, 134]
         except ValueError:
             return False
 
@@ -78,6 +76,9 @@ def __load_lara_mocap__(path: Path, normalize: bool) -> np.ndarray:
 
             if array.shape[1] == 134:
                 array = array[:, 2:]
+
+            if array.shape[1] == 133:
+                array = array[:, 1:]
 
             if normalize:
                 array = __normalize_lara_mocap__(array)
