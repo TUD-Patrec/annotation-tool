@@ -136,13 +136,21 @@ class RetrievalAnnotation(AnnotationBaseClass):
     def modify(self):
         if self.enabled:
             if self.current_element:
-                dialog = QAnnotationDialog(
-                    self.current_element, self.scheme, self.dependencies
+                _sample = self.current_element.as_sample()
+                dialog = QAnnotationDialog(_sample, self.scheme, self.dependencies)
+                dialog.annotation_changed.connect(
+                    lambda sample, new_annotation: self.update_annotation(
+                        new_annotation
+                    )
                 )
-                dialog.finished.connect(lambda _: self.element_changed())
                 self.open_dialog(dialog)
             else:
                 self.update_UI.emit(self.query, self.current_element)
+
+    def update_annotation(self, new_annotation):
+        if self.current_element:
+            self.current_element.annotation = new_annotation
+            self.element_changed()
 
     @qtc.pyqtSlot()
     def accept(self):
