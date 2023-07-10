@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). See also [RELEASE.md](RELEASE.md) for additional explanation.
 
+## 0.10.0 (2023-07-10)
+
+### 🚀 Features
+
+- Update readable csv-formats for LARa-dataset (#53)
+- Update LARa-Reader to new csv-format (#54)
+
+### 🐛 Fixes
+
+- Update LARa-Reader to new csv-format (#54)
+
+### 🧹 Refactoring
+
+- Update LARa-Reader to new csv-format (#54)
+
 ## 0.9.0 (2023-06-06)
 
 ### ❗️ Breaking Changes
